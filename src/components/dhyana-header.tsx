@@ -1,5 +1,6 @@
 "use client";
 
+import { BadgeInfo } from "lucide-react";
 import { STAGGER_CHILD_VARIANTS } from "@/lib/utils";
 import { motion } from "framer-motion";
 
