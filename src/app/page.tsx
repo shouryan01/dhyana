@@ -1,9 +1,6 @@
-import { BadgeInfo } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import Chat from "@/components/chat";
 import DhyanaHeader from "@/components/dhyana-header";
 import FadeInWrapper from "@/components/fade-in-wrapper";
-import Link from "next/link";
 
 export default function Home() {
 	return (
