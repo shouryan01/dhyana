@@ -38,7 +38,7 @@ export default function About() {
 							<li>advanced AI and search features</li>
 						</ul>
 
-						<div className="text-md font-serif m-10">lastly:</div>
+						<div className="text-md font-serif m-10">lastly!</div>
 						<ul className="list-none">
 							<li>dhyāna will always have a free option</li>
 							<li>dhyāna will always have a 100% local, offline option</li>
