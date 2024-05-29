@@ -4,10 +4,11 @@ meditation and self-reflection AI journal
 ## tech stack
 
 - [next.js 14](https://nextjs.org)
-- [vercel ai sdk](https://github.com/vercel/ai)
 - [tailwind css](https://tailwindcss.com)
+- [shadcn/ui](https://ui.shadcn.com)
+- [bun.sh](https://github.com/oven-sh/bun)
 - [biome.js](https://biomejs.dev)
-- [shadcn/ui](https://ui.shadcn.com) s
+
 
 ## development
 
