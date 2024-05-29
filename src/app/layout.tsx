@@ -1,7 +1,9 @@
 import "./globals.css";
 
+import { Analytics } from "@vercel/analytics/react";
 import { Inter } from "next/font/google";
 import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ViewTransitions } from "next-view-transitions";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -18,8 +20,12 @@ export default function RootLayout({
 }>) {
 	return (
 		<ViewTransitions>
-			<html lang="en">
-				<body className={inter.className}>{children}</body>
+			<html lang="en" className="hidescroll bg-stone-200">
+				<body className={inter.className}>
+					{children}
+					<Analytics />
+					<SpeedInsights />
+				</body>
 			</html>
 		</ViewTransitions>
 	);
