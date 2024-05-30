@@ -7,21 +7,63 @@ import * as Button from "@/components/ui/button";
 import * as Input from "@/components/ui/input";
 import * as Select from "@/components/ui/select";
 
+import {
+	BlockNoteEditor,
+	type Block,
+	type PartialBlock,
+} from "@blocknote/core";
+import { useEffect, useMemo, useState } from "react";
+
 import { BlockNoteView } from "@blocknote/shadcn";
 import { Button as ExportButton } from "./ui/button";
 import { FileDown } from "lucide-react";
+import { ResetFormatting } from "./ResetFormatting";
 import { STAGGER_CHILD_VARIANTS } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useCreateBlockNote } from "@blocknote/react";
-import { useState } from "react";
+
+async function saveToStorage(jsonBlocks: Block[]) {
+	localStorage.setItem("editorContent", JSON.stringify(jsonBlocks));
+}
+
+async function loadFromStorage() {
+	const storageString = localStorage.getItem("editorContent");
+	return storageString
+		? (JSON.parse(storageString) as PartialBlock[])
+		: undefined;
+}
 
 export default function Editor() {
+	const [initialContent, setInitialContent] = useState<
+		PartialBlock[] | undefined | "loading"
+	>("loading");
 	const [markdown, setMarkdown] = useState<string>("");
-	const editor = useCreateBlockNote();
+
+	useEffect(() => {
+		loadFromStorage().then((content) => {
+			setInitialContent(content);
+		});
+	}, []);
+
+	const editor = useMemo(() => {
+		if (initialContent === "loading") {
+			return undefined;
+		}
+		return BlockNoteEditor.create({ initialContent });
+	}, [initialContent]);
+
+	if (editor === undefined) {
+		return "Loading content...";
+	}
 
 	const onChange = async () => {
 		const markdown = await editor.blocksToMarkdownLossy(editor.document);
 		setMarkdown(markdown);
+	};
+
+	const handleChange = async () => {
+		onChange();
+		saveToStorage(editor.document);
 	};
 
 	const handleExport = () => {
@@ -44,7 +86,7 @@ export default function Editor() {
 						Input,
 					}}
 					className="w-96 bg-slate-300"
-					onChange={onChange}
+					onChange={handleChange}
 				/>
 				<ExportButton
 					variant="link"
