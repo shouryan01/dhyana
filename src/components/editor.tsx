@@ -17,10 +17,17 @@ import { useEffect, useMemo, useState } from "react";
 import { BlockNoteView } from "@blocknote/shadcn";
 import { Button as ExportButton } from "./ui/button";
 import { FileDown } from "lucide-react";
-import { ResetFormatting } from "./ResetFormatting";
+import { ResetType } from "./ResetFormatting";
 import { STAGGER_CHILD_VARIANTS } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { useCreateBlockNote } from "@blocknote/react";
+import {
+	BlockColorsItem,
+	DragHandleMenu,
+	RemoveBlockItem,
+	SideMenu,
+	SideMenuController,
+	useCreateBlockNote,
+} from "@blocknote/react";
 
 async function saveToStorage(jsonBlocks: Block[]) {
 	localStorage.setItem("editorContent", JSON.stringify(jsonBlocks));
@@ -87,7 +94,23 @@ export default function Editor() {
 					}}
 					className="w-96 bg-slate-300"
 					onChange={handleChange}
-				/>
+					sideMenu={false}
+				>
+					<SideMenuController
+						sideMenu={(props) => (
+							<SideMenu
+								{...props}
+								dragHandleMenu={(props) => (
+									<DragHandleMenu {...props}>
+										<RemoveBlockItem {...props}>Delete</RemoveBlockItem>
+										<BlockColorsItem {...props}>Colors</BlockColorsItem>
+										<ResetType {...props}>Reset Type</ResetType>
+									</DragHandleMenu>
+								)}
+							/>
+						)}
+					/>
+				</BlockNoteView>
 				<ExportButton
 					variant="link"
 					onClick={handleExport}
