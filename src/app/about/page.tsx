@@ -1,31 +1,31 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import FadeInWrapper from "@/components/fade-in-wrapper";
-import { Link } from "next-view-transitions";
+import { Button } from "@/components/ui/button";
 import { STAGGER_CHILD_VARIANTS } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { Link } from "next-view-transitions";
 
 export default function About() {
 	return (
 		<FadeInWrapper>
-			<main className="flex flex-col justify-center items-center bg-stone-200 text-stone-600 font-serif h-screen overflow-hidden">
+			<main className="flex flex-col justify-center items-center font-serif h-screen overflow-hidden bg-stone-200 text-stone-600 dark:bg-stone-600 dark:text-stone-200">
 				<Link href="/">
 					<Button variant="ghost" className="fixed top-10 left-10">
 						back
 					</Button>
 				</Link>
 
-				<div className="flex flex-col max-w-3xl">
+				<div className="flex flex-col max-w-3xl font-serif">
 					<span className="text-3xl font-serif dhyana">about</span>
 					<motion.div variants={STAGGER_CHILD_VARIANTS}>
-						<div className="text-md font-serif m-10">why build dhyāna?</div>
+						<div className="text-md m-10">why build dhyāna?</div>
 						<ul className="list-none">
 							<li>many great journaling apps already exist.</li>
 							<li>pen and paper exists.</li>
 						</ul>
 
-						<div className="text-md font-serif m-10">vision:</div>
+						<div className="text-md m-10">vision:</div>
 						<ul>
 							<li>
 								help beginners put feelings into writing (i struggle with this)
@@ -38,7 +38,7 @@ export default function About() {
 							<li>advanced AI and search features</li>
 						</ul>
 
-						<div className="text-md font-serif m-10">lastly!</div>
+						<div className="text-md m-10">lastly!</div>
 						<ul className="list-none">
 							<li>dhyāna will always have a free option</li>
 							<li>dhyāna will always have a 100% local, offline option</li>

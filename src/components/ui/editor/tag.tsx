@@ -3,6 +3,7 @@ import {
 	type DefaultReactSuggestionItem,
 	createReactInlineContentSpec,
 } from "@blocknote/react";
+import type { schema } from "./theme-schema";
 
 export const Emotion = createReactInlineContentSpec(
 	{
@@ -93,11 +94,3 @@ export const getPersonMenuItems = (
 		},
 	}));
 };
-
-export const schema = BlockNoteSchema.create({
-	inlineContentSpecs: {
-		...defaultInlineContentSpecs,
-		emotion: Emotion,
-		person: Person,
-	},
-});

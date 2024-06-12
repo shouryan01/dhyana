@@ -1,26 +1,22 @@
 "use client";
 
-import "@blocknote/core/fonts/inter.css";
-import "@blocknote/shadcn/style.css";
-
-import * as Button from "@/components/ui/button";
-import * as Input from "@/components/ui/input";
-import * as Select from "@/components/ui/select";
-
-import {
-	BlockNoteEditor,
-	filterSuggestionItems,
-	type Block,
-	type PartialBlock,
-} from "@blocknote/core";
 import { useEffect, useMemo, useState } from "react";
 
-import { BlockNoteView } from "@blocknote/shadcn";
-import { Button as ExportButton } from "../button";
-import { FileDown } from "lucide-react";
-import { ResetType } from "./ResetFormatting";
-import { STAGGER_CHILD_VARIANTS } from "@/lib/utils";
-import { motion } from "framer-motion";
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/mantine/style.css";
+
+import {
+	type Block,
+	BlockNoteEditor,
+	type PartialBlock,
+	filterSuggestionItems,
+} from "@blocknote/core";
+import {
+	BlockNoteView,
+	type Theme,
+	darkDefaultTheme,
+	lightDefaultTheme,
+} from "@blocknote/mantine";
 import {
 	BlockColorsItem,
 	DragHandleMenu,
@@ -29,18 +25,16 @@ import {
 	SideMenuController,
 	SuggestionMenuController,
 } from "@blocknote/react";
-import { getEmotionMenuItems, getPersonMenuItems, schema } from "./tag";
 
-async function saveToStorage(jsonBlocks: Block[]) {
-	localStorage.setItem("editorContent", JSON.stringify(jsonBlocks));
-}
+import { STAGGER_CHILD_VARIANTS } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { FileDown } from "lucide-react";
 
-async function loadFromStorage() {
-	const storageString = localStorage.getItem("editorContent");
-	return storageString
-		? (JSON.parse(storageString) as PartialBlock[])
-		: undefined;
-}
+import { Button as ExportButton } from "../button";
+import { loadFromStorage, saveToStorage } from "./storage";
+import { getCustomSlashMenuItems } from "./suggestion-menu";
+import { getEmotionMenuItems } from "./tag";
+import { dhyanaTheme, schema } from "./theme-schema";
 
 export default function Editor() {
 	const [initialContent, setInitialContent] = useState<
@@ -65,13 +59,10 @@ export default function Editor() {
 		return "Loading content...";
 	}
 
-	const onChange = async () => {
+	const handleChange = async () => {
 		const markdown = await editor.blocksToMarkdownLossy(editor.document);
 		setMarkdown(markdown);
-	};
-
-	const handleChange = async () => {
-		onChange();
+		//@ts-ignore
 		saveToStorage(editor.document);
 	};
 
@@ -89,43 +80,26 @@ export default function Editor() {
 			<div className="flex flex-col item-center mb-24 w-full">
 				<BlockNoteView
 					editor={editor}
-					shadCNComponents={{
-						Select,
-						Button,
-						Input,
-					}}
-					className="w-96 bg-slate-300"
+					className="w-96"
 					onChange={handleChange}
-					sideMenu={false}
+					theme={dhyanaTheme}
+					slashMenu={false}
 				>
+					<SuggestionMenuController
+						triggerCharacter={"/"}
+						getItems={async (query) =>
+							//@ts-ignore
+							filterSuggestionItems(getCustomSlashMenuItems(editor), query)
+						}
+					/>
 					<SuggestionMenuController
 						triggerCharacter={"#"}
 						getItems={async (query) =>
 							filterSuggestionItems(getEmotionMenuItems(editor), query)
 						}
 					/>
-					{/* Uncomment when accounts and people are implemented */}
-					{/* <SuggestionMenuController
-						triggerCharacter={"@"}
-						getItems={async (query) =>
-							filterSuggestionItems(getPersonMenuItems(editor), query)
-						}
-					/> */}
-					<SideMenuController
-						sideMenu={(props) => (
-							<SideMenu
-								{...props}
-								dragHandleMenu={(props) => (
-									<DragHandleMenu {...props}>
-										<RemoveBlockItem {...props}>Delete</RemoveBlockItem>
-										<BlockColorsItem {...props}>Colors</BlockColorsItem>
-										<ResetType {...props}>Reset Type</ResetType>
-									</DragHandleMenu>
-								)}
-							/>
-						)}
-					/>
 				</BlockNoteView>
+
 				<ExportButton
 					variant="link"
 					onClick={handleExport}
