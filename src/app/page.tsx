@@ -1,24 +1,17 @@
-import Chat from "@/components/chat";
 import DhyanaHeader from "@/components/dhyana-header";
 import FadeInWrapper from "@/components/fade-in-wrapper";
+import dynamic from "next/dynamic";
 
 export default function Home() {
+	const Editor = dynamic(() => import("@/components/ui/editor/editor"), {
+		ssr: false,
+	});
+
 	return (
 		<FadeInWrapper>
-			<main className="flex flex-col justify-between items-center bg-stone-200 text-stone-600 font-serif h-screen overflow-hidden">
+			<main className="flex flex-col justify-between items-center bg-stone-200 text-stone-600 dark:bg-stone-600 dark:text-stone-200 font-serif h-lvh">
 				<DhyanaHeader />
-				<Chat />
-
-				{/* <Link href="/about">
-					<Button variant="ghost" className="fixed right-0">
-						About
-						<BadgeInfo className="w-5 h-5 ml-1" />
-					</Button>
-				</Link> */}
-				{/* <div className="justify-between h-screen">
-					<DhyanaHeader />
-					<Chat />
-				</div> */}
+				<Editor />
 			</main>
 		</FadeInWrapper>
 	);
