@@ -11,7 +11,7 @@ export default function About() {
 		<FadeInWrapper>
 			<main className="flex flex-col justify-center items-center font-serif h-screen overflow-hidden bg-stone-200 text-stone-600 dark:bg-stone-600 dark:text-stone-200">
 				<Link href="/">
-					<Button variant="ghost" className="fixed top-10 left-10">
+					<Button variant="ghost" className="fixed top-7 right-7">
 						back
 					</Button>
 				</Link>
