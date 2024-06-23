@@ -8,6 +8,7 @@ meditation and self-reflection AI journal
 - [shadcn/ui](https://ui.shadcn.com)
 - [bun.sh](https://github.com/oven-sh/bun)
 - [biome.js](https://biomejs.dev)
+- [clerk](https://clerk.com/)
 
 
 ## development
