@@ -6,25 +6,12 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
 import {
-	type Block,
 	BlockNoteEditor,
 	type PartialBlock,
 	filterSuggestionItems,
 } from "@blocknote/core";
-import {
-	BlockNoteView,
-	type Theme,
-	darkDefaultTheme,
-	lightDefaultTheme,
-} from "@blocknote/mantine";
-import {
-	BlockColorsItem,
-	DragHandleMenu,
-	RemoveBlockItem,
-	SideMenu,
-	SideMenuController,
-	SuggestionMenuController,
-} from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import { SuggestionMenuController } from "@blocknote/react";
 
 import { STAGGER_CHILD_VARIANTS } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -77,10 +64,9 @@ export default function Editor() {
 
 	return (
 		<motion.h1 variants={STAGGER_CHILD_VARIANTS}>
-			<div className="flex flex-col item-center mb-24 w-full">
+			<div className="flex flex-col item-center mb-24 w-full max-w-6xl mx-auto">
 				<BlockNoteView
 					editor={editor}
-					className="w-96"
 					onChange={handleChange}
 					theme={dhyanaTheme}
 					slashMenu={false}
