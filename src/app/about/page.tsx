@@ -1,17 +1,17 @@
 "use client";
 
-import FadeInWrapper from "@/components/fade-in-wrapper";
 import { Button } from "@/components/ui/button";
+import FadeInWrapper from "@/components/fade-in-wrapper";
+import { Link } from "next-view-transitions";
 import { STAGGER_CHILD_VARIANTS } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Link } from "next-view-transitions";
 
 export default function About() {
 	return (
 		<FadeInWrapper>
 			<main className="flex flex-col justify-center items-center font-serif h-screen overflow-hidden bg-stone-200 text-stone-600 dark:bg-stone-600 dark:text-stone-200">
 				<Link href="/">
-					<Button variant="ghost" className="fixed top-10 left-10">
+					<Button variant="ghost" className="fixed top-7 right-7">
 						back
 					</Button>
 				</Link>

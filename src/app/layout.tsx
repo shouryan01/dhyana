@@ -1,10 +1,11 @@
 import "./globals.css";
 
 import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import type { Metadata } from "next";
-import { ViewTransitions } from "next-view-transitions";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Inter } from "next/font/google";
+import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ViewTransitions } from "next-view-transitions";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,13 +21,18 @@ export default function RootLayout({
 }>) {
 	return (
 		<ViewTransitions>
-			<html lang="en" className="hidescroll bg-stone-200 dark:bg-stone-600">
-				<body className={inter.className}>
-					{children}
-					<Analytics />
-					<SpeedInsights />
-				</body>
-			</html>
+			<ClerkProvider>
+				<html
+					lang="en"
+					className="hidescroll bg-stone-200 dark:bg-stone-600 font-serif"
+				>
+					<body className={inter.className}>
+						{children}
+						<Analytics />
+						<SpeedInsights />
+					</body>
+				</html>
+			</ClerkProvider>
 		</ViewTransitions>
 	);
 }

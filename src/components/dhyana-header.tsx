@@ -7,18 +7,18 @@ import { motion } from "framer-motion";
 
 export default function DhyanaHeader() {
 	return (
-		<header className="flex flex-col items-center p-24">
+		<header className="flex flex-col items-center p-24 text-stone-400">
 			<Link href="/about">
-				<Button variant="ghost" className="fixed top-10 left-10 about">
+				<Button variant="ghost" className="fixed top-7 right-7 about">
 					about
 				</Button>
 			</Link>
-			<span className="text-3xl font-serif dhyana">dhyāna</span>
-			<motion.div variants={STAGGER_CHILD_VARIANTS}>
-				<span className="text-md font-serif">
+			<div className="fixed top-7 left-7">
+				<div className="text-3xl font-serif dhyana text-stone-500">dhyāna</div>
+				<div className="text-md font-serif text-xs">
 					meditation and self-reflection AI journal
-				</span>
-			</motion.div>
+				</div>
+			</div>
 		</header>
 	);
 }
