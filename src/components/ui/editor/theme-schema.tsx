@@ -95,8 +95,10 @@ export const schema = BlockNoteSchema.create({
 	},
 });
 
+// https://tailwindcss.com/docs/customizing-colors
 // stone-600 #57534e
 // stone-500 #78716c
 // stone-400 #a8a29e
 // stone-300 #d6d3d1
 // stone-200 #e7e5e4
+// stone-100 #f5f5f4

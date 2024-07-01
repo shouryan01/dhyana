@@ -1,11 +1,11 @@
 import "./globals.css";
 
-import { Analytics } from "@vercel/analytics/react";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Inter } from "next/font/google";
-import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import type { Metadata } from "next";
 import { ViewTransitions } from "next-view-transitions";
+import { Inter } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,7 +21,14 @@ export default function RootLayout({
 }>) {
 	return (
 		<ViewTransitions>
-			<ClerkProvider>
+			<ClerkProvider
+				appearance={{
+					variables: {
+						colorText: "#57534e",
+						colorBackground: "#f5f5f4",
+					},
+				}}
+			>
 				<html
 					lang="en"
 					className="hidescroll bg-stone-200 dark:bg-stone-600 font-serif"

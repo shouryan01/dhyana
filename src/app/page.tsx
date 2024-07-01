@@ -1,8 +1,8 @@
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-
-import { CircleUser } from "lucide-react";
-import DhyanaHeader from "@/components/dhyana-header";
+import AccountUI from "@/components/account-ui";
+import DhyanaHeader from "@/components/branding/dhyana-landing-title";
 import FadeInWrapper from "@/components/fade-in-wrapper";
+import { AboutButton } from "@/components/ui/buttons/about-button";
+import { formatDate } from "@/lib/utils";
 import { Link } from "next-view-transitions";
 import dynamic from "next/dynamic";
 
@@ -11,22 +11,17 @@ export default function Home() {
 		ssr: false,
 	});
 
+	const date = new Date();
+	const today = formatDate(date);
+
 	return (
 		<FadeInWrapper>
-			<main className="flex flex-col justify-between items-center bg-stone-200 text-stone-600 dark:bg-stone-600 dark:text-stone-200 font-serif h-lvh">
+			<main className="justify-between items-center bg-stone-200 text-stone-600 dark:bg-stone-600 dark:text-stone-200 font-serif h-lvh">
+				<AboutButton />
+				<AccountUI />
 				<DhyanaHeader />
-				<div className="w-full max-w-7xl">
-					<Editor />
-				</div>
-				<div className="fixed bottom-2 right-2">
-					<SignedIn>
-						<UserButton />
-					</SignedIn>
-					<SignedOut>
-						<Link href="/sign-in" className="fixed bottom-2 right-2">
-							<CircleUser className="h-6 w-6 hover:scale-125 duration-100" />
-						</Link>
-					</SignedOut>
+				<div>
+					<Link href={`/write/${today}`}>write</Link>
 				</div>
 			</main>
 		</FadeInWrapper>

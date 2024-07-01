@@ -1,10 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import FadeInWrapper from "@/components/fade-in-wrapper";
-import { Link } from "next-view-transitions";
-import { STAGGER_CHILD_VARIANTS } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ABOUT_CHILD_VARIANTS } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { Link } from "next-view-transitions";
 
 export default function About() {
 	return (
@@ -17,8 +17,8 @@ export default function About() {
 				</Link>
 
 				<div className="flex flex-col max-w-3xl font-serif">
-					<span className="text-3xl font-serif dhyana">about</span>
-					<motion.div variants={STAGGER_CHILD_VARIANTS}>
+					<span className="text-3xl font-serif about">about</span>
+					<motion.div variants={ABOUT_CHILD_VARIANTS}>
 						<div className="text-md m-10">why build dhyāna?</div>
 						<ul className="list-none">
 							<li>many great journaling apps already exist.</li>

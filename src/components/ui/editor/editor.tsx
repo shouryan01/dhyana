@@ -43,7 +43,11 @@ export default function Editor() {
 	}, [initialContent]);
 
 	if (editor === undefined) {
-		return "Loading content...";
+		return (
+			<div className="flex justify-center items-center h-screen w-full">
+				Loading content...
+			</div>
+		);
 	}
 
 	const handleChange = async () => {
@@ -64,7 +68,7 @@ export default function Editor() {
 
 	return (
 		<motion.h1 variants={STAGGER_CHILD_VARIANTS}>
-			<div className="flex flex-col item-center mb-24 w-full max-w-6xl mx-auto">
+			<div className="flex flex-col item-center mb-24 w-full max-w-7xl mx-auto">
 				<BlockNoteView
 					editor={editor}
 					onChange={handleChange}
@@ -87,11 +91,11 @@ export default function Editor() {
 				</BlockNoteView>
 
 				<ExportButton
-					variant="link"
+					variant="ghost"
 					onClick={handleExport}
-					className="text-stone-400"
+					className="text-stone-400 fixed bottom-0 left-0"
 				>
-					<FileDown className="mr-2 h-4 w-4" /> Export
+					<FileDown className="mr-1 h-4 w-4" /> Export
 				</ExportButton>
 			</div>
 		</motion.h1>
