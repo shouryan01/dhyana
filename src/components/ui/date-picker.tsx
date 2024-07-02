@@ -19,7 +19,7 @@ export function DatePicker({ slug }: { slug: string }) {
 	const [date, setDate] = React.useState<Date>(new Date());
 	const router = useRouter();
 
-	const handleDateSelect = (newDate: Date | undefined) => {
+	const handleDateSelect = (newDate: Date) => {
 		setDate(newDate);
 		if (newDate) {
 			const formattedDate = format(newDate, "yyyy-MM-dd");
@@ -30,7 +30,7 @@ export function DatePicker({ slug }: { slug: string }) {
 	useEffect(() => {
 		const parsedDate = parse(slug, "yyyy-MM-dd", new Date());
 		setDate(parsedDate);
-	}, [router.query]);
+	}, [slug]);
 
 	const disableFutureDates = (date: Date) => {
 		const today = new Date();
