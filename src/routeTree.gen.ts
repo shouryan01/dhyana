@@ -9,9 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PlateAiRouteImport } from './routes/plate-ai'
+import { Route as MdxeditorRouteImport } from './routes/mdxeditor'
+import { Route as CrepePlateRouteImport } from './routes/crepe-plate'
+import { Route as BlocknoteRouteImport } from './routes/blocknote'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
+const PlateAiRoute = PlateAiRouteImport.update({
+  id: '/plate-ai',
+  path: '/plate-ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MdxeditorRoute = MdxeditorRouteImport.update({
+  id: '/mdxeditor',
+  path: '/mdxeditor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrepePlateRoute = CrepePlateRouteImport.update({
+  id: '/crepe-plate',
+  path: '/crepe-plate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlocknoteRoute = BlocknoteRouteImport.update({
+  id: '/blocknote',
+  path: '/blocknote',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -26,31 +50,94 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/blocknote': typeof BlocknoteRoute
+  '/crepe-plate': typeof CrepePlateRoute
+  '/mdxeditor': typeof MdxeditorRoute
+  '/plate-ai': typeof PlateAiRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/blocknote': typeof BlocknoteRoute
+  '/crepe-plate': typeof CrepePlateRoute
+  '/mdxeditor': typeof MdxeditorRoute
+  '/plate-ai': typeof PlateAiRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/blocknote': typeof BlocknoteRoute
+  '/crepe-plate': typeof CrepePlateRoute
+  '/mdxeditor': typeof MdxeditorRoute
+  '/plate-ai': typeof PlateAiRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/blocknote'
+    | '/crepe-plate'
+    | '/mdxeditor'
+    | '/plate-ai'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to:
+    | '/'
+    | '/about'
+    | '/blocknote'
+    | '/crepe-plate'
+    | '/mdxeditor'
+    | '/plate-ai'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/blocknote'
+    | '/crepe-plate'
+    | '/mdxeditor'
+    | '/plate-ai'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  BlocknoteRoute: typeof BlocknoteRoute
+  CrepePlateRoute: typeof CrepePlateRoute
+  MdxeditorRoute: typeof MdxeditorRoute
+  PlateAiRoute: typeof PlateAiRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/plate-ai': {
+      id: '/plate-ai'
+      path: '/plate-ai'
+      fullPath: '/plate-ai'
+      preLoaderRoute: typeof PlateAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mdxeditor': {
+      id: '/mdxeditor'
+      path: '/mdxeditor'
+      fullPath: '/mdxeditor'
+      preLoaderRoute: typeof MdxeditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crepe-plate': {
+      id: '/crepe-plate'
+      path: '/crepe-plate'
+      fullPath: '/crepe-plate'
+      preLoaderRoute: typeof CrepePlateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blocknote': {
+      id: '/blocknote'
+      path: '/blocknote'
+      fullPath: '/blocknote'
+      preLoaderRoute: typeof BlocknoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -71,6 +158,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  BlocknoteRoute: BlocknoteRoute,
+  CrepePlateRoute: CrepePlateRoute,
+  MdxeditorRoute: MdxeditorRoute,
+  PlateAiRoute: PlateAiRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
