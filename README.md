@@ -1,6 +1,6 @@
 <div align="center">
   <img src="public/logo.png" alt="Dhyana" width="80" />
-  <h1>Dhyana</h1>
+  <h1>dhyāna</h1>
   <p><strong>A quiet space for daily reflection.</strong></p>
   <p>Local-first journaling with AI-powered analysis, sentiment tracking, and smart tagging — all stored on your machine.</p>
 
