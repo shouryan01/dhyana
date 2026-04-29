@@ -1,66 +1,161 @@
-# Dhyana
+<div align="center">
+  <img src="public/logo.png" alt="Dhyana" width="80" />
+  <h1>Dhyana</h1>
+  <p><strong>A quiet space for daily reflection.</strong></p>
+  <p>Local-first journaling with AI-powered analysis, sentiment tracking, and smart tagging — all stored on your machine.</p>
 
-A quiet space for daily reflection. Dhyana is a local-first desktop journaling app with AI-powered analysis, sentiment tracking, and smart tagging.
+  ![Version](https://img.shields.io/badge/version-0.1.0-blue)
+  ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
+  ![License](https://img.shields.io/badge/license-MIT-green)
+</div>
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
-![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+- [Usage](#usage)
+- [Building](#building)
+- [Contributing](#contributing)
+
+---
+
+## Overview
+
+Dhyana (धyाना — Sanskrit for meditation) is a desktop journaling app built for people who want a calm, distraction-free space to write. It stays out of your way while you write, then surfaces patterns and insights once you're done.
+
+Everything runs locally. No accounts, no cloud sync, no data sent anywhere except the AI analysis calls you explicitly trigger.
+
+---
 
 ## Features
 
-- **Daily journal entries** — one entry per day with a rich markdown editor, auto-saved as you write
-- **Rishi AI** — analyzes your entry to generate a summary, sentiment score, and extract people and emotions mentioned
-- **Smart tagging** — use `@` to tag people, `#` for emotions/moods, and `$` for custom tags directly in your writing
-- **Analytics dashboard** — visualize sentiment trends, most-mentioned people, and mood patterns over 90 days
-- **Local-first** — all data stored in a local SQLite database; nothing leaves your machine
-- **Dark mode** — full light/dark theme support
+### Writing
+- **One entry per day** — focused, distraction-free editor with full Markdown support
+- **Auto-save** — changes are persisted automatically as you write with a short debounce
+- **Rich text editor** — powered by TipTap with support for headings, lists, links, and more
+
+### Rishi AI
+- **Summarization** — generates a concise one-sentence summary of your entry
+- **Sentiment analysis** — scores each entry on a -1.0 to +1.0 scale
+- **Smart extraction** — identifies people and emotions mentioned in your writing
+- Runs automatically 30 seconds after you stop typing
+
+### Smart Tagging
+Write naturally and use trigger characters to tag inline:
+
+| Character | Purpose |
+|---|---|
+| `@` | Tag people mentioned in your entry |
+| `#` | Track emotions and moods |
+| `$` | Custom user-defined tags |
+| `/` | Insert Markdown blocks (headings, lists, etc.) |
+
+All trigger characters are configurable in settings.
+
+### Analytics
+- **Sentiment trend** — line chart of your mood over the past 90 days
+- **People mentions** — bar chart of who appears most in your entries
+- **Mood cloud** — frequency visualization of tracked emotions
+
+### Privacy
+- All entries stored locally in SQLite — nothing syncs to the cloud
+- AI analysis is the only outbound network call, and only happens when you're writing
+
+---
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Desktop | [Tauri 2](https://tauri.app) |
-| Frontend | React 19, TypeScript, TanStack Router |
+| Desktop shell | [Tauri 2](https://tauri.app) + Rust |
+| Frontend framework | React 19, TypeScript |
+| Routing | TanStack Router (file-based) |
 | Editor | TipTap 3 |
 | Styling | Tailwind CSS 4, Radix UI |
 | Charts | Recharts |
 | AI | Vercel AI SDK + Google Gemini |
-| Database | SQLite (via Tauri SQL plugin) |
-| Build | Vite 7, Biome |
+| Database | SQLite via Tauri SQL plugin |
+| Build tooling | Vite 7, Biome |
+| Runtime | Bun |
+
+---
 
 ## Getting Started
 
-**Prerequisites:** Node.js, pnpm, and the [Rust toolchain](https://rustup.rs)
+### Prerequisites
+
+- [Bun](https://bun.sh) — JavaScript runtime and package manager
+- [Rust toolchain](https://rustup.rs) — required for Tauri desktop compilation
+
+### Installation
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Run in development (web only)
-pnpm dev
-
-# Run as a desktop app with hot reload
-pnpm tauri dev
+git clone https://github.com/shouryan01/dhyana.git
+cd dhyana
+bun install
 ```
 
-You'll need a Google Gemini API key for Rishi AI. Create a `.env` file in the root:
+### Configuration
 
-```
+Rishi AI requires a Google Gemini API key. Create a `.env` file in the project root:
+
+```env
 VITE_GEMINI_API_KEY=your_key_here
 ```
 
-## Build
+Get a free key at [aistudio.google.com](https://aistudio.google.com).
+
+---
+
+## Usage
+
+**Run the app in development mode:**
 
 ```bash
-# Build the desktop app for your platform
-pnpm tauri build
+bunx tauri dev
 ```
 
-Bundles are output to `src-tauri/target/release/bundle/`.
-
-## Other Commands
+**Run the frontend only (browser):**
 
 ```bash
-pnpm test      # Run tests (Vitest)
-pnpm lint      # Lint with Biome
-pnpm format    # Format with Biome
+bun run dev
 ```
+
+---
+
+## Building
+
+Build a production desktop app bundle for your current platform:
+
+```bash
+bunx tauri build
+```
+
+Output bundles (`.dmg`, `.exe`, `.AppImage`, etc.) are placed in `src-tauri/target/release/bundle/`.
+
+**Other commands:**
+
+```bash
+bun run test      # Run tests with Vitest
+bun run lint      # Lint with Biome
+bun run format    # Format with Biome
+```
+
+---
+
+## Contributing
+
+Contributions are welcome. Please open an issue before submitting a large pull request so we can discuss the approach.
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feat/your-feature`)
+3. Commit your changes
+4. Push and open a pull request
