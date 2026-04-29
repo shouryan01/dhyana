@@ -43,10 +43,15 @@ Everything runs locally. No accounts, no cloud sync, no data sent anywhere excep
 - **Rich text editor** — powered by TipTap with support for headings, lists, links, and more
 
 ### Rishi AI
+
+Rishi (ऋषि) is the Sanskrit word for a sage or seer — a witness who observes without judgement. It was chosen because the AI's role is not to evaluate or advise, but simply to reflect back what's already in your writing: who appeared, what you felt, and the overall tone of the entry.
+
 - **Summarization** — generates a concise one-sentence summary of your entry
 - **Sentiment analysis** — scores each entry on a -1.0 to +1.0 scale
 - **Smart extraction** — identifies people and emotions mentioned in your writing
 - Runs automatically 30 seconds after you stop typing
+
+**AI is fully optional.** You can disable Rishi entirely from Settings — no API key required, no outbound calls made. The rest of the app (editor, tagging, analytics) works without it.
 
 ### Smart Tagging
 Write naturally and use trigger characters to tag inline:
@@ -67,7 +72,7 @@ All trigger characters are configurable in settings.
 
 ### Privacy
 - All entries stored locally in SQLite — nothing syncs to the cloud
-- AI analysis is the only outbound network call, and only happens when you're writing
+- Rishi AI can be completely disabled in Settings — when off, the app makes zero outbound network calls
 
 ---
 
