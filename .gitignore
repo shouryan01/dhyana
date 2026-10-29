@@ -1,0 +1,10 @@
+node_modules/
+dist/
+target/
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
