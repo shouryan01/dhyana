@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { backend } from "@/lib";
-import type { AppState, Font, SettingsPatch, Theme } from "@/lib/backend";
+import { parseTheme, themeOf, type AppState, type Font, type SettingsPatch, type Theme } from "@/lib/backend";
 import { todayISO } from "@/lib/dates";
 
 type PaletteMode = "commands" | "goto-date";
@@ -18,7 +18,7 @@ interface AppContextValue {
   app: AppState | null;
   loadError: string | null;
   updateSettings(patch: SettingsPatch): Promise<void>;
-  /** Flip between dark and the light theme you were last using (dhyana or light). */
+  /** Flip light/dark within the current theme family (Dhyana or Default). */
   toggleMode(): Promise<void>;
   setVault(path: string): Promise<void>;
   /** Live-preview an appearance without persisting it (onboarding). Pass null to revert. */
@@ -52,24 +52,6 @@ export function useApp(): AppContextValue {
   const v = useContext(Ctx);
   if (!v) throw new Error("useApp outside AppProvider");
   return v;
-}
-
-const LAST_LIGHT_KEY = "dhyana:lastLightTheme";
-
-function rememberLight(theme: Theme) {
-  try {
-    localStorage.setItem(LAST_LIGHT_KEY, theme);
-  } catch {
-    /* storage unavailable: fall back to the dhyana theme */
-  }
-}
-
-function recallLight(): Theme {
-  try {
-    return localStorage.getItem(LAST_LIGHT_KEY) === "light" ? "light" : "paper";
-  } catch {
-    return "paper";
-  }
 }
 
 function applyAppearance(theme: Theme, font: Font) {
@@ -118,12 +100,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const toggleMode = useCallback(async () => {
     if (!app) return;
-    if (app.theme === "dark") {
-      await updateSettings({ theme: recallLight() });
-    } else {
-      rememberLight(app.theme);
-      await updateSettings({ theme: "dark" });
-    }
+    const { family, mode } = parseTheme(app.theme);
+    await updateSettings({ theme: themeOf(family, mode === "dark" ? "light" : "dark") });
   }, [app, updateSettings]);
 
   const setVault = useCallback(async (path: string) => {

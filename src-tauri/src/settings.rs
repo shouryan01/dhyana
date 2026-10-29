@@ -19,7 +19,7 @@ impl Default for Settings {
         Settings {
             onboarding_completed: false,
             vault_path: None,
-            theme: "paper".into(),
+            theme: "dhyana-light".into(),
             font: "serif".into(),
         }
     }
@@ -117,6 +117,6 @@ mod tests {
     fn partial_json_fills_defaults() {
         let s: Settings = serde_json::from_str(r#"{"onboardingCompleted":true}"#).unwrap();
         assert!(s.onboarding_completed);
-        assert_eq!(s.theme, "paper");
+        assert_eq!(s.theme, "dhyana-light");
     }
 }

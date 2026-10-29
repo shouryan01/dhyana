@@ -11,7 +11,7 @@ A quiet, offline-first journal. Your entries are plain markdown files in a folde
 
 <p>
   <img src="docs/images/palette.png" width="49%" alt="Command palette" />
-  <img src="docs/images/dark.png" width="49%" alt="Dark theme" />
+  <img src="docs/images/dark.png" width="49%" alt="Dhyana dark theme" />
 </p>
 
 ## Quick start

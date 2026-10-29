@@ -1,4 +1,4 @@
-import type { AppState, Backend, DayFile, SaveResult } from "./backend";
+import { AppStateSchema, type AppState, type Backend, type DayFile, type SaveResult } from "./backend";
 
 /**
  * In-memory/localStorage stand-in for the Rust core, used when the UI runs in a plain browser
@@ -38,12 +38,14 @@ const hash = (s: string) => {
 const now = () => new Date().toISOString();
 
 export function createMemoryBackend(): Backend {
-  let settings: AppState = read<AppState>(KEY_SETTINGS, {
+  const stored = read<AppState>(KEY_SETTINGS, {
     onboardingCompleted: false,
     vaultPath: null,
-    theme: "paper",
+    theme: "dhyana-light",
     font: "serif",
   });
+  // Run stored settings through the schema so older saved themes (paper/light/dark) migrate.
+  let settings: AppState = AppStateSchema.parse(stored);
   const files = read<Record<string, MemFile>>(KEY_FILES, {});
   const listeners = new Set<(dates: string[]) => void>();
 

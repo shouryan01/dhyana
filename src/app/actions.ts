@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
+import { parseTheme, themeOf, type ThemeFamily } from "@/lib/backend";
 import { addDays, formatShort, isISODate } from "@/lib/dates";
 import { createDispatcher, isTextTarget, type Action } from "@/lib/shortcuts";
 
@@ -13,6 +14,10 @@ export function useActions(): Action[] {
   const current = params.date && isISODate(params.date) ? params.date : app.today;
 
   const go = (date: string) => navigate({ to: "/day/$date", params: { date } });
+  const setFamily = (family: ThemeFamily) => {
+    const mode = app.app ? parseTheme(app.app.theme).mode : "light";
+    void app.updateSettings({ theme: themeOf(family, mode) });
+  };
 
   return useMemo<Action[]>(
     () => [
@@ -26,13 +31,12 @@ export function useActions(): Action[] {
       { id: "settings", label: "Open settings", group: "App", shortcut: "mod+,", also: ["g s"], keywords: "preferences", run: () => navigate({ to: "/settings" }) },
       { id: "shortcuts", label: "Show keyboard shortcuts", group: "App", shortcut: "?", keywords: "help keys", run: () => navigate({ to: "/settings", hash: "shortcuts" }) },
       { id: "mode", label: "Toggle dark / light mode", group: "App", shortcut: "mod+shift+l", keywords: "theme appearance night", run: () => void app.toggleMode() },
-      { id: "theme-paper", label: "Theme: Dhyana", group: "App", keywords: "appearance warm", run: () => void app.updateSettings({ theme: "paper" }) },
-      { id: "theme-light", label: "Theme: Light", group: "App", keywords: "appearance", run: () => void app.updateSettings({ theme: "light" }) },
-      { id: "theme-dark", label: "Theme: Dark", group: "App", keywords: "appearance night", run: () => void app.updateSettings({ theme: "dark" }) },
+      { id: "theme-dhyana", label: "Theme: Dhyana", group: "App", keywords: "appearance warm paper", run: () => setFamily("dhyana") },
+      { id: "theme-default", label: "Theme: Default", group: "App", keywords: "appearance neutral", run: () => setFamily("default") },
       { id: "onboarding", label: "Replay onboarding", group: "App", keywords: "welcome setup tour", run: app.replayOnboarding },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [app.today, app.toggleSidebar, app.toggleMode, app.replayOnboarding, current, navigate],
+    [app.today, app.app?.theme, app.toggleSidebar, app.toggleMode, app.replayOnboarding, current, navigate],
   );
 }
 

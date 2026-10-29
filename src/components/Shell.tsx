@@ -8,6 +8,7 @@ import { installCloseFlush } from "@/app/flush";
 import { Calendar } from "@/components/Calendar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Kbd } from "@/components/ui/kbd";
+import { parseTheme } from "@/lib/backend";
 import { isISODate } from "@/lib/dates";
 import { formatShortcut } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,7 @@ export function Shell() {
     return () => dispose?.();
   }, []);
 
-  const dark = app.app?.theme === "dark";
+  const dark = app.app ? parseTheme(app.app.theme).mode === "dark" : false;
   const shortcutOf = (id: string) => actions.find((a) => a.id === id)?.shortcut;
 
   return (

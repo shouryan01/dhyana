@@ -3,18 +3,20 @@ import { useActions } from "@/app/actions";
 import { useApp } from "@/app/context";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
-import type { Font, Theme } from "@/lib/backend";
+import { parseTheme, themeOf, type Font, type Mode, type ThemeFamily } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 
-const THEMES: Theme[] = ["paper", "light", "dark"];
+const FAMILIES: ThemeFamily[] = ["dhyana", "default"];
+const MODES: Mode[] = ["light", "dark"];
 const FONTS: Font[] = ["serif", "sans", "mono"];
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
-const THEME_LABELS: Record<Theme, string> = { paper: "Dhyana", light: "Light", dark: "Dark" };
+const FAMILY_LABELS: Record<ThemeFamily, string> = { dhyana: "Dhyana", default: "Default" };
 
 export function SettingsPage() {
   const app = useApp();
   const actions = useActions();
   const state = app.app!;
+  const { family, mode } = parseTheme(state.theme);
 
   // "?" and the palette link here with #shortcuts
   useEffect(() => {
@@ -29,8 +31,16 @@ export function SettingsPage() {
         <h1 className="mb-8 text-[22px] font-semibold tracking-tight">Settings</h1>
 
         <Section title="Appearance">
-          <Row label="Theme">
-            <Segmented options={THEMES} labels={THEME_LABELS} value={state.theme} onChange={(theme) => void app.updateSettings({ theme })} />
+          <Row label="Theme" hint="Dhyana is the warm paper look. Default is neutral.">
+            <Segmented
+              options={FAMILIES}
+              labels={FAMILY_LABELS}
+              value={family}
+              onChange={(f) => void app.updateSettings({ theme: themeOf(f, mode) })}
+            />
+          </Row>
+          <Row label="Mode">
+            <Segmented options={MODES} value={mode} onChange={(m) => void app.updateSettings({ theme: themeOf(family, m) })} />
           </Row>
           <Row label="Writing font">
             <Segmented options={FONTS} value={state.font} onChange={(font) => void app.updateSettings({ font })} />

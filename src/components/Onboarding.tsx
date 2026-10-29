@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils";
 const STEPS = ["welcome", "vault", "look", "done"] as const;
 type Step = (typeof STEPS)[number];
 
-const THEMES: { id: Theme; label: string; swatch: string; ink: string }[] = [
-  { id: "paper", label: "Dhyana", swatch: "#f6efe2", ink: "#3b3226" },
-  { id: "light", label: "Light", swatch: "#ffffff", ink: "#1f1f23" },
-  { id: "dark", label: "Dark", swatch: "#17171a", ink: "#dcdce2" },
+const THEME_CARDS: { id: Theme; label: string; swatch: string; ink: string }[] = [
+  { id: "dhyana-light", label: "Dhyana light", swatch: "#f6efe2", ink: "#3b3226" },
+  { id: "dhyana-dark", label: "Dhyana dark", swatch: "#1e1914", ink: "#e4d9c6" },
+  { id: "default-light", label: "Default light", swatch: "#ffffff", ink: "#1f1f23" },
+  { id: "default-dark", label: "Default dark", swatch: "#17171a", ink: "#dcdce2" },
 ];
 
 const FONTS: { id: Font; label: string; family: string }[] = [
@@ -59,7 +60,7 @@ export function Onboarding() {
       if (target && target !== current.vaultPath) await app.setVault(target);
       await app.updateSettings({
         onboardingCompleted: true,
-        ...(opts?.defaults ? { theme: "paper" as const, font: "serif" as const } : { theme, font }),
+        ...(opts?.defaults ? { theme: "dhyana-light" as const, font: "serif" as const } : { theme, font }),
       });
       app.endReplay();
     } catch (e) {
@@ -134,8 +135,8 @@ export function Onboarding() {
         {step === "look" && (
           <Panel title="Make it yours" body="Both can be changed later in Settings.">
             <Label>Theme</Label>
-            <div className="mb-4 grid grid-cols-3 gap-2">
-              {THEMES.map((t) => (
+            <div className="mb-4 grid grid-cols-4 gap-2">
+              {THEME_CARDS.map((t) => (
                 <Choice key={t.id} selected={theme === t.id} onClick={() => setTheme(t.id)}>
                   <span className="flex h-10 items-center justify-center rounded-md border border-border text-[15px]" style={{ background: t.swatch, color: t.ink, fontFamily: "var(--font-serif)" }}>
                     Aa

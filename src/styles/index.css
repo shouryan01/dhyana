@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------------------------
-   Design tokens. Three themes: "paper" (the dhyana theme, the default), "light" and "dark".
-   The whole app, sidebar included, follows the theme. The accent is a warm sienna in all three.
+   Design tokens. Four themes, each a family + a mode:
+     dhyana-light (default), dhyana-dark   the warm paper look and its warm "sepia night" twin
+     default-light, default-dark           neutral greys
+   The whole app, sidebar included, follows the theme. The accent is warm in all four.
    --------------------------------------------------------------------------------------------- */
 :root,
-:root[data-theme="paper"] {
+:root[data-theme="dhyana-light"] {
   --chrome: #efe6d3;
   --chrome-hover: #e8dec9;
   --chrome-active: #e0d4bb;
@@ -23,7 +25,25 @@
   --selection: rgba(154, 91, 46, 0.22);
   color-scheme: light;
 }
-:root[data-theme="light"] {
+:root[data-theme="dhyana-dark"] {
+  --chrome: #17130f;
+  --chrome-hover: #211b15;
+  --chrome-active: #2a231b;
+  --surface: #1e1914;
+  --surface-fg: #e4d9c6;
+  --surface-muted: #8f8068;
+  --surface-line: #332b21;
+  --fg: #e4d9c6;
+  --muted: #a09079;
+  --border: #2f271e;
+  --accent: #d9a066;
+  --accent-fg: #1d1409;
+  --popover: #241e17;
+  --code-bg: rgba(255, 240, 210, 0.07);
+  --selection: rgba(217, 160, 102, 0.28);
+  color-scheme: dark;
+}
+:root[data-theme="default-light"] {
   --chrome: #f6f6f7;
   --chrome-hover: #ececee;
   --chrome-active: #e4e4e8;
@@ -41,7 +61,7 @@
   --selection: rgba(154, 91, 46, 0.2);
   color-scheme: light;
 }
-:root[data-theme="dark"] {
+:root[data-theme="default-dark"] {
   --chrome: #101012;
   --chrome-hover: #1a1a1e;
   --chrome-active: #232328;
@@ -100,7 +120,6 @@ body {
   user-select: none;
 }
 ::selection { background: var(--selection); }
-button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Native scrollbars: thin and quiet */
