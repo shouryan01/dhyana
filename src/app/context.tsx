@@ -18,6 +18,8 @@ interface AppContextValue {
   app: AppState | null;
   loadError: string | null;
   updateSettings(patch: SettingsPatch): Promise<void>;
+  /** Flip between dark and the light theme you were last using (dhyana or light). */
+  toggleMode(): Promise<void>;
   setVault(path: string): Promise<void>;
   /** Live-preview an appearance without persisting it (onboarding). Pass null to revert. */
   previewAppearance(a: { theme: Theme; font: Font } | null): void;
@@ -50,6 +52,24 @@ export function useApp(): AppContextValue {
   const v = useContext(Ctx);
   if (!v) throw new Error("useApp outside AppProvider");
   return v;
+}
+
+const LAST_LIGHT_KEY = "dhyana:lastLightTheme";
+
+function rememberLight(theme: Theme) {
+  try {
+    localStorage.setItem(LAST_LIGHT_KEY, theme);
+  } catch {
+    /* storage unavailable: fall back to the dhyana theme */
+  }
+}
+
+function recallLight(): Theme {
+  try {
+    return localStorage.getItem(LAST_LIGHT_KEY) === "light" ? "light" : "paper";
+  } catch {
+    return "paper";
+  }
 }
 
 function applyAppearance(theme: Theme, font: Font) {
@@ -96,6 +116,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     applyAppearance(next.theme, next.font);
   }, []);
 
+  const toggleMode = useCallback(async () => {
+    if (!app) return;
+    if (app.theme === "dark") {
+      await updateSettings({ theme: recallLight() });
+    } else {
+      rememberLight(app.theme);
+      await updateSettings({ theme: "dark" });
+    }
+  }, [app, updateSettings]);
+
   const setVault = useCallback(async (path: string) => {
     setApp(await backend.setVault(path));
     setDaysVersion((v) => v + 1);
@@ -114,6 +144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       app,
       loadError,
       updateSettings,
+      toggleMode,
       setVault,
       previewAppearance,
       today,
@@ -133,7 +164,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       bumpDays: () => setDaysVersion((v) => v + 1),
       focusEditor,
     }),
-    [app, loadError, updateSettings, setVault, previewAppearance, today, replaying, sidebarOpen, paletteOpen, paletteMode, daysVersion],
+    [app, loadError, updateSettings, toggleMode, setVault, previewAppearance, today, replaying, sidebarOpen, paletteOpen, paletteMode, daysVersion],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

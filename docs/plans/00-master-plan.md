@@ -50,7 +50,8 @@ Personal-use app (not distributed), so copying ideas/code from reference project
 9. **Feels like Linear.** Fast, calm, keyboard-first.
    - Every local action responds instantly (no spinners for disk work); animations are short (~100-150ms) and subtle.
    - Every action is reachable from the command palette (Ctrl/Cmd+K) and has a shortcut shown next to it. One shortcut registry feeds the palette, tooltips, and settings.
-   - Dense-but-quiet chrome: muted neutral UI, resizable/collapsible sidebar, consistent icon set, focus rings, hover/selected states done carefully. The paper theme styles the writing surface; the surrounding chrome stays Linear-neutral.
+   - Dense-but-quiet chrome: collapsible sidebar, consistent icon set, focus rings, hover/selected states done carefully. Shortcut hints appear on hover, not permanently.
+   - Themes: **Dhyana** (paper, the default), **Light** and **Dark**. The whole app, sidebar included, follows the theme (not just the writing surface). The accent is a warm sienna in every theme, deliberately not Linear's indigo. A one-click dark/light toggle sits above Settings at the bottom of the sidebar; it returns to whichever light theme you were using.
    - Single-key shortcuts and `g`-style sequences work only outside the editor (it is always editable); modifier shortcuts work everywhere. `Esc` leaves the editor.
 
 ## 3. Critical review of the Perplexity report

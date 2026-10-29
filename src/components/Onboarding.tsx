@@ -10,7 +10,7 @@ const STEPS = ["welcome", "vault", "look", "done"] as const;
 type Step = (typeof STEPS)[number];
 
 const THEMES: { id: Theme; label: string; swatch: string; ink: string }[] = [
-  { id: "paper", label: "Paper", swatch: "#f6efe2", ink: "#3b3226" },
+  { id: "paper", label: "Dhyana", swatch: "#f6efe2", ink: "#3b3226" },
   { id: "light", label: "Light", swatch: "#ffffff", ink: "#1f1f23" },
   { id: "dark", label: "Dark", swatch: "#17171a", ink: "#dcdce2" },
 ];

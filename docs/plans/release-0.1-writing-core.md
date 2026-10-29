@@ -6,7 +6,7 @@
 - Tauri 2 + Vite + React + TS + Tailwind + shadcn + TanStack Router + zod scaffold; lint/format/test setup (Vitest, Playwright optional, `cargo test`).
 - **Splash screen** (shows while Rust core opens the vault).
 - **Onboarding** (first launch): welcome → choose/create vault folder → theme/font → done. (Journal day = local calendar day, midnight to midnight.) Skippable defaults. Also mention that phone capture is possible via Obsidian (link to `docs/mobile.md`).
-- **Settings** (minimal page, opened from sidebar and palette): theme/font, vault location (read-only display), **Replay onboarding**, and a keyboard-shortcuts reference.
+- **Settings** (minimal page, opened from the bottom of the sidebar or the palette): theme (Dhyana / Light / Dark) and font, vault location (read-only display), **Replay onboarding**, and a keyboard-shortcuts reference.
   - *Replay onboarding* reruns the flow at any time (handy during development). It is non-destructive: steps are prefilled with current values, the vault step defaults to "keep current vault" (switching vaults asks for confirmation and never moves or deletes files), and finishing just saves the chosen theme/font. The "onboarding completed" flag lives in app data.
 - **Command palette + shortcut registry** (pulled forward from the backlog; the Linear-feel centerpiece, master principle 9). Ctrl/Cmd+K opens a fuzzy palette: go to today, go to date, previous/next day, toggle sidebar, open settings, replay onboarding. One registry defines every action, its shortcut, and its label; the palette, tooltips, and settings reference all read from it. Shortcuts are fixed in 0.1 (remapping is 0.8).
 - **Opens to today's note.** Resolve today in the system's local timezone; create file lazily on first keystroke (no empty files). **Midnight rollover:** if the date changes while the app is open, offer the new day without replacing the open draft.
@@ -19,7 +19,7 @@
   - Fallback if splicing proves unreliable: normalize only files dhyana created itself; never normalize imported files.
 - **Calendar** (sidebar month view) marking days with entries; click navigates. Prev/next day shortcuts.
 - **External-change handling (basic)**: file watcher; if file changed on disk and editor clean → reload; if dirty → non-destructive prompt.
-- **Design:** Linear-like (master principle 9): minimal layout, instant response, muted neutral chrome, collapsible sidebar, subtle motion. Paper theme (warm light brown, subtle) and serif body font apply to the writing surface; readable column width.
+- **Design:** Linear-like (master principle 9): minimal layout, instant response, collapsible sidebar, subtle motion. Sidebar layout: search, Today, calendar; at the bottom a dark/light toggle above Settings. Shortcut hints show on hover only. The Dhyana (paper) theme styles the entire app, sidebar included, with a warm accent; serif body font and a readable column width on the writing surface.
 - **Docs skeleton:** root `README.md` (short: tagline, screenshots, quick start, links) plus `docs/getting-started.md`, `tech-stack.md`, `architecture.md` (mermaid diagram), `vault-format.md`, `keyboard-shortcuts.md`, `mobile.md` per master §10. Fill the Commands section of `CLAUDE.md` once the scaffold exists.
 
 ## Not in 0.1

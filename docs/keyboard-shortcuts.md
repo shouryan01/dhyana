@@ -10,10 +10,11 @@
 | Go to date… | `Mod G` or `G D` |
 | Focus editor | `I` |
 | Toggle sidebar | `Mod \` |
+| Toggle dark / light mode | `Mod Shift L` |
 | Open settings | `Mod ,` or `G S` |
 | Show keyboard shortcuts | `?` |
 | Replay onboarding | palette only |
-| Theme: Paper / Light / Dark | palette only |
+| Theme: Dhyana / Light / Dark | palette only |
 
 "Go to date" understands `2026-10-28`, `yesterday`, `tomorrow`, `-3`, `friday`, `next monday`, `last friday`.
 

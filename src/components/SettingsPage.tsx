@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const THEMES: Theme[] = ["paper", "light", "dark"];
 const FONTS: Font[] = ["serif", "sans", "mono"];
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+const THEME_LABELS: Record<Theme, string> = { paper: "Dhyana", light: "Light", dark: "Dark" };
 
 export function SettingsPage() {
   const app = useApp();
@@ -29,7 +30,7 @@ export function SettingsPage() {
 
         <Section title="Appearance">
           <Row label="Theme">
-            <Segmented options={THEMES} value={state.theme} onChange={(theme) => void app.updateSettings({ theme })} />
+            <Segmented options={THEMES} labels={THEME_LABELS} value={state.theme} onChange={(theme) => void app.updateSettings({ theme })} />
           </Row>
           <Row label="Writing font">
             <Segmented options={FONTS} value={state.font} onChange={(font) => void app.updateSettings({ font })} />
@@ -95,7 +96,17 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   );
 }
 
-function Segmented<T extends string>({ options, value, onChange }: { options: T[]; value: T; onChange(v: T): void }) {
+function Segmented<T extends string>({
+  options,
+  labels,
+  value,
+  onChange,
+}: {
+  options: T[];
+  labels?: Record<T, string>;
+  value: T;
+  onChange(v: T): void;
+}) {
   return (
     <div className="flex rounded-md border border-border bg-popover p-0.5" role="group">
       {options.map((o) => (
@@ -108,7 +119,7 @@ function Segmented<T extends string>({ options, value, onChange }: { options: T[
             value === o ? "bg-chrome-active text-fg" : "text-muted hover:text-fg",
           )}
         >
-          {cap(o)}
+          {labels?.[o] ?? cap(o)}
         </button>
       ))}
     </div>

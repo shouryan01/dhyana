@@ -25,13 +25,14 @@ export function useActions(): Action[] {
       { id: "sidebar", label: "Toggle sidebar", group: "App", shortcut: "mod+\\", run: app.toggleSidebar },
       { id: "settings", label: "Open settings", group: "App", shortcut: "mod+,", also: ["g s"], keywords: "preferences", run: () => navigate({ to: "/settings" }) },
       { id: "shortcuts", label: "Show keyboard shortcuts", group: "App", shortcut: "?", keywords: "help keys", run: () => navigate({ to: "/settings", hash: "shortcuts" }) },
-      { id: "theme-paper", label: "Theme: Paper", group: "App", keywords: "appearance warm", run: () => void app.updateSettings({ theme: "paper" }) },
+      { id: "mode", label: "Toggle dark / light mode", group: "App", shortcut: "mod+shift+l", keywords: "theme appearance night", run: () => void app.toggleMode() },
+      { id: "theme-paper", label: "Theme: Dhyana", group: "App", keywords: "appearance warm", run: () => void app.updateSettings({ theme: "paper" }) },
       { id: "theme-light", label: "Theme: Light", group: "App", keywords: "appearance", run: () => void app.updateSettings({ theme: "light" }) },
       { id: "theme-dark", label: "Theme: Dark", group: "App", keywords: "appearance night", run: () => void app.updateSettings({ theme: "dark" }) },
       { id: "onboarding", label: "Replay onboarding", group: "App", keywords: "welcome setup tour", run: app.replayOnboarding },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [app.today, app.toggleSidebar, app.replayOnboarding, current, navigate],
+    [app.today, app.toggleSidebar, app.toggleMode, app.replayOnboarding, current, navigate],
   );
 }
 

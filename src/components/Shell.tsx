@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
-import { PanelLeft, Search, Settings as SettingsIcon, SunMedium } from "lucide-react";
+import { Moon, PanelLeft, Search, Settings as SettingsIcon, Sun, SunMedium } from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { useActions, useHotkeys, useRolloverNotice } from "@/app/actions";
@@ -28,6 +28,7 @@ export function Shell() {
     return () => dispose?.();
   }, []);
 
+  const dark = app.app?.theme === "dark";
   const shortcutOf = (id: string) => actions.find((a) => a.id === id)?.shortcut;
 
   return (
@@ -48,11 +49,11 @@ export function Shell() {
 
         <button
           onClick={() => app.openPalette("commands")}
-          className="flex h-8 items-center gap-2 rounded-md border border-border bg-popover px-2.5 text-muted transition-colors duration-100 hover:bg-chrome-hover"
+          className="group flex h-8 items-center gap-2 rounded-md border border-border bg-popover px-2.5 text-muted transition-colors duration-100 hover:bg-chrome-hover"
         >
           <Search size={14} />
-          <span className="flex-1 text-left">Search commands</span>
-          <Kbd shortcut="mod+k" />
+          <span className="flex-1 text-left">Search</span>
+          <Kbd shortcut="mod+k" className={REVEAL} />
         </button>
 
         <nav className="flex flex-col gap-0.5">
@@ -64,6 +65,19 @@ export function Shell() {
             label="Today"
             shortcut={shortcutOf("today")}
           />
+        </nav>
+
+        <Calendar selected={selected} onSelect={(date) => navigate({ to: "/day/$date", params: { date } })} />
+
+        <div className="mt-auto flex flex-col gap-0.5">
+          <button
+            onClick={() => void app.toggleMode()}
+            className={cn(ROW, "group text-muted hover:bg-chrome-hover hover:text-fg")}
+          >
+            {dark ? <Sun size={15} /> : <Moon size={15} />}
+            <span className="flex-1 text-left">{dark ? "Light mode" : "Dark mode"}</span>
+            {shortcutOf("mode") && <Kbd shortcut={shortcutOf("mode")!} className={REVEAL} />}
+          </button>
           <NavLink
             to="/settings"
             active={onSettings}
@@ -71,9 +85,7 @@ export function Shell() {
             label="Settings"
             shortcut={shortcutOf("settings")}
           />
-        </nav>
-
-        <Calendar selected={selected} onSelect={(date) => navigate({ to: "/day/$date", params: { date } })} />
+        </div>
       </aside>
 
       <main className="relative min-w-0 flex-1 overflow-hidden bg-surface">
@@ -88,10 +100,20 @@ export function Shell() {
       </main>
 
       <CommandPalette actions={actions} />
-      <Toaster position="bottom-right" theme="system" toastOptions={{ className: "!font-[family-name:var(--font-ui)]" }} />
+      <Toaster
+        position="bottom-right"
+        theme={dark ? "dark" : "light"}
+        toastOptions={{
+          style: { background: "var(--popover)", color: "var(--fg)", border: "1px solid var(--border)", fontFamily: "var(--font-ui)" },
+        }}
+      />
     </div>
   );
 }
+
+/** Shortcut hints appear only while the row is hovered or keyboard-focused. */
+const REVEAL = "opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus-visible:opacity-100";
+const ROW = "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-100";
 
 function NavLink(props: {
   to: "/day/$date" | "/settings";
@@ -106,13 +128,14 @@ function NavLink(props: {
       to={props.to}
       params={props.params as never}
       className={cn(
-        "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-100",
+        ROW,
+        "group",
         props.active ? "bg-chrome-active text-fg" : "text-muted hover:bg-chrome-hover hover:text-fg",
       )}
     >
       {props.icon}
       <span className="flex-1">{props.label}</span>
-      {props.shortcut && <Kbd shortcut={props.shortcut} />}
+      {props.shortcut && <Kbd shortcut={props.shortcut} className={REVEAL} />}
     </Link>
   );
 }

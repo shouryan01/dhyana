@@ -1,34 +1,45 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------------------------
-   Design tokens. Chrome (sidebar, palette, settings) stays Linear-neutral in every theme; the
-   "paper" theme only warms the writing surface.
+   Design tokens. Three themes: "paper" (the dhyana theme, the default), "light" and "dark".
+   The whole app, sidebar included, follows the theme. The accent is a warm sienna in all three.
    --------------------------------------------------------------------------------------------- */
 :root,
 :root[data-theme="paper"] {
-  --chrome: #f6f6f7;
-  --chrome-hover: #ececee;
-  --chrome-active: #e4e4e8;
+  --chrome: #efe6d3;
+  --chrome-hover: #e8dec9;
+  --chrome-active: #e0d4bb;
   --surface: #f6efe2;
   --surface-fg: #3b3226;
-  --surface-muted: #9a8c76;
+  --surface-muted: #8a7c66;
   --surface-line: #e6dcc7;
-  --fg: #1f1f23;
-  --muted: #74747e;
-  --border: #e3e3e7;
-  --accent: #5e6ad2;
-  --accent-fg: #ffffff;
-  --popover: #ffffff;
+  --fg: #3b3226;
+  --muted: #6f6350;
+  --border: #e0d4bb;
+  --accent: #9a5b2e;
+  --accent-fg: #fff8ee;
+  --popover: #fbf7ee;
   --code-bg: rgba(90, 70, 40, 0.08);
-  --selection: rgba(94, 106, 210, 0.22);
+  --selection: rgba(154, 91, 46, 0.22);
   color-scheme: light;
 }
 :root[data-theme="light"] {
+  --chrome: #f6f6f7;
+  --chrome-hover: #ececee;
+  --chrome-active: #e4e4e8;
   --surface: #ffffff;
   --surface-fg: #1f1f23;
   --surface-muted: #8b8b95;
   --surface-line: #ebebef;
+  --fg: #1f1f23;
+  --muted: #74747e;
+  --border: #e3e3e7;
+  --accent: #9a5b2e;
+  --accent-fg: #ffffff;
+  --popover: #ffffff;
   --code-bg: rgba(0, 0, 0, 0.05);
+  --selection: rgba(154, 91, 46, 0.2);
+  color-scheme: light;
 }
 :root[data-theme="dark"] {
   --chrome: #101012;
@@ -41,11 +52,11 @@
   --fg: #e6e6ea;
   --muted: #8a8a94;
   --border: #26262b;
-  --accent: #7a85e8;
-  --accent-fg: #0e0e10;
+  --accent: #d99a5b;
+  --accent-fg: #1a1208;
   --popover: #1b1b1f;
   --code-bg: rgba(255, 255, 255, 0.07);
-  --selection: rgba(122, 133, 232, 0.3);
+  --selection: rgba(217, 154, 91, 0.28);
   color-scheme: dark;
 }
 
