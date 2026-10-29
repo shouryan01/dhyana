@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dhyana</title>
+    <link rel="icon" href="data:," />
+    <style>
+      /* Static splash: visible before JS loads; removed once the vault is open. */
+      #splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 14px; background: #f4eee3; color: #8a7a62;
+        font: 500 15px/1 system-ui, sans-serif; letter-spacing: .02em; transition: opacity .15s; z-index: 100; }
+      #splash .mark { font: 600 34px/1 Georgia, serif; color: #5b4a33; letter-spacing: .01em; }
+      @media (prefers-color-scheme: dark) { #splash { background: #17171a; color: #77777f; } #splash .mark { color: #d6d6dc; } }
+    </style>
+  </head>
+  <body>
+    <div id="splash"><div class="mark">dhyana</div><div>opening your journal…</div></div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -30,14 +30,21 @@ Entities, `@ ! # $`, mood, git, search, analytics, AI, dictation (OS dictation j
 2. Prototype inline diff decorations (red/green, accept/reject) to confirm the 0.6 approach is feasible.
 
 ## Exit criteria
-- [ ] Fresh install → onboarding → typing in today's note → file on disk is clean markdown with `created` and `modified`.
-- [ ] Saving an unedited note changes no bytes; editing one changes only that block and `modified`.
-- [ ] Settings → Replay onboarding reruns the flow without touching the existing vault.
-- [ ] Every action in the palette has a shortcut or is reachable by keyboard alone; typing never triggers single-key shortcuts.
-- [ ] Open the vault in Obsidian/VS Code: reads fine. A note created in Obsidian (no frontmatter) opens and saves correctly.
-- [ ] Round-trip corpus passes; no data loss on crash (kill during save).
-- [ ] README is short; the `docs/` pages exist and the quick start works on a clean machine.
+Status: implemented on branch `release/0.1-writing-core`. Checked items were verified by automated tests and by driving the real Tauri app; unchecked items need a human.
+
+- [x] Fresh install → onboarding → typing in today's note → file on disk is clean markdown with `created` and `modified`. (Lazy creation confirmed: no file or `journal/` folder until the first keystroke.)
+- [x] Saving an unedited note changes no bytes; editing one changes only that block and `modified`. (Fixture corpus in LF and CRLF; Rust no-op save test; live check showed exactly two changed lines.)
+- [x] Settings → Replay onboarding reruns the flow without touching the existing vault.
+- [x] Every action in the palette has a shortcut or is reachable by keyboard alone; typing never triggers single-key shortcuts.
+- [ ] Open the vault in Obsidian/VS Code: reads fine. A note created in Obsidian (no frontmatter) opens and saves correctly. (Frontmatter-less files are covered by Rust tests; not yet opened in Obsidian itself.)
+- [x] Round-trip corpus passes; no data loss on crash (atomic write test: an unfinished save leaves the original intact).
+- [ ] README is short; the `docs/` pages exist and the quick start works on a clean machine. (Pages exist; clean-machine run not done.)
 - [ ] You use it for a week.
+
+### Deferred within 0.1
+- Opaque blocks (tables, footnotes, raw HTML, AI blocks) are shown as raw markdown and are not editable yet.
+- Bold-code and similar mark combinations the editor can't represent are kept as inline opaque chips.
+- Shortcuts are fixed (remapping is 0.8). The window uses the OS title bar.
 
 ## Reference study
 Paperling (writing UI), Glyph (daily-note config), Tolaria (external-change reconcile), Linear (interaction feel, palette, shortcuts), Zed (keymap model, for 0.8 remapping).

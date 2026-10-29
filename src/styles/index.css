@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------------------------
+   Design tokens. Chrome (sidebar, palette, settings) stays Linear-neutral in every theme; the
+   "paper" theme only warms the writing surface.
+   --------------------------------------------------------------------------------------------- */
+:root,
+:root[data-theme="paper"] {
+  --chrome: #f6f6f7;
+  --chrome-hover: #ececee;
+  --chrome-active: #e4e4e8;
+  --surface: #f6efe2;
+  --surface-fg: #3b3226;
+  --surface-muted: #9a8c76;
+  --surface-line: #e6dcc7;
+  --fg: #1f1f23;
+  --muted: #74747e;
+  --border: #e3e3e7;
+  --accent: #5e6ad2;
+  --accent-fg: #ffffff;
+  --popover: #ffffff;
+  --code-bg: rgba(90, 70, 40, 0.08);
+  --selection: rgba(94, 106, 210, 0.22);
+  color-scheme: light;
+}
+:root[data-theme="light"] {
+  --surface: #ffffff;
+  --surface-fg: #1f1f23;
+  --surface-muted: #8b8b95;
+  --surface-line: #ebebef;
+  --code-bg: rgba(0, 0, 0, 0.05);
+}
+:root[data-theme="dark"] {
+  --chrome: #101012;
+  --chrome-hover: #1a1a1e;
+  --chrome-active: #232328;
+  --surface: #17171a;
+  --surface-fg: #dcdce2;
+  --surface-muted: #6f6f79;
+  --surface-line: #26262b;
+  --fg: #e6e6ea;
+  --muted: #8a8a94;
+  --border: #26262b;
+  --accent: #7a85e8;
+  --accent-fg: #0e0e10;
+  --popover: #1b1b1f;
+  --code-bg: rgba(255, 255, 255, 0.07);
+  --selection: rgba(122, 133, 232, 0.3);
+  color-scheme: dark;
+}
+
+:root {
+  --font-ui: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-ui);
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  --font-body: var(--font-serif);
+}
+:root[data-font="sans"] { --font-body: var(--font-sans); }
+:root[data-font="mono"] { --font-body: var(--font-mono); }
+
+@theme inline {
+  --color-chrome: var(--chrome);
+  --color-chrome-hover: var(--chrome-hover);
+  --color-chrome-active: var(--chrome-active);
+  --color-surface: var(--surface);
+  --color-surface-fg: var(--surface-fg);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-line: var(--surface-line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-popover: var(--popover);
+  --font-ui: var(--font-ui);
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--chrome);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+::selection { background: var(--selection); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Native scrollbars: thin and quiet */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 35%, transparent) transparent; }
+
+/* ---------------------------------------------------------------------------------------------
+   Motion: short and subtle. Reduced-motion users get none.
+   --------------------------------------------------------------------------------------------- */
+@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(4px) scale(0.985) } to { opacity: 1; transform: none } }
+.anim-fade { animation: fade-in 120ms ease-out; }
+.anim-pop { animation: pop-in 130ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (prefers-reduced-motion: reduce) { .anim-fade, .anim-pop { animation: none; } }
+
+/* ---------------------------------------------------------------------------------------------
+   The writing surface
+   --------------------------------------------------------------------------------------------- */
+.writing { user-select: text; }
+.ProseMirror {
+  outline: none;
+  min-height: 55vh;
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--surface-fg);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  caret-color: var(--accent);
+  padding-bottom: 30vh;
+}
+.ProseMirror > * + * { margin-top: 0.85em; }
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--surface-muted);
+  float: left; height: 0; pointer-events: none;
+}
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4 {
+  font-family: var(--font-body); line-height: 1.3; font-weight: 650; margin-top: 1.5em;
+}
+.ProseMirror h1 { font-size: 1.7em; }
+.ProseMirror h2 { font-size: 1.4em; }
+.ProseMirror h3 { font-size: 1.2em; }
+.ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { font-size: 1.05em; }
+.ProseMirror a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: text; }
+.ProseMirror blockquote {
+  border-left: 3px solid var(--surface-line); padding-left: 1em; color: var(--surface-muted); margin-left: 0;
+}
+.ProseMirror code {
+  font-family: var(--font-mono); font-size: 0.85em; background: var(--code-bg);
+  padding: 0.12em 0.35em; border-radius: 4px;
+}
+.ProseMirror pre {
+  font-family: var(--font-mono); font-size: 0.85em; line-height: 1.6; background: var(--code-bg);
+  padding: 0.9em 1em; border-radius: 8px; overflow-x: auto;
+}
+.ProseMirror pre code { background: none; padding: 0; font-size: inherit; }
+.ProseMirror hr { border: 0; border-top: 1px solid var(--surface-line); margin: 1.6em 0; }
+.ProseMirror ul, .ProseMirror ol { padding-left: 1.5em; }
+.ProseMirror ul { list-style: disc; }
+.ProseMirror ol { list-style: decimal; }
+.ProseMirror ul ul { list-style: circle; }
+.ProseMirror li > * + * { margin-top: 0.3em; }
+.ProseMirror li::marker { color: var(--surface-muted); }
+.ProseMirror ul[data-type="taskList"] { list-style: none !important; padding-left: 0.2em; }
+.ProseMirror ul[data-type="taskList"] li { display: flex; gap: 0.6em; align-items: flex-start; }
+.ProseMirror ul[data-type="taskList"] li > label { margin-top: 0.5em; user-select: none; }
+.ProseMirror ul[data-type="taskList"] li > div { flex: 1; }
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--surface-muted); text-decoration: line-through; }
+.ProseMirror input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+
+/* Opaque markdown we don't edit (tables, HTML, footnotes, AI blocks...) */
+.ProseMirror .raw-block {
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.6; color: var(--surface-muted);
+  border: 1px dashed var(--surface-line); border-radius: 8px; padding: 0.6em 0.9em; cursor: default;
+}
+.ProseMirror .raw-block pre { background: none; padding: 0; margin: 0; font-size: inherit; white-space: pre-wrap; }
+.ProseMirror .raw-inline {
+  font-family: var(--font-mono); font-size: 0.8em; color: var(--surface-muted); background: var(--code-bg);
+  padding: 0.1em 0.4em; border-radius: 4px; cursor: default;
+}
+.ProseMirror .ProseMirror-selectednode { outline: 2px solid var(--accent); }

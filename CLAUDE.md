@@ -19,4 +19,7 @@ Tauri 2 (Rust core), Vite + React + TypeScript, Tailwind, shadcn/ui, TanStack Ro
 - Docs: root `README.md` stays short; detail goes in separate `docs/*.md` pages (master §10).
 
 ## Commands
-(fill in once the scaffold exists: dev, test, lint, `cargo test`)
+- `pnpm install` then `pnpm tauri dev`: desktop app. `pnpm dev`: UI only in a browser (in-memory fake vault).
+- `pnpm test`: Vitest (markdown round-trip corpus, shortcuts, dates). `pnpm lint`: ESLint + tsc.
+- `cd src-tauri && cargo test` and `cargo clippy --all-targets`: Rust core.
+- Round-trip fixtures live in `src/markdown/__fixtures__/`; add a fixture for any new markdown construct.

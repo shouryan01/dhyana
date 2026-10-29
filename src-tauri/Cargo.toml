@@ -1,0 +1,35 @@
+[package]
+name = "dhyana"
+version = "0.1.0"
+description = "AI-powered personal journal: markdown on disk, offline-first"
+authors = ["shouryan01"]
+edition = "2021"
+
+[lib]
+name = "dhyana_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-dialog = "2"
+chrono = { version = "0.4.45", features = ["serde"] }
+ulid = "3.0.0"
+sha2 = "0.11.1"
+notify = "8.2.1"
+notify-debouncer-mini = "0.7.0"
+thiserror = "2.0.21"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

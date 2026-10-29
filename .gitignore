@@ -8,3 +8,4 @@ target/
 Thumbs.db
 .vscode/
 .idea/
+src-tauri/gen/
