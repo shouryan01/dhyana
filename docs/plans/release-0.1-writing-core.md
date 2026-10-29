@@ -5,27 +5,39 @@
 ## Scope
 - Tauri 2 + Vite + React + TS + Tailwind + shadcn + TanStack Router + zod scaffold; lint/format/test setup (Vitest, Playwright optional, `cargo test`).
 - **Splash screen** (shows while Rust core opens the vault).
-- **Onboarding** (first launch): welcome → choose/create vault folder → theme/font → done. (Journal day = local calendar day, midnight to midnight.) Skippable defaults.
+- **Onboarding** (first launch): welcome → choose/create vault folder → theme/font → done. (Journal day = local calendar day, midnight to midnight.) Skippable defaults. Also mention that phone capture is possible via Obsidian (link to `docs/mobile.md`).
+- **Settings** (minimal page, opened from sidebar and palette): theme/font, vault location (read-only display), **Replay onboarding**, and a keyboard-shortcuts reference.
+  - *Replay onboarding* reruns the flow at any time (handy during development). It is non-destructive: steps are prefilled with current values, the vault step defaults to "keep current vault" (switching vaults asks for confirmation and never moves or deletes files), and finishing just saves the chosen theme/font. The "onboarding completed" flag lives in app data.
+- **Command palette + shortcut registry** (pulled forward from the backlog; the Linear-feel centerpiece, master principle 9). Ctrl/Cmd+K opens a fuzzy palette: go to today, go to date, previous/next day, toggle sidebar, open settings, replay onboarding. One registry defines every action, its shortcut, and its label; the palette, tooltips, and settings reference all read from it. Shortcuts are fixed in 0.1 (remapping is 0.8).
 - **Opens to today's note.** Resolve today in the system's local timezone; create file lazily on first keystroke (no empty files). **Midnight rollover:** if the date changes while the app is open, offer the new day without replacing the open draft.
-- **Tiptap WYSIWYG**, always editable: headings, bold/italic, lists, task lists, quotes, links, code, hr. YAML frontmatter preserved untouched (hidden or minimal properties panel).
+- **Tiptap WYSIWYG**, always editable: headings, bold/italic, lists, task lists, quotes, links, code, hr. YAML frontmatter preserved untouched apart from the timestamp lines below (hidden or minimal properties panel).
+- **Frontmatter timestamps** (master §4): a new day file is created with `id`, `type`, `date`, `created`, `modified`. Each content-changing save rewrites only the `modified` line; an unchanged note is never touched. Files lacking these keys (e.g. created in Obsidian on a phone) get them added surgically on first edit. This needs the line-level frontmatter editor in 0.1, a small version of the one 0.2 generalizes.
 - **Atomic autosave** (write temp + rename), debounced; save-on-blur/close.
 - **Markdown round-trip fidelity**: only blocks the user edited are re-serialized; all other source text is spliced back unchanged. Fixture corpus must include Obsidian-style files, CRLF, tables, footnotes, raw HTML, YAML with comments, `[[wikilinks]]`, `#tags`, and `<!-- dhyana:ai:* -->` blocks. Test "load→save unchanged" and "edit one block, only that block changes".
+  - Constructs without a Tiptap node (tables, footnotes, raw HTML, comments, AI blocks) load as **opaque blocks**: shown as-is, not editable in 0.1, always spliced back verbatim.
+  - When an edited block is re-serialized, match its original markers (`*` vs `_`, `-` vs `*` bullets, line endings) where the serializer allows, to keep diffs small.
+  - Fallback if splicing proves unreliable: normalize only files dhyana created itself; never normalize imported files.
 - **Calendar** (sidebar month view) marking days with entries; click navigates. Prev/next day shortcuts.
 - **External-change handling (basic)**: file watcher; if file changed on disk and editor clean → reload; if dirty → non-destructive prompt.
-- **Design:** Linear-like minimal layout, paper theme (warm light brown, subtle), serif body font, readable column width.
+- **Design:** Linear-like (master principle 9): minimal layout, instant response, muted neutral chrome, collapsible sidebar, subtle motion. Paper theme (warm light brown, subtle) and serif body font apply to the writing surface; readable column width.
+- **Docs skeleton:** root `README.md` (short: tagline, screenshots, quick start, links) plus `docs/getting-started.md`, `tech-stack.md`, `architecture.md` (mermaid diagram), `vault-format.md`, `keyboard-shortcuts.md`, `mobile.md` per master §10. Fill the Commands section of `CLAUDE.md` once the scaffold exists.
 
 ## Not in 0.1
-Entities, `@ ! # $`, mood, git, search, analytics, AI, dictation (OS dictation just works in the editor). Also deferred (see backlog): slash menu, image paste, command palette, focus/typewriter mode.
+Entities, `@ ! # $`, mood, git, search, analytics, AI, dictation (OS dictation just works in the editor). Also deferred (see backlog): slash menu, image paste, focus/typewriter mode, remappable shortcuts.
 
 ## Spikes (time-boxed, throwaway)
-1. Tiptap + markdown serializer choice (tiptap-markdown vs. remark-based) judged on round-trip fixtures.
+1. Tiptap + markdown serializer choice (tiptap-markdown vs. remark-based) judged on round-trip fixtures. Remark/mdast carries source positions, which the splice approach needs; weigh that heavily. Also confirm opaque-block nodes survive load→save.
 2. Prototype inline diff decorations (red/green, accept/reject) to confirm the 0.6 approach is feasible.
 
 ## Exit criteria
-- [ ] Fresh install → onboarding → typing in today's note → file on disk is clean markdown.
-- [ ] Open the vault in Obsidian/VS Code: reads fine.
+- [ ] Fresh install → onboarding → typing in today's note → file on disk is clean markdown with `created` and `modified`.
+- [ ] Saving an unedited note changes no bytes; editing one changes only that block and `modified`.
+- [ ] Settings → Replay onboarding reruns the flow without touching the existing vault.
+- [ ] Every action in the palette has a shortcut or is reachable by keyboard alone; typing never triggers single-key shortcuts.
+- [ ] Open the vault in Obsidian/VS Code: reads fine. A note created in Obsidian (no frontmatter) opens and saves correctly.
 - [ ] Round-trip corpus passes; no data loss on crash (kill during save).
+- [ ] README is short; the `docs/` pages exist and the quick start works on a clean machine.
 - [ ] You use it for a week.
 
 ## Reference study
-Paperling (writing UI), Glyph (daily-note config), Tolaria (external-change reconcile).
+Paperling (writing UI), Glyph (daily-note config), Tolaria (external-change reconcile), Linear (interaction feel, palette, shortcuts), Zed (keymap model, for 0.8 remapping).

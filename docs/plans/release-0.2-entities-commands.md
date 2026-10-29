@@ -8,12 +8,14 @@
 - **Quick commands** (Tiptap suggestion extension):
   - `@` → people list (recent/frequent first, aliases searched); "create new person" inline.
   - `!` → emotion list (seeded vocabulary); renders as chip.
-  - `#` → tag list + create new custom tag.
+  - `#` → tag list + create new custom tag. Topics/themes only; people, places, and feelings use their own triggers.
   - `$` → date picker with natural-language ("next friday"); creates event.
+  - **Places:** decide the trigger (master §9). Default: `@` also lists places, with the type icon beside each match.
 - Entity pages: view/edit a person/place note (properties: aliases, relationship, birthday, notes), with **backlinks** ("mentions") list.
 - **Name rules** (collisions): see master §4a.
 - Upcoming-dates panel derived from `$` date wikilinks in the text (shown on today's note). Triggers fire only at line start or after whitespace.
-- Comment-preserving YAML frontmatter edits (SoloMD reference) — don't reformat user YAML.
+- Comment-preserving YAML frontmatter edits (SoloMD reference) — don't reformat user YAML. Generalizes the small line-level editor from 0.1 (timestamps).
+- Update `docs/vault-format.md` and `docs/keyboard-shortcuts.md` for the new triggers.
 - Rename entity → update links across vault.
 
 ## Decisions made

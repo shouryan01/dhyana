@@ -15,6 +15,8 @@ Tauri 2 (Rust core), Vite + React + TypeScript, Tailwind, shadcn/ui, TanStack Ro
 - One entry per day file (`journal/YYYY/MM/YYYY-MM-DD.md`); `private: true` is per file.
 - AI is optional and never edits without review; no AI code paths active before 0.5.
 - Follow the decisions in the master plan (§1, §4, §4a) rather than re-deciding.
+- UI should feel like Linear (master principle 9): instant, keyboard-first, every action in the command palette via the shortcut registry.
+- Docs: root `README.md` stays short; detail goes in separate `docs/*.md` pages (master §10).
 
 ## Commands
 (fill in once the scaffold exists: dev, test, lint, `cargo test`)
