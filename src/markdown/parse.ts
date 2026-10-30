@@ -104,7 +104,7 @@ function convertBlock(node: RootContent, body: string, depth: number): PMNode {
   }
 }
 
-const nonEmpty = <T,>(arr: T[]): T[] | undefined => (arr.length ? arr : undefined);
+const nonEmpty = <T>(arr: T[]): T[] | undefined => (arr.length ? arr : undefined);
 
 function convertList(list: List, body: string, depth: number): PMNode {
   const src = body.slice(list.position!.start.offset!);
@@ -116,7 +116,11 @@ function convertList(list: List, body: string, depth: number): PMNode {
   const spread = Boolean(list.spread);
   const items = list.children.map((item) => convertItem(item, body, depth, isTask, mixed));
   if (isTask) {
-    return { type: "taskList", attrs: { marker: /^[-*+]/.exec(src)?.[0] ?? "-", spread }, content: items };
+    return {
+      type: "taskList",
+      attrs: { marker: /^[-*+]/.exec(src)?.[0] ?? "-", spread },
+      content: items,
+    };
   }
   if (list.ordered) {
     const m = /^\d+([.)])/.exec(src);
@@ -126,7 +130,11 @@ function convertList(list: List, body: string, depth: number): PMNode {
       content: items,
     };
   }
-  return { type: "bulletList", attrs: { marker: /^[-*+]/.exec(src)?.[0] ?? "-", spread }, content: items };
+  return {
+    type: "bulletList",
+    attrs: { marker: /^[-*+]/.exec(src)?.[0] ?? "-", spread },
+    content: items,
+  };
 }
 
 function convertItem(

@@ -3,11 +3,12 @@
 **Goal:** a beautiful, minimal app you can open and journal in daily. No AI, no entities.
 
 ## Scope
+
 - Tauri 2 + Vite + React + TS + Tailwind + shadcn + TanStack Router + zod scaffold; lint/format/test setup (Vitest, Playwright optional, `cargo test`).
 - **Splash screen** (shows while Rust core opens the vault).
 - **Onboarding** (first launch): welcome → choose/create vault folder → theme/font → done. (Journal day = local calendar day, midnight to midnight.) Skippable defaults. Also mention that phone capture is possible via Obsidian (link to `docs/mobile.md`).
 - **Settings** (minimal page, opened from the bottom of the sidebar or the palette): theme family (Dhyana / Basic), mode (Light / Dark) and font, vault location (read-only display), **Replay onboarding**, and a keyboard-shortcuts reference.
-  - *Replay onboarding* reruns the flow at any time (handy during development). It is non-destructive: steps are prefilled with current values, the vault step defaults to "keep current vault" (switching vaults asks for confirmation and never moves or deletes files), and finishing just saves the chosen theme/font. The "onboarding completed" flag lives in app data.
+  - _Replay onboarding_ reruns the flow at any time (handy during development). It is non-destructive: steps are prefilled with current values, the vault step defaults to "keep current vault" (switching vaults asks for confirmation and never moves or deletes files), and finishing just saves the chosen theme/font. The "onboarding completed" flag lives in app data.
 - **Command palette + shortcut registry** (pulled forward from the backlog; the Linear-feel centerpiece, master principle 9). Ctrl/Cmd+K opens a fuzzy palette: go to today, go to date, previous/next day, toggle sidebar, open settings, replay onboarding. One registry defines every action, its shortcut, and its label; the palette, tooltips, and settings reference all read from it. Shortcuts are fixed in 0.1 (remapping is 0.8).
 - **Opens to today's note.** Resolve today in the system's local timezone; create file lazily on first keystroke (no empty files). **Midnight rollover:** if the date changes while the app is open, offer the new day without replacing the open draft.
 - **Tiptap WYSIWYG**, always editable: headings, bold/italic, lists, task lists, quotes, links, code, hr. YAML frontmatter preserved untouched apart from the timestamp lines below (hidden or minimal properties panel).
@@ -23,13 +24,16 @@
 - **Docs skeleton:** root `README.md` (short: tagline, screenshots, quick start, links) plus `docs/getting-started.md`, `tech-stack.md`, `architecture.md` (mermaid diagram), `vault-format.md`, `keyboard-shortcuts.md`, `mobile.md` per master §10. Fill the Commands section of `CLAUDE.md` once the scaffold exists.
 
 ## Not in 0.1
+
 Entities, `@ ! # $`, mood, git, search, analytics, AI, dictation (OS dictation just works in the editor). Also deferred (see backlog): slash menu, image paste, focus/typewriter mode, remappable shortcuts.
 
 ## Spikes (time-boxed, throwaway)
+
 1. Tiptap + markdown serializer choice (tiptap-markdown vs. remark-based) judged on round-trip fixtures. Remark/mdast carries source positions, which the splice approach needs; weigh that heavily. Also confirm opaque-block nodes survive load→save.
 2. Prototype inline diff decorations (red/green, accept/reject) to confirm the 0.6 approach is feasible.
 
 ## Exit criteria
+
 Status: implemented on branch `release/0.1-writing-core`. Checked items were verified by automated tests and by driving the real Tauri app; unchecked items need a human.
 
 - [x] Fresh install → onboarding → typing in today's note → file on disk is clean markdown with `created` and `modified`. (Lazy creation confirmed: no file or `journal/` folder until the first keystroke.)
@@ -42,9 +46,11 @@ Status: implemented on branch `release/0.1-writing-core`. Checked items were ver
 - [ ] You use it for a week.
 
 ### Deferred within 0.1
+
 - Opaque blocks (tables, footnotes, raw HTML, AI blocks) are shown as raw markdown and are not editable yet.
 - Bold-code and similar mark combinations the editor can't represent are kept as inline opaque chips.
 - Shortcuts are fixed (remapping is 0.8). The window uses the OS title bar.
 
 ## Reference study
+
 Paperling (writing UI), Glyph (daily-note config), Tolaria (external-change reconcile), Linear (interaction feel, palette, shortcuts), Zed (keymap model, for 0.8 remapping).

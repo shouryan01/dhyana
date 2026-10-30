@@ -8,7 +8,7 @@ export function Kbd({ shortcut, className }: { shortcut: string; className?: str
       {formatShortcut(shortcut).map((k, i) => (
         <kbd
           key={i}
-          className="min-w-[18px] rounded border border-border bg-chrome px-1 py-px text-center font-sans text-[11px] leading-4 text-muted"
+          className="min-w-[18px] rounded border border-border bg-chrome px-1 py-px text-center font-sans text-[11px] leading-4 text-muted-foreground"
         >
           {k}
         </kbd>

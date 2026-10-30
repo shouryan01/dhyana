@@ -1,117 +1,73 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/app/context";
+import { Calendar as DayPicker } from "@/components/ui/calendar";
 import { backend } from "@/lib";
-import { firstDayOfWeek, formatMonth, monthGrid, parseISODate } from "@/lib/dates";
-import { cn } from "@/lib/utils";
+import { firstDayOfWeek, parseISODate, toISODate } from "@/lib/dates";
 
 interface Props {
   selected: string;
   onSelect(date: string): void;
 }
 
-const weekStart = firstDayOfWeek();
-const WEEKDAY_LABELS = Array.from({ length: 7 }, (_, i) => {
-  // 2023-01-01 was a Sunday
-  const d = new Date(2023, 0, 1 + ((i + weekStart) % 7));
-  return d.toLocaleDateString(undefined, { weekday: "narrow" });
-});
+const weekStartsOn = firstDayOfWeek() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+const firstOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 
+/** The sidebar month: shadcn's Calendar, with a dot under every day that has a note. */
 export function Calendar({ selected, onSelect }: Props) {
   const { today, daysVersion } = useApp();
-  const sel = parseISODate(selected);
-  const [view, setView] = useState({ year: sel.getFullYear(), month: sel.getMonth() + 1 });
-  const [withEntries, setWithEntries] = useState<Set<string>>(new Set());
+  const sel = useMemo(() => parseISODate(selected), [selected]);
+  const [month, setMonth] = useState(() => firstOfMonth(sel));
+  const [withEntries, setWithEntries] = useState<Date[]>([]);
 
   // Follow the selected day when it moves to another month (prev/next day, go to date).
   useEffect(() => {
-    setView({ year: sel.getFullYear(), month: sel.getMonth() + 1 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
+    setMonth(firstOfMonth(sel));
+  }, [sel]);
 
   useEffect(() => {
     let live = true;
     backend
-      .listDays(view.year, view.month)
-      .then((days) => live && setWithEntries(new Set(days)))
-      .catch(() => live && setWithEntries(new Set()));
+      .listDays(month.getFullYear(), month.getMonth() + 1)
+      .then((days) => live && setWithEntries(days.map(parseISODate)))
+      .catch(() => live && setWithEntries([]));
     return () => {
       live = false;
     };
-  }, [view, daysVersion]);
-
-  const shift = (delta: number) =>
-    setView(({ year, month }) => {
-      const d = new Date(year, month - 1 + delta, 1);
-      return { year: d.getFullYear(), month: d.getMonth() + 1 };
-    });
-
-  const weeks = monthGrid(view.year, view.month, weekStart);
+  }, [month, daysVersion]);
 
   return (
-    <div className="select-none px-1">
-      <div className="mb-1.5 flex items-center justify-between px-1">
-        <span className="text-[13px] font-medium">{formatMonth(view.year, view.month)}</span>
-        <span className="flex">
-          <NavButton label="Previous month" onClick={() => shift(-1)}>
-            <ChevronLeft size={14} />
-          </NavButton>
-          <NavButton label="Next month" onClick={() => shift(1)}>
-            <ChevronRight size={14} />
-          </NavButton>
-        </span>
-      </div>
-      <div className="grid grid-cols-7 text-center text-[11px] text-muted">
-        {WEEKDAY_LABELS.map((l, i) => (
-          <div key={i} className="py-1">
-            {l}
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-y-0.5">
-        {weeks.flat().map((date, i) =>
-          date ? (
-            <button
-              key={date}
-              onClick={() => onSelect(date)}
-              aria-label={date}
-              aria-current={date === selected ? "date" : undefined}
-              className={cn(
-                "relative mx-auto flex h-7 w-7 items-center justify-center rounded-md text-[12px] tabular-nums transition-colors duration-100",
-                date === selected
-                  ? "bg-accent text-accent-fg"
-                  : "hover:bg-chrome-hover",
-                date === today && date !== selected && "font-semibold text-accent",
-              )}
-            >
-              {Number(date.slice(8))}
-              {withEntries.has(date) && (
-                <span
-                  className={cn(
-                    "absolute bottom-[3px] h-[3px] w-[3px] rounded-full",
-                    date === selected ? "bg-accent-fg" : "bg-muted",
-                  )}
-                />
-              )}
-            </button>
-          ) : (
-            <span key={`pad-${i}`} />
-          ),
-        )}
-      </div>
-    </div>
-  );
-}
-
-function NavButton({ label, onClick, children }: { label: string; onClick(): void; children: React.ReactNode }) {
-  return (
-    <button
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="flex h-6 w-6 items-center justify-center rounded text-muted transition-colors duration-100 hover:bg-chrome-hover hover:text-fg"
-    >
-      {children}
-    </button>
+    <DayPicker
+      mode="single"
+      required
+      selected={sel}
+      onSelect={(d) => onSelect(toISODate(d))}
+      month={month}
+      onMonthChange={setMonth}
+      today={parseISODate(today)}
+      weekStartsOn={weekStartsOn}
+      showOutsideDays={false}
+      formatters={{
+        formatWeekdayName: (d) => d.toLocaleDateString(undefined, { weekday: "narrow" }),
+      }}
+      modifiers={{ hasEntry: withEntries }}
+      modifiersClassNames={{
+        hasEntry:
+          "after:pointer-events-none after:absolute after:z-20 after:bottom-[3px] after:left-1/2 after:size-[3px] after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground after:content-[''] data-[selected=true]:after:bg-primary-foreground",
+      }}
+      className="w-full select-none bg-transparent p-0 px-1 tabular-nums [--cell-size:--spacing(7)] [&_nav_button]:size-6 [&_nav_button]:text-muted-foreground [&_nav_button]:hover:text-foreground [&_td_button]:mx-auto [&_td_button]:w-7 [&_td_button]:min-w-7 [&_td_button]:text-[12px]"
+      // These replace (not merge with) the component's defaults, so structural classes are repeated.
+      classNames={{
+        root: "w-full",
+        month: "flex w-full flex-col gap-1.5",
+        month_caption: "flex h-6 w-full items-center justify-start px-1",
+        caption_label: "text-[13px] font-medium select-none",
+        nav: "absolute inset-x-0 top-0 flex h-6 w-full items-center justify-end pr-1",
+        weekday:
+          "flex-1 rounded-md pt-1 pb-0.5 text-[11px] font-normal text-muted-foreground select-none",
+        week: "mt-0.5 flex w-full",
+        day: "group/day relative h-7 w-full p-0 text-center select-none",
+        today: "font-semibold text-primary",
+      }}
+    />
   );
 }

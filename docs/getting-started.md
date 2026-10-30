@@ -14,13 +14,14 @@ pnpm tauri dev      # the desktop app, with hot reload
 pnpm dev            # UI only, in a browser, with an in-memory fake vault (no Rust needed)
 ```
 
-On first launch the onboarding flow asks where your vault lives (default: `Documents/dhyana`). You can replay it any time from **Settings → Replay onboarding**; it never moves or deletes files.
+On first launch the onboarding flow asks where your vault lives (default: `Documents/dhyana`). You can change the vault later in **Settings → Vault → Change…**; that only changes which folder is opened and never moves or deletes files. To see onboarding again, use the developer settings (see [development](development.md)).
 
 ## Test and check
 
 ```sh
 pnpm test                         # Vitest: markdown round-trip corpus, shortcuts, dates
-pnpm lint                         # ESLint + tsc
+pnpm lint                         # Oxlint + tsgo + Oxfmt check
+pnpm format                       # Oxfmt: fix formatting
 cd src-tauri && cargo test        # Rust: frontmatter, atomic saves, conflicts, watcher mapping
 cd src-tauri && cargo clippy --all-targets
 ```
@@ -31,14 +32,16 @@ cd src-tauri && cargo clippy --all-targets
 pnpm tauri build
 ```
 
+Merging to `main` builds Windows and Apple Silicon installers in CI; see [development](development.md).
+
 ## Where things are
 
-| Path | What |
-|---|---|
-| `src/` | React UI (shell, calendar, palette, editor, onboarding, settings) |
-| `src/markdown/` | The lossless markdown engine (parse, serialize, splice) and its fixture corpus |
-| `src/lib/shortcuts.ts` | The shortcut registry and key dispatcher |
-| `src-tauri/src/` | Rust core: vault I/O, frontmatter, settings, file watcher |
-| `docs/plans/` | Roadmap and per-release plans |
+| Path                   | What                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `src/`                 | React UI (shell, calendar, palette, editor, onboarding, settings)              |
+| `src/markdown/`        | The lossless markdown engine (parse, serialize, splice) and its fixture corpus |
+| `src/lib/shortcuts.ts` | The shortcut registry and key dispatcher                                       |
+| `src-tauri/src/`       | Rust core: vault I/O, frontmatter, settings, file watcher                      |
+| `docs/plans/`          | Roadmap and per-release plans                                                  |
 
 App settings (vault path, theme, font, onboarding flag) live in the OS app-data folder, not in your vault.

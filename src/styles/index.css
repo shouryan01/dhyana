@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* shadcn's `dark:` follows the app theme, not the OS setting. */
+@custom-variant dark (&:where([data-theme$="-dark"], [data-theme$="-dark"] *));
 
 /* ---------------------------------------------------------------------------------------------
    Design tokens. Four themes, each a family + a mode:
@@ -15,11 +19,11 @@
   --surface-fg: #3b3226;
   --surface-muted: #8a7c66;
   --surface-line: #e6dcc7;
-  --fg: #3b3226;
-  --muted: #6f6350;
+  --foreground: #3b3226;
+  --muted-foreground: #6f6350;
   --border: #e0d4bb;
-  --accent: #9a5b2e;
-  --accent-fg: #fff8ee;
+  --primary: #9a5b2e;
+  --primary-foreground: #fff8ee;
   --popover: #fbf7ee;
   --code-bg: rgba(90, 70, 40, 0.08);
   --selection: rgba(154, 91, 46, 0.22);
@@ -33,11 +37,11 @@
   --surface-fg: #e8dfce;
   --surface-muted: #9a8b73;
   --surface-line: #40382d;
-  --fg: #e8dfce;
-  --muted: #ad9d85;
+  --foreground: #e8dfce;
+  --muted-foreground: #ad9d85;
   --border: #3d352a;
-  --accent: #d9a066;
-  --accent-fg: #1d1409;
+  --primary: #d9a066;
+  --primary-foreground: #1d1409;
   --popover: #383128;
   --code-bg: rgba(255, 240, 210, 0.07);
   --selection: rgba(217, 160, 102, 0.28);
@@ -51,11 +55,11 @@
   --surface-fg: #1f1f23;
   --surface-muted: #8b8b95;
   --surface-line: #ebebef;
-  --fg: #1f1f23;
-  --muted: #74747e;
+  --foreground: #1f1f23;
+  --muted-foreground: #74747e;
   --border: #e3e3e7;
-  --accent: #9a5b2e;
-  --accent-fg: #ffffff;
+  --primary: #9a5b2e;
+  --primary-foreground: #ffffff;
   --popover: #ffffff;
   --code-bg: rgba(0, 0, 0, 0.05);
   --selection: rgba(154, 91, 46, 0.2);
@@ -69,11 +73,11 @@
   --surface-fg: #dcdce2;
   --surface-muted: #6f6f79;
   --surface-line: #26262b;
-  --fg: #e6e6ea;
-  --muted: #8a8a94;
+  --foreground: #e6e6ea;
+  --muted-foreground: #8a8a94;
   --border: #26262b;
-  --accent: #b06a2e;
-  --accent-fg: #fff6ea;
+  --primary: #b06a2e;
+  --primary-foreground: #fff6ea;
   --popover: #1b1b1f;
   --code-bg: rgba(255, 255, 255, 0.07);
   --selection: rgba(217, 154, 91, 0.28);
@@ -82,17 +86,40 @@
 
 :root {
   --font-ui: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, "Times New Roman", serif;
+  --font-serif:
+    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, "Times New Roman", serif;
   --font-sans: var(--font-ui);
   --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
   --font-body: var(--font-serif);
 }
-:root[data-font="sans"] { --font-body: var(--font-sans); }
-:root[data-font="mono"] { --font-body: var(--font-mono); }
+:root[data-font="sans"] {
+  --font-body: var(--font-sans);
+}
+:root[data-font="mono"] {
+  --font-body: var(--font-mono);
+}
 
 @theme {
   /* A touch of overshoot for hover motion: things settle into place rather than slide. */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* shadcn's semantic tokens, mapped onto the per-theme variables above. Components from the
+   shadcn CLI use these names (bg-background, text-muted-foreground, bg-primary, ...). */
+:root {
+  --background: var(--surface);
+  --card: var(--popover);
+  --card-foreground: var(--foreground);
+  --popover-foreground: var(--foreground);
+  --secondary: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --accent: color-mix(in srgb, var(--foreground) 11%, transparent);
+  --accent-foreground: var(--foreground);
+  --destructive: #dc2626;
+  --input: var(--border);
+  --ring: var(--primary);
+  --radius: 0.5rem;
 }
 
 @theme inline {
@@ -103,20 +130,40 @@
   --color-surface-fg: var(--surface-fg);
   --color-surface-muted: var(--surface-muted);
   --color-surface-line: var(--surface-line);
-  --color-fg: var(--fg);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
-  --color-accent-fg: var(--accent-fg);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --font-ui: var(--font-ui);
 }
 
-html, body, #root { height: 100%; }
+html,
+body,
+#root {
+  height: 100%;
+}
 body {
   margin: 0;
   background: var(--chrome);
-  color: var(--fg);
+  color: var(--foreground);
   font-family: var(--font-ui);
   font-size: 13px;
   line-height: 1.45;
@@ -124,23 +171,57 @@ body {
   overflow: hidden;
   user-select: none;
 }
-::selection { background: var(--selection); }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+::selection {
+  background: var(--selection);
+}
+:where(:not([data-slot])):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
 
 /* Native scrollbars: thin and quiet */
-* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 35%, transparent) transparent; }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
+}
 
 /* ---------------------------------------------------------------------------------------------
    Motion: short and subtle. Reduced-motion users get none.
    --------------------------------------------------------------------------------------------- */
-@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
-@keyframes pop-in { from { opacity: 0; transform: translateY(4px) scale(0.985) } to { opacity: 1; transform: none } }
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @keyframes wiggle {
-  0% { transform: none }
-  25% { transform: rotate(-10deg) scale(1.12) }
-  55% { transform: rotate(7deg) scale(1.12) }
-  80% { transform: rotate(-3deg) scale(1.05) }
-  100% { transform: none }
+  0% {
+    transform: none;
+  }
+  25% {
+    transform: rotate(-10deg) scale(1.12);
+  }
+  55% {
+    transform: rotate(7deg) scale(1.12);
+  }
+  80% {
+    transform: rotate(-3deg) scale(1.05);
+  }
+  100% {
+    transform: none;
+  }
 }
 /* The logo does a little wiggle when its parent (.group) is hovered. */
 /* Colours ease out plainly; only the transform gets the springy overshoot (overshooting a colour flashes). */
@@ -153,17 +234,30 @@ body {
     box-shadow 150ms ease-out,
     transform 150ms var(--ease-spring);
 }
-.group:hover .logo-mark { animation: wiggle 600ms ease-out; }
-.anim-fade { animation: fade-in 120ms ease-out; }
-.anim-pop { animation: pop-in 130ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.group:hover .logo-mark {
+  animation: wiggle 600ms ease-out;
+}
+.anim-fade {
+  animation: fade-in 120ms ease-out;
+}
+.anim-pop {
+  animation: pop-in 130ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---------------------------------------------------------------------------------------------
    The writing surface
    --------------------------------------------------------------------------------------------- */
-.writing { user-select: text; }
+.writing {
+  user-select: text;
+}
 .ProseMirror {
   outline: none;
   min-height: 55vh;
@@ -173,57 +267,152 @@ body {
   color: var(--surface-fg);
   white-space: pre-wrap;
   word-wrap: break-word;
-  caret-color: var(--accent);
+  caret-color: var(--primary);
   padding-bottom: 30vh;
 }
-.ProseMirror > * + * { margin-top: 0.85em; }
+.ProseMirror > * + * {
+  margin-top: 0.85em;
+}
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: var(--surface-muted);
-  float: left; height: 0; pointer-events: none;
+  float: left;
+  height: 0;
+  pointer-events: none;
 }
-.ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4 {
-  font-family: var(--font-body); line-height: 1.3; font-weight: 650; margin-top: 1.5em;
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4 {
+  font-family: var(--font-body);
+  line-height: 1.3;
+  font-weight: 650;
+  margin-top: 1.5em;
 }
-.ProseMirror h1 { font-size: 1.7em; }
-.ProseMirror h2 { font-size: 1.4em; }
-.ProseMirror h3 { font-size: 1.2em; }
-.ProseMirror h4, .ProseMirror h5, .ProseMirror h6 { font-size: 1.05em; }
-.ProseMirror a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: text; }
+.ProseMirror h1 {
+  font-size: 1.7em;
+}
+.ProseMirror h2 {
+  font-size: 1.4em;
+}
+.ProseMirror h3 {
+  font-size: 1.2em;
+}
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6 {
+  font-size: 1.05em;
+}
+.ProseMirror a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: text;
+}
 .ProseMirror blockquote {
-  border-left: 3px solid var(--surface-line); padding-left: 1em; color: var(--surface-muted); margin-left: 0;
+  border-left: 3px solid var(--surface-line);
+  padding-left: 1em;
+  color: var(--surface-muted);
+  margin-left: 0;
 }
 .ProseMirror code {
-  font-family: var(--font-mono); font-size: 0.85em; background: var(--code-bg);
-  padding: 0.12em 0.35em; border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--code-bg);
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
 }
 .ProseMirror pre {
-  font-family: var(--font-mono); font-size: 0.85em; line-height: 1.6; background: var(--code-bg);
-  padding: 0.9em 1em; border-radius: 8px; overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  line-height: 1.6;
+  background: var(--code-bg);
+  padding: 0.9em 1em;
+  border-radius: 8px;
+  overflow-x: auto;
 }
-.ProseMirror pre code { background: none; padding: 0; font-size: inherit; }
-.ProseMirror hr { border: 0; border-top: 1px solid var(--surface-line); margin: 1.6em 0; }
-.ProseMirror ul, .ProseMirror ol { padding-left: 1.5em; }
-.ProseMirror ul { list-style: disc; }
-.ProseMirror ol { list-style: decimal; }
-.ProseMirror ul ul { list-style: circle; }
-.ProseMirror li > * + * { margin-top: 0.3em; }
-.ProseMirror li::marker { color: var(--surface-muted); }
-.ProseMirror ul[data-type="taskList"] { list-style: none !important; padding-left: 0.2em; }
-.ProseMirror ul[data-type="taskList"] li { display: flex; gap: 0.6em; align-items: flex-start; }
-.ProseMirror ul[data-type="taskList"] li > label { margin-top: 0.5em; user-select: none; }
-.ProseMirror ul[data-type="taskList"] li > div { flex: 1; }
-.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--surface-muted); text-decoration: line-through; }
-.ProseMirror input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+.ProseMirror pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+.ProseMirror hr {
+  border: 0;
+  border-top: 1px solid var(--surface-line);
+  margin: 1.6em 0;
+}
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5em;
+}
+.ProseMirror ul {
+  list-style: disc;
+}
+.ProseMirror ol {
+  list-style: decimal;
+}
+.ProseMirror ul ul {
+  list-style: circle;
+}
+.ProseMirror li > * + * {
+  margin-top: 0.3em;
+}
+.ProseMirror li::marker {
+  color: var(--surface-muted);
+}
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none !important;
+  padding-left: 0.2em;
+}
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  gap: 0.6em;
+  align-items: flex-start;
+}
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin-top: 0.5em;
+  user-select: none;
+}
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--surface-muted);
+  text-decoration: line-through;
+}
+.ProseMirror input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 15px;
+  height: 15px;
+}
 
 /* Opaque markdown we don't edit (tables, HTML, footnotes, AI blocks...) */
 .ProseMirror .raw-block {
-  font-family: var(--font-mono); font-size: 13px; line-height: 1.6; color: var(--surface-muted);
-  border: 1px dashed var(--surface-line); border-radius: 8px; padding: 0.6em 0.9em; cursor: default;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--surface-muted);
+  border: 1px dashed var(--surface-line);
+  border-radius: 8px;
+  padding: 0.6em 0.9em;
+  cursor: default;
 }
-.ProseMirror .raw-block pre { background: none; padding: 0; margin: 0; font-size: inherit; white-space: pre-wrap; }
+.ProseMirror .raw-block pre {
+  background: none;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  white-space: pre-wrap;
+}
 .ProseMirror .raw-inline {
-  font-family: var(--font-mono); font-size: 0.8em; color: var(--surface-muted); background: var(--code-bg);
-  padding: 0.1em 0.4em; border-radius: 4px; cursor: default;
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  color: var(--surface-muted);
+  background: var(--code-bg);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  cursor: default;
 }
-.ProseMirror .ProseMirror-selectednode { outline: 2px solid var(--accent); }
+.ProseMirror .ProseMirror-selectednode {
+  outline: 2px solid var(--primary);
+}

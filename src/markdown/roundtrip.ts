@@ -55,7 +55,12 @@ export interface SaveOptions {
   forceSerialize?: boolean;
 }
 
-export function saveBody(ctx: BodyContext, doc: PMNode, canon: Canon, opts: SaveOptions = {}): string {
+export function saveBody(
+  ctx: BodyContext,
+  doc: PMNode,
+  canon: Canon,
+  opts: SaveOptions = {},
+): string {
   const { parsed, byKey } = ctx;
   const { eol, blocks } = parsed;
   const used = new Set<number>();
@@ -94,5 +99,4 @@ export function saveBody(ctx: BodyContext, doc: PMNode, canon: Canon, opts: Save
   return out;
 }
 
-const toEol = (text: string, eol: string) =>
-  text.replace(/\r\n?/g, "\n").replace(/\n/g, eol);
+const toEol = (text: string, eol: string) => text.replace(/\r\n?/g, "\n").replace(/\n/g, eol);

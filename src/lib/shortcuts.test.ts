@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { addDays, isISODate, monthGrid, parseDateInput } from "./dates";
-import { createDispatcher, formatShortcut, matchChord, shortcutLabel, type Action } from "./shortcuts";
+import {
+  createDispatcher,
+  formatShortcut,
+  matchChord,
+  shortcutLabel,
+  type Action,
+} from "./shortcuts";
 
-const ev = (key: string, o: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }> = {}) => ({
+const ev = (
+  key: string,
+  o: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }> = {},
+) => ({
   key,
   ctrlKey: false,
   metaKey: false,
@@ -11,7 +20,13 @@ const ev = (key: string, o: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey
   ...o,
 });
 
-const act = (id: string, shortcut: string): Action => ({ id, label: id, group: "App", shortcut, run: () => {} });
+const act = (id: string, shortcut: string): Action => ({
+  id,
+  label: id,
+  group: "App",
+  shortcut,
+  run: () => {},
+});
 
 describe("shortcuts", () => {
   it("mod maps to ctrl on Windows and cmd on macOS", () => {
@@ -38,7 +53,7 @@ describe("shortcuts", () => {
 
   it("chords fire anywhere; single keys and sequences only outside text fields", () => {
     const actions = [act("palette", "mod+k"), act("today", "g t"), act("help", "?")];
-    const d = createDispatcher(() => actions);
+    const d = createDispatcher(() => actions, undefined, false); // pin to Windows: the default follows the host OS
     expect(d(ev("k", { ctrlKey: true }), true)?.id).toBe("palette");
     expect(d(ev("g"), true)).toBeNull();
     expect(d(ev("t"), true)).toBeNull();
@@ -49,7 +64,10 @@ describe("shortcuts", () => {
 
   it("a sequence expires", () => {
     let t = 0;
-    const d = createDispatcher(() => [act("today", "g t")], () => t);
+    const d = createDispatcher(
+      () => [act("today", "g t")],
+      () => t,
+    );
     d(ev("g"), false);
     t = 2000;
     expect(d(ev("t"), false)).toBeNull();

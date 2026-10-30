@@ -82,7 +82,7 @@ function Gate() {
   }, [ready]);
 
   if (app.loadError) {
-    return <div className="p-10 text-muted">dhyāna couldn't start: {app.loadError}</div>;
+    return <div className="p-10 text-muted-foreground">dhyāna couldn't start: {app.loadError}</div>;
   }
   if (!app.app) return null;
 

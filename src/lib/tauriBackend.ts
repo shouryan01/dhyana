@@ -2,12 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
-import {
-  AppStateSchema,
-  DayFileSchema,
-  SaveResultSchema,
-  type Backend,
-} from "./backend";
+import { AppStateSchema, DayFileSchema, SaveResultSchema, type Backend } from "./backend";
 
 const ChangedSchema = z.object({ dates: z.array(z.string()) });
 
@@ -33,9 +28,7 @@ export const tauriBackend: Backend = {
     return DayFileSchema.parse(await invoke("read_day", { date }));
   },
   async saveDay(date, body, expectedHash, force) {
-    return SaveResultSchema.parse(
-      await invoke("save_day", { date, body, expectedHash, force }),
-    );
+    return SaveResultSchema.parse(await invoke("save_day", { date, body, expectedHash, force }));
   },
   async deleteDay(date) {
     return z.boolean().parse(await invoke("delete_day", { date }));

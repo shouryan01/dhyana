@@ -18,7 +18,8 @@ export interface Action {
 }
 
 export const isMac = () =>
-  typeof navigator !== "undefined" && /mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent);
+  typeof navigator !== "undefined" &&
+  /mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent);
 
 const isChord = (spec: string) => spec.includes("+") && spec.length > 1 && !spec.includes(" ");
 
@@ -86,15 +87,21 @@ export function formatShortcut(spec: string, mac = isMac()): string[] {
 }
 
 /** One-line form for tooltips: "⇧⌘K" on macOS (no separators), "Ctrl+Shift+K" elsewhere. */
-export const shortcutLabel = (spec: string, mac = isMac()): string => formatShortcut(spec, mac).join(mac ? "" : "+");
+export const shortcutLabel = (spec: string, mac = isMac()): string =>
+  formatShortcut(spec, mac).join(mac ? "" : "+");
 
-const specsOf = (a: Action): string[] => [a.shortcut, ...(a.also ?? [])].filter((s): s is string => !!s);
+const specsOf = (a: Action): string[] =>
+  [a.shortcut, ...(a.also ?? [])].filter((s): s is string => !!s);
 
 /**
  * Stateful dispatcher for key events: returns the action a key event triggers (or null), tracking
  * the first key of a two-key sequence like "g t".
  */
-export function createDispatcher(getActions: () => Action[], now: () => number = Date.now) {
+export function createDispatcher(
+  getActions: () => Action[],
+  now: () => number = Date.now,
+  mac: boolean = isMac(),
+) {
   let pending: { key: string; at: number } | null = null;
   const SEQUENCE_WINDOW_MS = 1000;
 
@@ -102,7 +109,7 @@ export function createDispatcher(getActions: () => Action[], now: () => number =
     const entries = getActions().flatMap((a) => specsOf(a).map((spec) => ({ a, spec })));
 
     for (const { a, spec } of entries) {
-      if (isChord(spec) && matchChord(e, spec)) {
+      if (isChord(spec) && matchChord(e, spec, mac)) {
         pending = null;
         return a;
       }
@@ -123,7 +130,9 @@ export function createDispatcher(getActions: () => Action[], now: () => number =
       if (hit) return hit.a;
     }
 
-    const single = entries.find((x) => !isChord(x.spec) && !x.spec.includes(" ") && x.spec === (x.spec === "?" ? e.key : key));
+    const single = entries.find(
+      (x) => !isChord(x.spec) && !x.spec.includes(" ") && x.spec === (x.spec === "?" ? e.key : key),
+    );
     if (single) {
       pending = null;
       return single.a;

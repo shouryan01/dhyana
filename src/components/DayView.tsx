@@ -8,7 +8,16 @@ import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import { registerFlush } from "@/app/flush";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { backend } from "@/lib";
 import type { DayFile } from "@/lib/backend";
 import { formatLong } from "@/lib/dates";
@@ -39,7 +48,7 @@ export function DayView({ date }: { date: string }) {
   }, [date]);
 
   if (error) {
-    return <div className="p-10 text-muted">Couldn't open this note: {error}</div>;
+    return <div className="p-10 text-muted-foreground">Couldn't open this note: {error}</div>;
   }
   if (!file) return null; // local reads are near-instant; no spinner
   return <DayEditor key={date} date={date} initial={file} />;
@@ -155,8 +164,11 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
       await backend.deleteDay(date);
       applyDisk({ exists: false, body: "", hash: "", created: null, modified: null });
       appRef.current.bumpDays();
-      toast.success(`Deleted ${formatLong(date)}`, { description: `It's in your ${trashName()} if you need it back.` });
-      if (date !== appRef.current.today) void navigate({ to: "/day/$date", params: { date: appRef.current.today } });
+      toast.success(`Deleted ${formatLong(date)}`, {
+        description: `It's in your ${trashName()} if you need it back.`,
+      });
+      if (date !== appRef.current.today)
+        void navigate({ to: "/day/$date", params: { date: appRef.current.today } });
     } catch (e) {
       toast.error(`Couldn't delete this note: ${e}`);
     }
@@ -189,18 +201,22 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   // Focus: editor registers itself for "Focus editor"; today's note takes focus on open.
   useEffect(() => {
     if (!editor) return;
-    app.focusEditor.current = () => editor.commands.focus("end");
+    const { focusEditor, deleteNote } = app; // stable ref objects, captured so cleanup clears the same ones
+    focusEditor.current = () => editor.commands.focus("end");
     if (date === app.today && !app.paletteOpen) editor.commands.focus("end");
-    app.deleteNote.current = () => latest.current.requestDelete();
+    deleteNote.current = () => latest.current.requestDelete();
     return () => {
-      app.focusEditor.current = null;
-      app.deleteNote.current = null;
+      focusEditor.current = null;
+      deleteNote.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, date]);
 
   return (
-    <div className="writing h-full overflow-y-auto" onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}>
+    <div
+      className="writing h-full overflow-y-auto"
+      onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}
+    >
       <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
         <header className="group mb-8 flex items-start justify-between gap-4 select-none">
           <div>
@@ -209,8 +225,12 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
             </h1>
             <p className="mt-1 text-[12px] text-surface-muted">
               {date === app.today ? "Today · " : ""}
-              {meta.created ? `Created ${formatTime(meta.created)}` : "Not saved yet — start typing"}
-              {meta.modified && meta.modified !== meta.created ? ` · Edited ${formatTime(meta.modified)}` : ""}
+              {meta.created
+                ? `Created ${formatTime(meta.created)}`
+                : "Not saved yet — start typing"}
+              {meta.modified && meta.modified !== meta.created
+                ? ` · Edited ${formatTime(meta.modified)}`
+                : ""}
             </p>
           </div>
           {meta.created && (
@@ -226,12 +246,17 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
         </header>
 
         {external && (
-          <div role="alert" className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-popover px-4 py-3 text-fg select-none">
-            <span className="flex-1 text-[13px]">This note changed on disk while you were editing.</span>
-            <Button size="sm" onClick={() => applyDisk(external.file)}>
+          <div
+            role="alert"
+            className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-popover px-4 py-3 text-foreground select-none"
+          >
+            <span className="flex-1 text-[13px]">
+              This note changed on disk while you were editing.
+            </span>
+            <Button size="sm" variant="outline" onClick={() => applyDisk(external.file)}>
               Load disk version
             </Button>
-            <Button size="sm" variant="primary" onClick={() => void persist(true)}>
+            <Button size="sm" onClick={() => void persist(true)}>
               Keep mine
             </Button>
           </div>
@@ -240,29 +265,38 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
         <EditorContent editor={editor} />
       </div>
 
-      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <DialogContent align="center" className="w-[min(400px,calc(100vw-32px))] p-5">
-          <DialogTitle className="text-[15px] font-semibold">Delete this note?</DialogTitle>
-          <p className="mt-2 text-[13px] text-muted">
-            {formatLong(date)} moves to your {trashName()}, so you can still restore it from there.
-          </p>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button onClick={() => setConfirmDelete(false)}>Cancel</Button>
-            <Button variant="primary" onClick={() => void doDelete()}>
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent className="sm:max-w-[400px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {formatLong(date)} moves to your {trashName()}, so you can still restore it from
+              there.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void doDelete()}>
               Move to {trashName()}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-const trashName = () => (/win/i.test(navigator.platform || navigator.userAgent) ? "Recycle Bin" : "Trash");
+const trashName = () =>
+  /win/i.test(navigator.platform || navigator.userAgent) ? "Recycle Bin" : "Trash";
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   const sameDay = d.toDateString() === new Date().toDateString();
-  return d.toLocaleString(undefined, sameDay ? { hour: "numeric", minute: "2-digit" } : { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return d.toLocaleString(
+    undefined,
+    sameDay
+      ? { hour: "numeric", minute: "2-digit" }
+      : { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
+  );
 }

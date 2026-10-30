@@ -1,9 +1,3 @@
-
-
-  
 Leading blank lines then text.
 
-
-
-Extra blank lines between.   
-
+Extra blank lines between.

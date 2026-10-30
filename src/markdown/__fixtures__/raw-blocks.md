@@ -2,9 +2,9 @@
 ignored: this is not frontmatter here
 ---
 
-| a | b |
-|---|---|
-| 1 | 2 |
+| a   | b   |
+| --- | --- |
+| 1   | 2   |
 
 Text with a footnote[^1] and an image ![alt](pic.png) and <span>html</span>.
 
@@ -15,6 +15,7 @@ Text with a footnote[^1] and an image ![alt](pic.png) and <span>html</span>.
 </div>
 
 <!-- dhyana:ai:start -->
+
 AI summary goes here.
 <!-- dhyana:ai:end -->
 
@@ -25,12 +26,12 @@ Setext heading
 
     indented code
 
-~~~python
+```python
 print("hi")
-~~~
+```
 
 - item with table
 
-  | x | y |
-  |---|---|
-  | 1 | 2 |
+  | x   | y   |
+  | --- | --- |
+  | 1   | 2   |

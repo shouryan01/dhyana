@@ -1,18 +1,43 @@
 name: Build
 
 # Runs when a PR is merged into main (a merge is a push to main), or by hand from the Actions tab.
+# When every build succeeds on main, a GitHub pre-release with generated release notes is created.
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # Lint and tests are platform-independent, so they run once here and gate both builds.
+  check:
+    name: Lint & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8 # the lockfile is v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+
   build:
     name: ${{ matrix.name }}
+    needs: check
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -24,9 +49,6 @@ jobs:
           - name: macOS (Apple Silicon)
             os: macos-latest
             args: --target aarch64-apple-darwin
-          - name: macOS (Intel)
-            os: macos-latest
-            args: --target x86_64-apple-darwin
 
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +64,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
 
       - uses: swatinem/rust-cache@v2
         with:
@@ -50,9 +72,6 @@ jobs:
           key: ${{ matrix.args }}
 
       - run: pnpm install --frozen-lockfile
-
-      - run: pnpm lint
-      - run: pnpm test
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -70,3 +89,24 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/*/release/bundle/dmg/*.dmg
           if-no-files-found: error
+
+  # Only after lint, tests and both builds pass, and only for merges to main (not manual runs).
+  release:
+    name: Release notes
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the tag and release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create pre-release with generated notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          tag="v${version}-build.${{ github.run_number }}"
+          # Notes list the pull requests merged since the previous release, plus a compare link.
+          gh release create "$tag"             --target "${{ github.sha }}"             --title "dhyāna ${version} (build ${{ github.run_number }})"             --generate-notes             --prerelease
+          echo "Created release $tag" >> "$GITHUB_STEP_SUMMARY"

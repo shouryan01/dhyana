@@ -1,7 +1,14 @@
 /** The dhyāna mark: a book with a spark. Drawn in currentColor so it follows the theme. */
 export function Logo({ size = 18, className }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="245 220 350 405" fill="none" className={className} aria-hidden>
+    <svg
+      width={size}
+      height={size}
+      viewBox="245 220 350 405"
+      fill="none"
+      className={className}
+      aria-hidden
+    >
       <g stroke="currentColor" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round">
         <rect x="261" y="236" width="318" height="373" rx="46" />
         <path d="M262 534H578" strokeWidth="30" />
