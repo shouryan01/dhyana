@@ -1,55 +1,139 @@
-import { useMemo } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { moodColor } from "@/lib/mood";
 
-const POINTS = 120;
-const R = 62;
-/**
- * The shape is drawn around the middle of a 0-based 200 x 200 box. The viewBox must start at 0:
- * a CSS rotation's origin ignores a viewBox that starts at a negative offset, so the shape
- * would orbit the frame's corner instead of turning in place (and leave the dialog).
- */
-const SIZE = 200;
-const CENTER = SIZE / 2;
-/**
- * How far the shape wanders from the middle in each direction. Kept small enough that the widest
- * shape (the spiky one, about 73 from its centre) plus this still fits inside the box.
- */
-export const WANDER = 14;
+const POINTS = 180;
+const R = 58;
 
 /**
- * The outline for a valence: a spiky star when unpleasant, a circle at neutral, a soft flower
- * when pleasant. Always the same number of points, so it changes smoothly as the slider moves.
+ * The outline for a valence: a spiky star when unpleasant, a circle at neutral, a round-petalled
+ * flower when pleasant. Always the same number of points, so it morphs smoothly between them.
+ * `phase` turns the pattern by a fraction of one spike or petal (for the interleaved back layer).
  */
-export function blobPath(v: number): string {
+export function blobPath(v: number, phase = 0): string {
   const pts: string[] = [];
   for (let i = 0; i < POINTS; i++) {
     const t = (i / POINTS) * Math.PI * 2;
     let r = R;
     if (v < 0) {
-      const k = 12;
-      const phase = ((t * k) / (Math.PI * 2)) % 1;
-      const tri = 1 - 4 * Math.abs(phase - 0.5); // -1 at the notches, 1 at the tips
-      r = R * (1 - 0.12 * -v + 0.3 * -v * tri);
+      // Sharp tips, wide round valleys.
+      const s = (1 - Math.abs(Math.sin((t * 11) / 2 + phase * Math.PI))) ** 1.6;
+      r = R * (1 + -v * (0.42 * s - 0.2));
     } else if (v > 0) {
-      r = R * (1 + 0.16 * v * Math.cos(t * 7));
+      // Fat petals pinched where they meet.
+      const c = Math.abs(Math.cos((t * 8) / 2 + phase * Math.PI)) ** 0.55;
+      r = R * (1 + v * (0.26 * c - 0.14));
     }
-    pts.push(`${(CENTER + r * Math.cos(t)).toFixed(1)},${(CENTER + r * Math.sin(t)).toFixed(1)}`);
+    pts.push(`${(r * Math.cos(t)).toFixed(1)},${(r * Math.sin(t)).toFixed(1)}`);
   }
   return `M${pts.join("L")}Z`;
 }
 
-export function MoodBlob({ valence, size = 150 }: { valence: number; size?: number }) {
-  const d = useMemo(() => blobPath(valence), [valence]);
+const reducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * Follows `target` with a soft spring, so a jump (a key press, a click on the track) glides
+ * rather than snaps. Reduced-motion users get the value straight away.
+ */
+export function useSpring(target: number): number {
+  const [value, setValue] = useState(target);
+  const state = useRef({ x: target, v: 0 });
+  useEffect(() => {
+    const s = state.current;
+    if (reducedMotion()) {
+      s.x = target;
+      s.v = 0;
+      setValue(target);
+      return;
+    }
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.032, (now - last) / 1000);
+      last = now;
+      // Slightly under-damped: settles with the faintest overshoot.
+      s.v += (260 * (target - s.x) - 26 * s.v) * dt;
+      s.x += s.v * dt;
+      if (Math.abs(target - s.x) < 0.001 && Math.abs(s.v) < 0.01) {
+        s.x = target;
+        s.v = 0;
+        setValue(target);
+        return;
+      }
+      setValue(s.x);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return value;
+}
+
+/**
+ * The mood shape, drawn in layers: a soft glow, an interleaved back layer turning one way, the
+ * main shape turning the other, and a lighter heart. Colour comes from the mood scale. `glyph`
+ * draws just the main shape, still, for small sizes (chips, summaries).
+ */
+export function MoodBlob({
+  valence,
+  size = 150,
+  glyph = false,
+}: {
+  valence: number;
+  size?: number;
+  glyph?: boolean;
+}) {
+  const id = `mood-${useId().replace(/[^\w-]/g, "")}`;
+  const color = moodColor(valence);
+  const main = useMemo(() => blobPath(valence), [valence]);
+  const back = useMemo(() => (glyph ? "" : blobPath(valence, 0.5)), [valence, glyph]);
+  const fill = `url(#${id}-fill)`;
+  const light = (pct: number) => `color-mix(in oklab, ${color}, white ${pct}%)`;
+
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={size} height={size} aria-hidden="true">
-      {/* It bounces about inside the frame (two slow, out-of-step sweeps) while it turns. */}
-      <g className="mood-wander-x">
-        <g className="mood-wander-y">
-          <g className="mood-blob">
-            <path d={d} style={{ fill: moodColor(valence) }} />
+    <svg
+      viewBox={glyph ? "-80 -80 160 160" : "-100 -100 200 200"}
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className="shrink-0 overflow-visible"
+    >
+      <defs>
+        <radialGradient id={`${id}-fill`} cx="0" cy="0" r={R * 1.2} gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor={light(38)} />
+          <stop offset="0.55" stopColor={light(10)} />
+          <stop offset="1" stopColor={color} />
+        </radialGradient>
+        {!glyph && (
+          <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="14" />
+          </filter>
+        )}
+      </defs>
+      {glyph ? (
+        <path d={main} fill={fill} />
+      ) : (
+        <>
+          <g className="mood-breathe">
+            <path
+              d={main}
+              transform="scale(1.08)"
+              fill={color}
+              opacity={0.5}
+              filter={`url(#${id}-glow)`}
+            />
           </g>
-        </g>
-      </g>
+          <g className="mood-turn-back">
+            <path d={back} transform="scale(0.94)" fill={color} opacity={0.42} />
+          </g>
+          <g className="mood-turn">
+            <g className="mood-breathe">
+              <path d={main} fill={fill} />
+              <path d={main} transform="scale(0.5)" fill={light(55)} opacity={0.45} />
+            </g>
+          </g>
+        </>
+      )}
     </svg>
   );
 }
