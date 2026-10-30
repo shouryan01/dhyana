@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { moodColor } from "@/lib/mood";
+import { cn } from "@/lib/utils";
 
 const POINTS = 180;
 const R = 58;
@@ -67,6 +68,107 @@ export function useSpring(target: number): number {
     return () => cancelAnimationFrame(raf);
   }, [target]);
   return value;
+}
+
+/** Position (from the arena's centre) and velocity, in px and px per second. */
+export interface Bounce {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+}
+
+/**
+ * Moves `p` for `dt` seconds in a straight line and reflects it off the walls of a box that
+ * extends `hx` and `hy` either side of the centre, like the old DVD-player logo. Speed never
+ * changes; only the direction flips on the axis that hit a wall.
+ */
+export function stepBounce(p: Bounce, dt: number, hx: number, hy: number): Bounce {
+  const axis = (pos: number, vel: number, half: number): [number, number] => {
+    if (half <= 0) return [0, vel];
+    let x = pos + vel * dt;
+    let v = vel;
+    // A long step can cross a wall more than once; fold it back in.
+    for (let i = 0; i < 8 && (x > half || x < -half); i++) {
+      if (x > half) {
+        x = 2 * half - x;
+        v = -Math.abs(v);
+      } else {
+        x = -2 * half - x;
+        v = Math.abs(v);
+      }
+    }
+    return [Math.max(-half, Math.min(half, x)), v];
+  };
+  const [x, vx] = axis(p.x, p.vx, hx);
+  const [y, vy] = axis(p.y, p.vy, hy);
+  return { x, y, vx, vy };
+}
+
+const SPEED = { x: 46, y: 33 }; // px per second; a little different on each axis, so it roams
+/** How far the shape (and a bit of its glow) reaches from its centre, as a share of its width. */
+const REACH = 0.37;
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * The mood shape bouncing around its frame at a constant speed, reflecting off the edges like
+ * the old DVD-player logo. The frame is whatever size the parent gives this element. Reduced
+ * motion keeps it still in the middle.
+ */
+export function BouncingMood({
+  valence,
+  size,
+  className,
+}: {
+  valence: number;
+  size: number;
+  className?: string;
+}) {
+  const arena = useRef<HTMLDivElement>(null);
+  const item = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const frame = arena.current;
+    const el = item.current;
+    if (!frame || !el || prefersReducedMotion()) return;
+    let box = { w: frame.clientWidth, h: frame.clientHeight };
+    const watch = new ResizeObserver(() => {
+      box = { w: frame.clientWidth, h: frame.clientHeight };
+    });
+    watch.observe(frame);
+    const reach = size * REACH;
+    let p: Bounce = { x: 0, y: 0, vx: SPEED.x, vy: SPEED.y };
+    let last = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      // After the tab has been in the background the gap is huge; don't leap across the frame.
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      p = stepBounce(p, dt, box.w / 2 - reach, box.h / 2 - reach);
+      el.style.transform = `translate3d(${p.x.toFixed(2)}px, ${p.y.toFixed(2)}px, 0)`;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      watch.disconnect();
+    };
+  }, [size]);
+
+  return (
+    <div ref={arena} className={cn("relative", className)}>
+      <div
+        ref={item}
+        className="absolute top-1/2 left-1/2 will-change-transform"
+        style={{ width: size, height: size, margin: `${-size / 2}px 0 0 ${-size / 2}px` }}
+      >
+        <MoodBlob valence={valence} size={size} />
+      </div>
+    </div>
+  );
 }
 
 /**

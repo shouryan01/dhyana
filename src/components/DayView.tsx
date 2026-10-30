@@ -1,20 +1,11 @@
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useNavigate } from "@tanstack/react-router";
-import { Ellipsis, History, Smile, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import { registerFlush } from "@/app/flush";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Kbd } from "@/components/ui/kbd";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,14 +19,14 @@ import {
 import { HistoryDialog } from "@/components/HistoryDialog";
 import { MoodCheckIn, type CheckInRequest } from "@/components/MoodCheckIn";
 import { MoodPanel } from "@/components/MoodPanel";
-import { MoodStrip } from "@/components/MoodStrip";
+import { NoteActions } from "@/components/NoteActions";
 import { OnThisDay } from "@/components/OnThisDay";
 import { backend } from "@/lib";
 import type { DayFile } from "@/lib/backend";
 import { formatLong } from "@/lib/dates";
 import { journalPath } from "@/lib/memoryEntities";
 import type { CheckIn } from "@/lib/schema";
-import { cn, trashName } from "@/lib/utils";
+import { trashName } from "@/lib/utils";
 import { editorExtensions, useOpenWikilink } from "@/editor/wiring";
 import { UpcomingPanel } from "@/components/UpcomingPanel";
 import { createCanon, defaultSchema } from "@/markdown/canon";
@@ -359,9 +350,6 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, date]);
 
-  const headerButton =
-    "mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-surface-muted transition-colors duration-100 hover:bg-chrome-hover hover:text-surface-fg";
-
   return (
     <div className="flex h-full">
       <div
@@ -369,7 +357,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
         onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}
       >
         <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
-          <div className="group mb-8">
+          <div className="mb-8">
             <header className="flex items-start justify-between gap-4 select-none">
               <div>
                 <h1 className="font-[family-name:var(--font-body)] text-[26px] font-semibold leading-tight text-surface-fg">
@@ -385,49 +373,17 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
                     : ""}
                 </p>
               </div>
-              {/* Everything the note offers lives in one menu, which only shows while the header is
-                  hovered or focused (or the menu is open). Each item is also a palette action. */}
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  aria-label="Note actions"
-                  title="Note actions"
-                  className={cn(
-                    headerButton,
-                    "opacity-0 transition-[opacity,background-color,color] group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:bg-chrome-hover data-popup-open:opacity-100",
-                  )}
-                >
-                  <Ellipsis size={16} />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60">
-                  <DropdownMenuItem className="text-[13px]" onClick={() => setCheckIn({})}>
-                    <Smile /> Add mood check-in
-                    <Kbd shortcut="m" className="ml-auto" />
-                  </DropdownMenuItem>
-                  {meta.created && (
-                    <DropdownMenuItem className="text-[13px]" onClick={() => setHistoryOpen(true)}>
-                      <History /> Version history
-                      <Kbd shortcut="g h" className="ml-auto" />
-                    </DropdownMenuItem>
-                  )}
-                  {meta.created && <DropdownMenuSeparator />}
-                  {meta.created && (
-                    <DropdownMenuItem
-                      className="text-[13px]"
-                      variant="destructive"
-                      onClick={requestDelete}
-                    >
-                      <Trash2 /> Delete this note…
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </header>
 
-            <MoodStrip
+            {/* The actions and check-ins: a list under the date. Its toggle is always visible. */}
+            <NoteActions
               mood={mood.file}
               pending={mood.pending}
-              onEdit={editCheckIn}
-              onAdd={() => setCheckIn({})}
+              onEditCheckIn={editCheckIn}
+              onAddCheckIn={() => setCheckIn({})}
+              onHistory={meta.created ? () => setHistoryOpen(true) : undefined}
+              onDelete={meta.created ? requestDelete : undefined}
+              shortcuts={{ checkIn: "m", history: "g h" }}
             />
           </div>
 

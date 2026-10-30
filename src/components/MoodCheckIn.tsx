@@ -26,7 +26,7 @@ import {
 import { type CSSProperties, type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
-import { MoodBlob, useSpring } from "@/components/MoodBlob";
+import { BouncingMood, MoodBlob, useSpring } from "@/components/MoodBlob";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,6 +36,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { TimePicker } from "@/components/TimePicker";
 import {
   emotionLean,
   FACTORS,
@@ -241,10 +242,11 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
         <DialogDescription className="text-[12px]">{HINTS[step]}</DialogDescription>
       </DialogHeader>
 
-      <div key={step} className={cn("min-h-[292px] px-6 pt-4 pb-5", `mood-step-${dir}`)}>
+      <div key={step} className={cn("min-h-[324px] px-6 pt-4 pb-5", `mood-step-${dir}`)}>
         {step === 0 && (
           <div className="flex flex-col items-center">
-            <MoodBlob valence={drawn} size={176} />
+            {/* Bounces about a wide frame, DVD-logo style. */}
+            <BouncingMood valence={drawn} size={176} className="h-[208px] w-full" />
             <div
               key={valenceLabel(valence)}
               className="mood-word -mt-1 text-[22px] font-semibold tracking-tight"
@@ -371,13 +373,7 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
         </div>
         {editing && (
           <>
-            <Input
-              type="time"
-              aria-label="Time"
-              value={at}
-              onChange={(e) => setAt(e.target.value)}
-              className="ml-2 h-7 w-[110px] text-[12px]"
-            />
+            <TimePicker value={at} onChange={setAt} className="ml-2" />
             {onDelete && (
               <Button
                 variant="ghost"

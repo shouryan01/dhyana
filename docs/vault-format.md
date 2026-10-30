@@ -98,7 +98,7 @@ dhyana keeps a history of your notes with Git, in a repository in the app's data
 
 - A version is saved about 20 seconds after you stop writing, again every five minutes if you never stop, and when you quit. Nothing is squashed or replaced, so a note's history is the full stream of what it was at each pause, and an open history list adds new versions as they arrive.
 - **Save a version now** (command palette or Settings → History) records one that later saves won't fold into.
-- Each note's history (the `⋯` menu beside its title, or `G H`) lists its versions with a read-only diff, either of what that version changed or compared with the note now. **Restore** puts the note back; what was there is saved as a version first, so restoring never loses anything. A restored day that is open in the editor reloads; if you had unsaved typing, you're asked which to keep.
+- Each note's history (the `Actions` list under its title, or `G H`) lists its versions with a read-only diff, either of what that version changed or compared with the note now. **Restore** puts the note back; what was there is saved as a version first, so restoring never loses anything. A restored day that is open in the editor reloads; if you had unsaved typing, you're asked which to keep.
 - Settings → History turns automatic versions off. Files larger than 20 MB are left out.
 
 ## Markdown fidelity

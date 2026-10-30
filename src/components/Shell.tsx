@@ -1,6 +1,5 @@
 import { Link, Outlet, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
 import {
-  CalendarRange,
   Library,
   Moon,
   PanelLeft,
@@ -36,7 +35,6 @@ export function Shell() {
   });
   const onLibrary = useRouterState({ select: (s) => s.location.pathname.startsWith("/library") });
   const onDay = useRouterState({ select: (s) => s.location.pathname.startsWith("/day/") });
-  const onYear = useRouterState({ select: (s) => s.location.pathname.startsWith("/year") });
   const actions = useActions();
   useHotkeys(actions);
   useRolloverNotice();
@@ -115,14 +113,6 @@ export function Shell() {
               wiggle="group-hover:-rotate-12"
               label="Library"
               shortcut={shortcutOf("library")}
-            />
-            <NavLink
-              to="/year"
-              active={onYear}
-              icon={<CalendarRange size={15} />}
-              wiggle="group-hover:-rotate-12"
-              label="Year"
-              shortcut={shortcutOf("year")}
             />
           </nav>
 
@@ -214,7 +204,7 @@ const ROW =
   "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-100";
 
 function NavLink(props: {
-  to: "/day/$date" | "/settings" | "/library" | "/year";
+  to: "/day/$date" | "/settings" | "/library";
   params?: { date: string };
   active: boolean;
   icon: React.ReactNode;
