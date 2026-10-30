@@ -1,19 +1,25 @@
-//! Tauri commands. Thin wrappers over `settings` and `vault`.
+//! Tauri commands. Thin wrappers over `settings`, `vault`, `entities` and the index.
 
-use std::path::PathBuf;
-use std::sync::Mutex;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
+use crate::entities::{self, EntityDetail, EntityPatch, RenameResult};
+use crate::index::{EntitySummary, Index, SharedIndex, TagInfo, UpcomingEvent, VaultIndex};
+use crate::names::Kind;
 use crate::settings::{Settings, SettingsPatch};
-use crate::vault::{self, DayFile, SaveResult};
+use crate::vault::{self, DayFile, SaveResult, SaveStatus};
 use crate::watcher::{self, VaultWatcher};
 
 pub struct AppCtx {
     pub settings_path: PathBuf,
+    /// Where per-vault index files live (app data, never the vault).
+    pub index_dir: PathBuf,
     pub settings: Mutex<Settings>,
     pub watcher: Mutex<Option<VaultWatcher>>,
+    pub index: SharedIndex,
 }
 
 #[derive(Serialize)]
@@ -39,12 +45,14 @@ impl AppState {
 }
 
 impl AppCtx {
-    pub fn new(settings_path: PathBuf) -> Self {
+    pub fn new(settings_path: PathBuf, index_dir: PathBuf) -> Self {
         let settings = Settings::load(&settings_path);
         AppCtx {
             settings_path,
+            index_dir,
             settings: Mutex::new(settings),
             watcher: Mutex::new(None),
+            index: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -56,10 +64,40 @@ impl AppCtx {
             .ok_or_else(|| "no vault configured".to_string())
     }
 
+    /// Seed the vault's defaults, then open its index and bring it up to date.
+    pub fn open_index(&self) {
+        let opened = self.vault().ok().and_then(|v| {
+            if let Err(e) = entities::ensure_seeded(&v) {
+                eprintln!("dhyana: could not seed vault: {e}");
+            }
+            match VaultIndex::open(&v, &self.index_dir) {
+                Ok(i) => Some(i),
+                Err(e) => {
+                    eprintln!("dhyana: could not open index: {e}");
+                    None
+                }
+            }
+        });
+        if let Ok(mut slot) = self.index.lock() {
+            *slot = opened;
+        }
+    }
+
+    /// Run `f` against the open vault and its index.
+    fn with_index<T>(
+        &self,
+        f: impl FnOnce(&Path, &mut Index) -> Result<T, String>,
+    ) -> Result<T, String> {
+        let mut slot = self.index.lock().map_err(|e| e.to_string())?;
+        let open = slot.as_mut().ok_or_else(|| "the index is not available".to_string())?;
+        f(&open.vault.clone(), &mut open.index)
+    }
+
     /// (Re)start the watcher for the saved vault, if any.
     pub fn restart_watcher(&self, app: &AppHandle) {
         let vault = self.vault().ok();
-        let new = vault.and_then(|v| match watcher::start(app.clone(), v) {
+        let shared = self.index.clone();
+        let new = vault.and_then(|v| match watcher::start(app.clone(), v, shared) {
             Ok(w) => Some(w),
             Err(e) => {
                 eprintln!("dhyana: could not watch vault: {e}");
@@ -106,6 +144,7 @@ pub fn set_vault(app: AppHandle, ctx: State<AppCtx>, path: String) -> Result<App
         s.save(&ctx.settings_path).map_err(|e| e.to_string())?;
         AppState::from(&s)
     };
+    ctx.open_index();
     ctx.restart_watcher(&app);
     Ok(state)
 }
@@ -123,20 +162,85 @@ pub fn save_day(
     expected_hash: Option<String>,
     force: bool,
 ) -> Result<SaveResult, String> {
-    vault::save_day(&ctx.vault()?, &date, &body, expected_hash.as_deref(), force)
-        .map_err(|e| e.to_string())
+    let vault_dir = ctx.vault()?;
+    let res = vault::save_day(&vault_dir, &date, &body, expected_hash.as_deref(), force)
+        .map_err(|e| e.to_string())?;
+    if res.status == SaveStatus::Saved {
+        // Backlinks and upcoming dates reflect this save immediately, not after the watcher fires.
+        let path = vault::day_path(&vault_dir, vault::validate_date(&date).map_err(|e| e.to_string())?);
+        if let Ok(mut slot) = ctx.index.lock() {
+            if let Some(open) = slot.as_mut() {
+                let _ = open.refresh_paths([&path]);
+            }
+        }
+    }
+    Ok(res)
 }
 
 /// Moves the day's file to the OS trash (recoverable), not a hard delete.
 #[tauri::command]
 pub fn delete_day(ctx: State<AppCtx>, date: String) -> Result<bool, String> {
-    vault::delete_day_with(&ctx.vault()?, &date, |p| {
+    let vault_dir = ctx.vault()?;
+    let removed = vault::delete_day_with(&vault_dir, &date, |p| {
         trash::delete(p).map_err(|e| std::io::Error::other(e.to_string()))
     })
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?;
+    if removed {
+        let path = vault::day_path(&vault_dir, vault::validate_date(&date).map_err(|e| e.to_string())?);
+        if let Ok(mut slot) = ctx.index.lock() {
+            if let Some(open) = slot.as_mut() {
+                let _ = open.refresh_paths([&path]);
+            }
+        }
+    }
+    Ok(removed)
 }
 
 #[tauri::command]
 pub fn list_days(ctx: State<AppCtx>, year: i32, month: u32) -> Result<Vec<String>, String> {
     Ok(vault::list_days(&ctx.vault()?, year, month))
+}
+
+#[tauri::command]
+pub fn list_entities(ctx: State<AppCtx>) -> Result<Vec<EntitySummary>, String> {
+    ctx.with_index(|_, idx| idx.entities().map_err(|e| e.to_string()))
+}
+
+#[tauri::command]
+pub fn list_tags(ctx: State<AppCtx>) -> Result<Vec<TagInfo>, String> {
+    ctx.with_index(|_, idx| idx.tags().map_err(|e| e.to_string()))
+}
+
+#[tauri::command]
+pub fn get_entity(ctx: State<AppCtx>, path: String) -> Result<EntityDetail, String> {
+    ctx.with_index(|v, idx| entities::detail(v, idx, &path).map_err(|e| e.to_string()))
+}
+
+#[tauri::command]
+pub fn create_entity(ctx: State<AppCtx>, kind: String, name: String) -> Result<EntitySummary, String> {
+    let kind = Kind::parse(&kind).ok_or_else(|| format!("unknown kind: {kind}"))?;
+    ctx.with_index(|v, idx| entities::create(v, idx, kind, &name).map_err(|e| e.to_string()))
+}
+
+#[tauri::command]
+pub fn update_entity(ctx: State<AppCtx>, path: String, patch: EntityPatch) -> Result<EntityDetail, String> {
+    ctx.with_index(|v, idx| entities::update(v, idx, &path, patch).map_err(|e| e.to_string()))
+}
+
+#[tauri::command]
+pub fn rename_entity(ctx: State<AppCtx>, path: String, new_name: String) -> Result<RenameResult, String> {
+    ctx.with_index(|v, idx| entities::rename(v, idx, &path, &new_name).map_err(|e| e.to_string()))
+}
+
+/// `$date` events on or after `from` (YYYY-MM-DD), soonest first.
+#[tauri::command]
+pub fn upcoming(ctx: State<AppCtx>, from: String, limit: Option<usize>) -> Result<Vec<UpcomingEvent>, String> {
+    vault::validate_date(&from).map_err(|e| e.to_string())?;
+    ctx.with_index(|_, idx| idx.upcoming(&from, limit.unwrap_or(50).min(500)).map_err(|e| e.to_string()))
+}
+
+/// Throw the index away and rebuild it from the files.
+#[tauri::command]
+pub fn rebuild_index(ctx: State<AppCtx>) -> Result<(), String> {
+    ctx.with_index(|v, idx| idx.rebuild(v).map_err(|e| e.to_string()))
 }

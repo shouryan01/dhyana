@@ -8,9 +8,12 @@ use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
+use crate::index::SharedIndex;
 use crate::vault::date_from_file_name;
 
 pub const EVENT: &str = "vault://changed";
+/// Entities, links or tags may have changed: refetch lists and backlinks.
+pub const ENTITIES_EVENT: &str = "vault://entities";
 
 #[derive(Serialize, Clone)]
 struct Changed {
@@ -43,16 +46,28 @@ pub fn dates_for_paths<'a>(vault: &Path, paths: impl IntoIterator<Item = &'a Pat
     dates
 }
 
-pub fn start(app: AppHandle, vault: PathBuf) -> Result<VaultWatcher, String> {
+pub fn start(app: AppHandle, vault: PathBuf, shared: SharedIndex) -> Result<VaultWatcher, String> {
     let root = vault.clone();
     let mut debouncer = new_debouncer(
         Duration::from_millis(250),
         move |res: DebounceEventResult| {
             if let Ok(events) = res {
                 let paths: Vec<PathBuf> = events.into_iter().map(|e| e.path).collect();
+                // Keep the index in step with the files, whoever changed them.
+                let refreshed = match shared.lock() {
+                    Ok(mut slot) => slot
+                        .as_mut()
+                        .filter(|v| v.vault == root)
+                        .and_then(|v| v.refresh_paths(&paths).ok())
+                        .unwrap_or_default(),
+                    Err(_) => Vec::new(),
+                };
                 let dates = dates_for_paths(&root, &paths);
                 if !dates.is_empty() {
                     let _ = app.emit(EVENT, Changed { dates });
+                }
+                if !refreshed.is_empty() {
+                    let _ = app.emit(ENTITIES_EVENT, ());
                 }
             }
         },

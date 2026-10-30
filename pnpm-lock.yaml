@@ -41,6 +41,9 @@ dependencies:
   '@tiptap/starter-kit':
     specifier: ^3.32.1
     version: 3.32.1
+  '@tiptap/suggestion':
+    specifier: ^3.32.1
+    version: 3.32.1(@floating-ui/dom@1.8.0)(@tiptap/core@3.32.1)(@tiptap/pm@3.32.1)
   class-variance-authority:
     specifier: ^0.7.1
     version: 0.7.1
@@ -1688,6 +1691,18 @@ packages:
       '@tiptap/extension-text': 3.32.1(@tiptap/core@3.32.1)
       '@tiptap/extension-underline': 3.32.1(@tiptap/core@3.32.1)
       '@tiptap/extensions': 3.32.1(@tiptap/core@3.32.1)(@tiptap/pm@3.32.1)
+      '@tiptap/pm': 3.32.1
+    dev: false
+
+  /@tiptap/suggestion@3.32.1(@floating-ui/dom@1.8.0)(@tiptap/core@3.32.1)(@tiptap/pm@3.32.1):
+    resolution: {integrity: sha512-NQ1/LL12Pb3r2qQeOkPwssDGLM3cPHy4BWCbMEpuINLlgXqubdpeKiHe/Qkq99dQlRwJlJd5/WiP4KNtIyn1Fw==}
+    peerDependencies:
+      '@floating-ui/dom': ^1.0.0
+      '@tiptap/core': 3.32.1
+      '@tiptap/pm': 3.32.1
+    dependencies:
+      '@floating-ui/dom': 1.8.0
+      '@tiptap/core': 3.32.1(@tiptap/pm@3.32.1)
       '@tiptap/pm': 3.32.1
     dev: false
 

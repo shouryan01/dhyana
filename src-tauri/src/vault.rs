@@ -77,7 +77,7 @@ pub fn hash_bytes(bytes: &[u8]) -> String {
         .collect()
 }
 
-fn read_raw(path: &Path) -> Result<Option<(String, String)>, VaultError> {
+pub(crate) fn read_raw(path: &Path) -> Result<Option<(String, String)>, VaultError> {
     match fs::read(path) {
         Ok(bytes) => {
             let hash = hash_bytes(&bytes);
@@ -157,7 +157,7 @@ impl Drop for StagedWrite {
     }
 }
 
-fn now_string() -> String {
+pub fn now_string() -> String {
     Local::now().to_rfc3339_opts(SecondsFormat::Secs, false)
 }
 
