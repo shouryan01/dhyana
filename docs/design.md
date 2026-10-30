@@ -27,6 +27,7 @@ Short and subtle; none at all when the OS asks for reduced motion.
 - `transition-spring` for hover and press: colours fade plainly, only transforms get the springy overshoot (overshooting a colour looks like a flash).
 - The logo wiggles when its parent (`.group`) is hovered.
 - Small, tightly packed controls (the calendar) do not scale on hover.
+- The mood check-in's shape follows the slider on a spring (`useSpring` in `MoodBlob.tsx`); its layers turn slowly against each other and breathe, and the dialog takes a soft wash of the current mood colour. No glass: it's tinted paper, so it fits every theme.
 
 ## Keyboard shortcuts
 

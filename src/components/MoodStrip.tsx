@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { useApp } from "@/app/context";
-import { factorLabel, formatAt, moodColor, timeline, valenceLabel } from "@/lib/mood";
+import { MoodBlob } from "@/components/MoodBlob";
+import { factorLabel, formatAt, timeline, valenceLabel } from "@/lib/mood";
 import { nameKey } from "@/lib/names";
 import type { CheckIn } from "@/lib/schema";
 import { cn } from "@/lib/utils";
@@ -46,11 +47,7 @@ export function MoodStrip({ mood, pending, onEdit, onAdd }: Props) {
               held ? "border-dashed border-muted-foreground/50" : "border-border",
             )}
           >
-            <span
-              aria-hidden="true"
-              className="size-2.5 shrink-0 rounded-full"
-              style={{ background: moodColor(c.valence) }}
-            />
+            <MoodBlob valence={c.valence} size={15} glyph />
             <span className="text-muted-foreground">{formatAt(c.at)}</span>
             <span className="truncate">
               {words.length ? words.join(", ") : valenceLabel(c.valence)}

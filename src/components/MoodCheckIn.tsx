@@ -1,8 +1,32 @@
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  Bath,
+  Briefcase,
+  Check,
+  CloudSun,
+  Dumbbell,
+  Fingerprint,
+  Flower2,
+  GraduationCap,
+  Heart,
+  HeartHandshake,
+  HeartPulse,
+  House,
+  ListChecks,
+  type LucideIcon,
+  Newspaper,
+  Palette,
+  Plane,
+  Plus,
+  Smile,
+  Trash2,
+  Users,
+  Wallet,
+} from "lucide-react";
+import { type CSSProperties, type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
-import { MoodBlob } from "@/components/MoodBlob";
+import { MoodBlob, useSpring } from "@/components/MoodBlob";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +36,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { FACTORS, nowHHMM, sortEmotionsFor, valenceLabel } from "@/lib/mood";
+import {
+  emotionLean,
+  FACTORS,
+  formatAt,
+  moodColor,
+  nowHHMM,
+  sortEmotionsFor,
+  valenceLabel,
+} from "@/lib/mood";
 import { nameKey } from "@/lib/names";
 import type { CheckIn } from "@/lib/schema";
 import { cn } from "@/lib/utils";
@@ -35,15 +67,53 @@ interface Props {
 
 const STEPS = ["feeling", "emotions", "factors"] as const;
 
+const FACTOR_ICONS: Record<(typeof FACTORS)[number][0], LucideIcon> = {
+  health: HeartPulse,
+  fitness: Dumbbell,
+  "self-care": Bath,
+  hobbies: Palette,
+  identity: Fingerprint,
+  spirituality: Flower2,
+  community: Users,
+  dating: Heart,
+  family: House,
+  friends: Smile,
+  partner: HeartHandshake,
+  tasks: ListChecks,
+  weather: CloudSun,
+  work: Briefcase,
+  education: GraduationCap,
+  "current-events": Newspaper,
+  travel: Plane,
+  money: Wallet,
+};
+
+const TITLES = [
+  "How are you feeling right now?",
+  "What best describes this feeling?",
+  "What’s having the biggest impact on you?",
+];
+const HINTS = [
+  "Slide to how pleasant or unpleasant this moment feels.",
+  "Pick as many as fit, or none.",
+  "Optional. Pick any that apply.",
+];
+
+const NUDGE: Record<string, number> = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 };
+
+const CHIP =
+  "mood-chip inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-popover/80 pr-3.5 pl-2.5 text-[12.5px] text-foreground transition-spring hover:bg-chrome-hover active:scale-95";
+
 /**
  * The check-in, in three short steps like Apple Health's: how pleasant it feels (a slider with a
- * shape and colour that follow it), which emotions, and what's behind it. Only the first step
- * matters; the rest can be passed over. Enter moves on, Esc skips.
+ * shape and colour that follow it, and a wash of that colour behind everything), which emotions,
+ * and what's behind it. Only the first step matters; the rest can be passed over. Enter moves on,
+ * Esc skips.
  */
 export function MoodCheckIn({ request, onSave, onDismiss, onDelete }: Props) {
   return (
     <Dialog open={request !== null} onOpenChange={(o) => !o && onDismiss()}>
-      <DialogContent showCloseButton={false} className="gap-0 overflow-hidden p-0 sm:max-w-[460px]">
+      <DialogContent showCloseButton={false} className="gap-0 overflow-hidden p-0 sm:max-w-[440px]">
         {request && (
           <Flow
             key={request.initial ? JSON.stringify(request.initial) : "new"}
@@ -62,11 +132,14 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
   const app = useApp();
   const editing = !!request.initial;
   const [step, setStep] = useState(0);
+  const [dir, setDir] = useState<"next" | "back">("next");
   const [valence, setValence] = useState(request.initial?.valence ?? 0);
   const [emotions, setEmotions] = useState<string[]>(request.initial?.emotions ?? []);
   const [factors, setFactors] = useState<string[]>(request.initial?.factors ?? []);
   const [at, setAt] = useState(request.initial?.at ?? nowHHMM());
   const [query, setQuery] = useState("");
+  // What's drawn glides after the value, so a key press or a click on the track doesn't snap.
+  const drawn = useSpring(valence);
 
   const allEmotions = useMemo(
     () => app.entities.filter((e) => e.kind === "emotion"),
@@ -76,6 +149,9 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
   const q = nameKey(query);
   const shown = q ? ordered.filter((e) => nameKey(e.display).includes(q)) : ordered;
   const exact = allEmotions.some((e) => nameKey(e.display) === q || nameKey(e.name) === q);
+  const picked = (name: string) => emotions.some((x) => nameKey(x) === nameKey(name));
+  const displayOf = (name: string) =>
+    allEmotions.find((e) => nameKey(e.name) === nameKey(name))?.display ?? name;
 
   const toggle = (list: string[], set: (l: string[]) => void, v: string) =>
     set(
@@ -101,11 +177,27 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
     }
     onSave({ at, valence: Math.round(valence * 100) / 100, emotions, factors });
   };
-  const next = () => (step < STEPS.length - 1 ? setStep(step + 1) : finish());
+  const go = (to: number) => {
+    setDir(to < step ? "back" : "next");
+    setStep(to);
+  };
+  const next = () => (step < STEPS.length - 1 ? go(step + 1) : finish());
+
+  // Arrow keys move one word along the scale (thirds of it line up with the seven steps);
+  // dragging stays continuous.
+  const nudge = (e: KeyboardEvent) => {
+    const d = NUDGE[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const x = valence * 3;
+    const k =
+      Math.abs(x - Math.round(x)) < 0.01 ? Math.round(x) + d : d > 0 ? Math.ceil(x) : Math.floor(x);
+    setValence(Math.max(-1, Math.min(1, k / 3)));
+  };
 
   // Enter moves on from anywhere but a text field (where it might mean "create").
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== "Enter" || e.isComposing) return;
       const el = e.target as HTMLElement;
       if (el.tagName === "INPUT" && el.getAttribute("type") !== "range") return;
@@ -117,40 +209,47 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const chip = (selected: boolean) =>
-    cn(
-      "h-7 rounded-full border px-3 text-[12px] transition-spring active:scale-95",
-      selected
-        ? "border-primary bg-primary text-primary-foreground"
-        : "border-border bg-popover text-foreground hover:bg-chrome-hover",
-    );
-
   return (
-    <div className="flex flex-col">
-      <DialogHeader className="px-5 pt-5">
-        <DialogTitle className="text-[15px]">
-          {step === 0
-            ? editing
-              ? "Edit check-in"
-              : "How are you feeling right now?"
-            : step === 1
-              ? "What best describes this feeling?"
-              : "What's having the biggest impact on you?"}
+    <div
+      className="mood-aura flex flex-col"
+      style={{ "--tint": moodColor(drawn) } as CSSProperties}
+    >
+      <DialogHeader className="items-center gap-1.5 px-6 pt-6 text-center">
+        {step === 0 ? (
+          <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase tabular-nums">
+            {editing ? `Check-in · ${formatAt(at)}` : formatAt(at)}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => go(0)}
+            title="Change how pleasant this feels"
+            className="mb-1 flex max-w-full items-center gap-1.5 rounded-full bg-popover/70 py-1 pr-3 pl-1 text-[12px] ring-1 ring-border transition-spring hover:bg-chrome-hover active:scale-95"
+          >
+            <MoodBlob valence={drawn} size={20} glyph />
+            <span className="shrink-0 font-medium">{valenceLabel(valence)}</span>
+            {step === 2 && emotions.length > 0 && (
+              <span className="truncate text-muted-foreground">
+                · {emotions.map(displayOf).join(", ")}
+              </span>
+            )}
+          </button>
+        )}
+        <DialogTitle className="text-[17px] leading-snug font-semibold tracking-tight">
+          {step === 0 && editing ? "How were you feeling?" : TITLES[step]}
         </DialogTitle>
-        <DialogDescription className="text-[12px]">
-          {step === 0
-            ? "Slide to how pleasant or unpleasant this moment feels."
-            : step === 1
-              ? "Pick as many as fit, or none."
-              : "Optional. Pick any that apply."}
-        </DialogDescription>
+        <DialogDescription className="text-[12px]">{HINTS[step]}</DialogDescription>
       </DialogHeader>
 
-      <div className="min-h-[260px] px-5 py-4">
+      <div key={step} className={cn("min-h-[292px] px-6 pt-4 pb-5", `mood-step-${dir}`)}>
         {step === 0 && (
-          <div className="flex flex-col items-center gap-4">
-            <MoodBlob valence={valence} />
-            <div className="text-[17px] font-semibold" aria-live="polite">
+          <div className="flex flex-col items-center">
+            <MoodBlob valence={drawn} size={176} />
+            <div
+              key={valenceLabel(valence)}
+              className="mood-word -mt-1 text-[22px] font-semibold tracking-tight"
+              aria-live="polite"
+            >
               {valenceLabel(valence)}
             </div>
             <input
@@ -163,9 +262,10 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
               aria-label="How pleasant this feels"
               aria-valuetext={valenceLabel(valence)}
               onChange={(e) => setValence(Number(e.target.value))}
-              className="mood-slider mt-1"
+              onKeyDown={nudge}
+              className="mood-slider mt-6"
             />
-            <div className="flex w-full justify-between text-[11px] text-muted-foreground">
+            <div className="mt-2.5 flex w-full justify-between text-[11px] font-medium text-muted-foreground">
               <span>Very unpleasant</span>
               <span>Very pleasant</span>
             </div>
@@ -186,23 +286,39 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
                 }}
                 placeholder="Find or add an emotion…"
                 aria-label="Find an emotion"
+                className="rounded-full bg-popover/80 px-3.5"
               />
             )}
-            <div className="flex max-h-[220px] flex-wrap gap-1.5 overflow-y-auto">
+            <div className="-m-1 flex max-h-[228px] flex-wrap justify-center gap-1.5 overflow-y-auto p-1">
               {shown.map((e) => (
                 <button
                   key={e.path}
                   type="button"
-                  aria-pressed={emotions.some((x) => nameKey(x) === nameKey(e.name))}
+                  aria-pressed={picked(e.name)}
                   onClick={() => toggle(emotions, setEmotions, e.name)}
-                  className={chip(emotions.some((x) => nameKey(x) === nameKey(e.name)))}
+                  className={CHIP}
                 >
+                  {/* A dot in the colour the emotion leans towards; a tick once picked. */}
+                  <span aria-hidden="true" className="flex size-3.5 items-center justify-center">
+                    {picked(e.name) ? (
+                      <Check size={13} strokeWidth={2.5} />
+                    ) : (
+                      <span
+                        className="size-1.5 rounded-full"
+                        style={{ background: moodColor(emotionLean(e.name) * 0.8) }}
+                      />
+                    )}
+                  </span>
                   {e.display}
                 </button>
               ))}
               {query.trim() && !exact && (
-                <button type="button" onClick={() => void createEmotion()} className={chip(false)}>
-                  <Plus size={12} className="mr-1 inline" />
+                <button
+                  type="button"
+                  onClick={() => void createEmotion()}
+                  className={cn(CHIP, "border-dashed")}
+                >
+                  <Plus size={13} aria-hidden="true" />
                   Add “{query.trim()}”
                 </button>
               )}
@@ -211,30 +327,44 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
         )}
 
         {step === 2 && (
-          <div className="flex flex-wrap gap-1.5">
-            {FACTORS.map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={factors.includes(id)}
-                onClick={() => toggle(factors, setFactors, id)}
-                className={chip(factors.includes(id))}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {FACTORS.map(([id, label]) => {
+              const on = factors.includes(id);
+              const Icon = on ? Check : FACTOR_ICONS[id];
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggle(factors, setFactors, id)}
+                  className={CHIP}
+                >
+                  <Icon
+                    size={13}
+                    aria-hidden="true"
+                    strokeWidth={on ? 2.5 : 2}
+                    className={on ? undefined : "text-muted-foreground"}
+                  />
+                  {label}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-2 border-t border-border bg-muted/50 px-5 py-3">
-        <div className="flex gap-1" aria-label={`Step ${step + 1} of ${STEPS.length}`}>
+      <div className="flex items-center gap-2 border-t border-border/70 px-5 py-3">
+        <div
+          role="img"
+          aria-label={`Step ${step + 1} of ${STEPS.length}`}
+          className="flex items-center gap-1"
+        >
           {STEPS.map((s, i) => (
             <span
               key={s}
               className={cn(
-                "size-1.5 rounded-full transition-colors duration-150",
-                i === step ? "bg-foreground" : "bg-muted-foreground/30",
+                "h-1.5 rounded-full transition-[width,background-color] duration-200 ease-out",
+                i === step ? "w-4 bg-foreground/80" : "w-1.5 bg-muted-foreground/30",
               )}
             />
           ))}
@@ -264,7 +394,7 @@ function Flow({ request, onSave, onDismiss, onDelete }: Props & { request: Check
         )}
         <div className="flex-1" />
         {step > 0 ? (
-          <Button variant="ghost" onClick={() => setStep(step - 1)}>
+          <Button variant="ghost" onClick={() => go(step - 1)}>
             <ArrowLeft /> Back
           </Button>
         ) : (
