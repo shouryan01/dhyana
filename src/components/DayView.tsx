@@ -232,9 +232,12 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     closeCheckIn("answered");
     changeMood(() =>
       index === undefined ? backend.addMood(date, c) : backend.updateMood(date, index, c),
-    ).catch((e) =>
-      toast.error(`Couldn't save the check-in: ${e instanceof Error ? e.message : e}`),
-    );
+    )
+      // The chips are hidden until hover, so say it landed.
+      .then(() => toast("Check-in saved", { duration: 1500 }))
+      .catch((e) =>
+        toast.error(`Couldn't save the check-in: ${e instanceof Error ? e.message : e}`),
+      );
   };
 
   const deleteCheckIn = () => {
@@ -358,59 +361,61 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
         onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}
       >
         <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
-          <header className="group mb-6 flex items-start justify-between gap-4 select-none">
-            <div>
-              <h1 className="font-[family-name:var(--font-body)] text-[26px] font-semibold leading-tight text-surface-fg">
-                {formatLong(date)}
-              </h1>
-              <p className="mt-1 text-[12px] text-surface-muted">
-                {date === app.today ? "Today · " : ""}
-                {meta.created
-                  ? `Created ${formatTime(meta.created)}`
-                  : "Not saved yet — start typing"}
-                {meta.modified && meta.modified !== meta.created
-                  ? ` · Edited ${formatTime(meta.modified)}`
-                  : ""}
-              </p>
-            </div>
-            <div className="flex items-center gap-0.5">
-              <button
-                aria-label="Add a mood check-in"
-                title="Add a mood check-in"
-                onClick={() => setCheckIn({})}
-                className={headerButton}
-              >
-                <Smile size={15} />
-              </button>
-              {meta.created && (
+          <div className="group mb-8">
+            <header className="flex items-start justify-between gap-4 select-none">
+              <div>
+                <h1 className="font-[family-name:var(--font-body)] text-[26px] font-semibold leading-tight text-surface-fg">
+                  {formatLong(date)}
+                </h1>
+                <p className="mt-1 text-[12px] text-surface-muted">
+                  {date === app.today ? "Today · " : ""}
+                  {meta.created
+                    ? `Created ${formatTime(meta.created)}`
+                    : "Not saved yet — start typing"}
+                  {meta.modified && meta.modified !== meta.created
+                    ? ` · Edited ${formatTime(meta.modified)}`
+                    : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-0.5">
                 <button
-                  aria-label="Version history"
-                  title="Version history"
-                  onClick={() => setHistoryOpen(true)}
+                  aria-label="Add a mood check-in"
+                  title="Add a mood check-in"
+                  onClick={() => setCheckIn({})}
                   className={headerButton}
                 >
-                  <History size={15} />
+                  <Smile size={15} />
                 </button>
-              )}
-              {meta.created && (
-                <button
-                  aria-label="Delete this note"
-                  title="Delete this note"
-                  onClick={requestDelete}
-                  className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-surface-muted opacity-0 transition-colors duration-100 hover:bg-chrome-hover hover:text-red-500 focus-visible:opacity-100 group-hover:opacity-100"
-                >
-                  <Trash2 size={15} />
-                </button>
-              )}
-            </div>
-          </header>
+                {meta.created && (
+                  <button
+                    aria-label="Version history"
+                    title="Version history"
+                    onClick={() => setHistoryOpen(true)}
+                    className={headerButton}
+                  >
+                    <History size={15} />
+                  </button>
+                )}
+                {meta.created && (
+                  <button
+                    aria-label="Delete this note"
+                    title="Delete this note"
+                    onClick={requestDelete}
+                    className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-surface-muted opacity-0 transition-colors duration-100 hover:bg-chrome-hover hover:text-red-500 focus-visible:opacity-100 group-hover:opacity-100"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
+            </header>
 
-          <MoodStrip
-            mood={mood.file}
-            pending={mood.pending}
-            onEdit={editCheckIn}
-            onAdd={() => setCheckIn({})}
-          />
+            <MoodStrip
+              mood={mood.file}
+              pending={mood.pending}
+              onEdit={editCheckIn}
+              onAdd={() => setCheckIn({})}
+            />
+          </div>
 
           {date === app.today && <UpcomingPanel today={app.today} />}
           <OnThisDay date={date} />

@@ -3,6 +3,13 @@ import { moodColor } from "@/lib/mood";
 
 const POINTS = 120;
 const R = 62;
+/**
+ * The shape is drawn around the middle of a 0-based 200 x 200 box. The viewBox must start at 0:
+ * a CSS rotation's origin ignores a viewBox that starts at a negative offset, so the shape
+ * would orbit the frame's corner instead of turning in place (and leave the dialog).
+ */
+const SIZE = 200;
+const CENTER = SIZE / 2;
 
 /**
  * The outline for a valence: a spiky star when unpleasant, a circle at neutral, a soft flower
@@ -21,7 +28,7 @@ export function blobPath(v: number): string {
     } else if (v > 0) {
       r = R * (1 + 0.16 * v * Math.cos(t * 7));
     }
-    pts.push(`${(r * Math.cos(t)).toFixed(1)},${(r * Math.sin(t)).toFixed(1)}`);
+    pts.push(`${(CENTER + r * Math.cos(t)).toFixed(1)},${(CENTER + r * Math.sin(t)).toFixed(1)}`);
   }
   return `M${pts.join("L")}Z`;
 }
@@ -29,7 +36,7 @@ export function blobPath(v: number): string {
 export function MoodBlob({ valence, size = 150 }: { valence: number; size?: number }) {
   const d = useMemo(() => blobPath(valence), [valence]);
   return (
-    <svg viewBox="-100 -100 200 200" width={size} height={size} aria-hidden="true">
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={size} height={size} aria-hidden="true">
       <g className="mood-blob">
         <path d={d} style={{ fill: moodColor(valence) }} />
       </g>

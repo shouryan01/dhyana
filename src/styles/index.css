@@ -497,7 +497,9 @@ body {
 }
 /* The shape slowly turns; colour and outline follow the slider. */
 .mood-blob {
-  transform-origin: center;
+  /* Spin about the middle of the 0-based viewBox (see MoodBlob.tsx). */
+  transform-box: view-box;
+  transform-origin: 50% 50%;
   animation: mood-turn 40s linear infinite;
 }
 .mood-blob path {

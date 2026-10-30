@@ -48,6 +48,8 @@ Not yet clicked through in the desktop app (`pnpm tauri dev`): the UI was driven
 - **Mood scale:** valence -1 … 1 with Apple Health's seven labels; emotions stored by filename; factors stored as lowercase ids (`self-care`, `current-events`). Renaming an emotion rewrites check-ins in files and pending ones (master §4a, closing the 0.2 note).
 - **Mood colours:** a diverging violet ↔ neutral grey ↔ amber scale with separate dark-mode steps (`--mood-*` in `index.css`). In the mood heatmap, days with an entry but no check-in are outlined rather than given another grey.
 - **Heatmap:** words (quartiles of the year's written days), entries, or mood (daily average), with streaks and totals; sidebar "Year" and `G Y`.
+- **Check-ins under the date are quiet:** a small
+  check-ins toggle that appears when the date header is hovered or focused; clicking it opens the chips (edit, add), and the choice is remembered. Saving a check-in shows a brief toast, since the chips are hidden.
 - **Mood graph:** a side panel (`G M`) with the day's check-ins and the last 30 days' daily averages; real analytics stay in 0.4.
 - **On this day** shows on every day's note when earlier years have an entry on that date.
 - Index schema bumped to 2 (word counts, a `moods` table); old indexes rebuild themselves on launch.
