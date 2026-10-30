@@ -11,7 +11,9 @@ import { useEffect } from "react";
 import { AppProvider, useApp } from "@/app/context";
 import { DayView } from "@/components/DayView";
 import { EntityPage } from "@/components/EntityPage";
+import { LibraryPage } from "@/components/LibraryPage";
 import { Onboarding } from "@/components/Onboarding";
+import { TopicPage } from "@/components/TopicPage";
 import { SettingsPage } from "@/components/SettingsPage";
 import { ShortcutsPage } from "@/components/ShortcutsPage";
 import { Shell } from "@/components/Shell";
@@ -63,11 +65,28 @@ const shortcutsRoute = createRoute({
   component: ShortcutsPage,
 });
 
+const topicRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/topic",
+  validateSearch: (search: Record<string, unknown>) => ({
+    tag: typeof search.tag === "string" ? search.tag : "",
+  }),
+  component: TopicRoute,
+});
+
+const libraryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/library",
+  component: LibraryPage,
+});
+
 const router = createRouter({
   routeTree: rootRoute.addChildren([
     indexRoute,
     dayRoute,
     entityRoute,
+    libraryRoute,
+    topicRoute,
     settingsRoute,
     shortcutsRoute,
   ]),
@@ -83,6 +102,11 @@ declare module "@tanstack/react-router" {
 function DayRoute() {
   const { date } = useParams({ from: "/day/$date" });
   return <DayView date={date} />;
+}
+
+function TopicRoute() {
+  const { tag } = topicRoute.useSearch();
+  return tag ? <TopicPage key={tag} tag={tag} /> : null;
 }
 
 function EntityRoute() {

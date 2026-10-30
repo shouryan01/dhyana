@@ -4,6 +4,7 @@ import type {
   EntityKind,
   EntityPatch,
   EntitySummary,
+  Mention,
   RenameResult,
   TagInfo,
   UpcomingEvent,
@@ -96,6 +97,8 @@ export interface Backend {
   /** Moves the day's file to the OS trash. Resolves to whether there was a file to delete. */
   deleteDay(date: string): Promise<boolean>;
   listDays(year: number, month: number): Promise<string[]>;
+  /** Years that have a journal folder, oldest first. */
+  listYears(): Promise<number[]>;
   onVaultChanged(cb: (dates: string[]) => void): Promise<() => void>;
 
   /** People, places and emotions (not tags), with how often they are mentioned. */
@@ -109,6 +112,16 @@ export interface Backend {
   updateEntity(path: string, patch: EntityPatch): Promise<EntityDetail>;
   /** Renames the note and rewrites every link to it across the vault. */
   renameEntity(path: string, newName: string): Promise<RenameResult>;
+  /** Notes that use `#tag`, newest journal days first, each with the line that mentions it. */
+  tagNotes(tag: string): Promise<Mention[]>;
+  /**
+   * Clears the library back to a fresh vault's: people, places, notes, tag pages and any emotion
+   * outside the starter set go to the OS trash; missing starter emotions come back. Journal days
+   * are untouched. Resolves to how many files were removed.
+   */
+  resetLibrary(): Promise<number>;
+  /** Moves the note to the OS trash. Links to it elsewhere stay and show as unresolved. */
+  deleteEntity(path: string): Promise<void>;
   /** `$date` events on or after `from` (YYYY-MM-DD), soonest first. */
   upcoming(from: string, limit?: number): Promise<UpcomingEvent[]>;
   /** Drops the index and rebuilds it from the files. */

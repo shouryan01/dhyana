@@ -147,6 +147,7 @@ Rust core
 | 0.7     | Retrieval & companion: vectors, proactive prompts, person summaries                                                                                           | `release-0.7-retrieval-companion.md`   |
 | 0.8     | Sync hardening, dictation, polish                                                                                                                             | `release-0.8-sync-dictation-polish.md` |
 | 0.9     | User-defined types & typed relations                                                                                                                          | `release-0.9-types-relations.md`       |
+| 0.10    | Tabs and side-by-side panes                                                                                                                                   | `release-0.10-tabs-split-view.md`      |
 | Later   | Demo journals (Dwight Schrute), Whisper, cloud dictation, GPT/Gem plugins, reranker                                                                           | `backlog.md`                           |
 
 Rule: each release is usable daily on its own. Don't start N+1 until N's exit criteria pass.

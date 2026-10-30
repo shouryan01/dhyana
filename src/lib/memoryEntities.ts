@@ -42,6 +42,7 @@ const DIRS: Record<EntityKind, string> = {
   place: "places",
   emotion: "emotions",
   tag: "tags",
+  note: "notes",
 };
 const pathOf = (kind: EntityKind, name: string) => `${DIRS[kind]}/${name}.md`;
 const journalPath = (date: string) => `journal/${date.slice(0, 4)}/${date.slice(5, 7)}/${date}.md`;
@@ -229,16 +230,13 @@ export function createEntityStore(
         if (hit) fail(`"${name}" already exists (${hit})`);
       }
       let file = s.stem;
-      let clash = false;
       if (byNameKey(nameKey(file)).length) {
         file = disambiguated(s.stem, kind);
-        clash = true;
         const hit = byNameKey(nameKey(file))[0];
         if (hit) fail(`"${name}" already exists (${hit[0]})`);
       }
       const e: MemEntity = { kind, name: file, aliases: [], notes: "" };
       if (file !== name || s.stem !== name) e.title = name;
-      if (clash && kind !== "tag" && !aliasOwner(nameKey(name), "")) e.aliases = [name];
       ents[pathOf(kind, file)] = e;
       save();
       return summarize(pathOf(kind, file), e, links());
@@ -273,6 +271,66 @@ export function createEntityStore(
       ents[path] = next;
       save();
       return detail(path);
+    },
+
+    /** Notes that use `#tag`: journal days (newest first) then other notes, with the line. */
+    tagNotes(tag: string): Mention[] {
+      const key = nameKey(tag);
+      const lineWith = (text: string) =>
+        text
+          .split(/\r?\n/)
+          .find((l) => scanLinks(l).tags.some((t) => nameKey(t) === key))
+          ?.trim()
+          .slice(0, 160) ?? "";
+      const uses = (text: string) => scanLinks(text).tags.some((t) => nameKey(t) === key);
+      const fromDays = days
+        .dates()
+        .filter((d) => uses(days.body(d)))
+        .sort()
+        .reverse()
+        .map((d) => ({
+          path: journalPath(d),
+          kind: "journal",
+          name: d,
+          date: d,
+          context: lineWith(days.body(d)),
+        }));
+      const fromNotes = rows()
+        .filter(([, e]) => uses(e.notes))
+        .sort(([a], [b]) => (a < b ? -1 : 1))
+        .map(([path, e]) => ({
+          path,
+          kind: e.kind,
+          name: e.name,
+          date: null,
+          context: lineWith(e.notes),
+        }));
+      return [...fromDays, ...fromNotes].slice(0, MENTION_LIMIT);
+    },
+
+    /** Back to a fresh vault's library; returns how many notes were removed. */
+    reset(): number {
+      const starter = new Set(SEEDED_EMOTIONS.map(nameKey));
+      let removed = 0;
+      for (const [path, e] of rows()) {
+        if (e.kind === "emotion" && starter.has(nameKey(e.name))) continue;
+        delete ents[path];
+        removed++;
+      }
+      const have = new Set(rows().map(([, e]) => nameKey(e.name)));
+      for (const name of SEEDED_EMOTIONS) {
+        if (!have.has(nameKey(name))) {
+          ents[pathOf("emotion", name)] = { kind: "emotion", name, aliases: [], notes: "" };
+        }
+      }
+      save();
+      return removed;
+    },
+
+    delete(path: string): void {
+      entityAt(path);
+      delete ents[path];
+      save();
     },
 
     rename(path: string, rawName: string): RenameResult {

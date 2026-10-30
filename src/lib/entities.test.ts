@@ -48,13 +48,47 @@ describe("entities in the in-memory backend", () => {
     await expect(be.createEntity("person", "  ")).rejects.toThrow(/empty/);
   });
 
+  it("lists the notes that use a topic, with the line", async () => {
+    await be.saveDay("2026-10-27", "nothing here\n", null, false);
+    await be.saveDay("2026-10-28", "Morning.\nA big day at the #Work site\n", null, false);
+    const note = await be.createEntity("note", "Plan");
+    await be.updateEntity(note.path, { notes: "To do #work later" });
+    const got = await be.tagNotes("work");
+    expect(got.map((m) => [m.name, m.context])).toEqual([
+      ["2026-10-28", "A big day at the #Work site"],
+      ["Plan", "To do #work later"],
+    ]);
+    expect(got[0].date).toBe("2026-10-28");
+    expect(await be.tagNotes("play")).toEqual([]);
+  });
+
+  it("resets the library to the starter emotions", async () => {
+    await be.createEntity("person", "Alice");
+    await be.createEntity("note", "Plan");
+    await be.createEntity("emotion", "Wistful");
+    const before = (await be.listEntities()).filter((e) => e.kind === "emotion").length;
+    expect(await be.resetLibrary()).toBe(3);
+    const after = await be.listEntities();
+    expect(after.every((e) => e.kind === "emotion")).toBe(true);
+    expect(after.some((e) => e.name === "Wistful")).toBe(false);
+    expect(after.length).toBe(before - 1);
+  });
+
+  it("deletes a note and frees its name, leaving links elsewhere as they were", async () => {
+    const alice = await be.createEntity("person", "Alice");
+    await be.deleteEntity(alice.path);
+    expect((await be.listEntities()).some((e) => e.path === alice.path)).toBe(false);
+    await expect(be.deleteEntity(alice.path)).rejects.toThrow();
+    await be.createEntity("person", "Alice"); // the name is free again
+  });
+
   it("disambiguates a name used by another kind (master §4a)", async () => {
     await be.createEntity("person", "Paris");
     const place = await be.createEntity("place", "Paris");
     expect(place).toMatchObject({
       path: "places/Paris (place).md",
       display: "Paris",
-      aliases: ["Paris"],
+      aliases: [],
     });
     await expect(be.createEntity("place", "Paris")).rejects.toThrow(/already exists/);
   });

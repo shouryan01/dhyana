@@ -31,6 +31,7 @@ pub fn run() {
             commands::read_day,
             commands::save_day,
             commands::list_days,
+            commands::list_years,
             commands::delete_day,
             commands::list_entities,
             commands::list_tags,
@@ -38,6 +39,9 @@ pub fn run() {
             commands::create_entity,
             commands::update_entity,
             commands::rename_entity,
+            commands::delete_entity,
+            commands::reset_library,
+            commands::tag_notes,
             commands::upcoming,
             commands::rebuild_index,
         ])

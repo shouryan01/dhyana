@@ -2,7 +2,7 @@
 
 ## Mood
 
-- **Check-in flow before writing** (optional, skippable): Apple Health-style valence slider (very unpleasant → very pleasant) with animated shape/color, then emotion labels (from emotion entities), then optional factors (sleep, work, family...).
+- **Check-in flow before writing** (optional, skippable): Apple Health-style valence slider (very unpleasant → very pleasant) with animated shape/color, then emotion labels (from emotion entities), then optional factors, asked as "What's having the biggest impact on you?" and picked from: Health, Fitness, Self-Care, Hobbies, Identity, Spirituality, Community, Dating, Family, Friends, Partner, Tasks, Weather, Work, Education, Current Events, Travel, Money.
 - **Offered once per day.** The flow appears automatically only on the first open of _today's_ note, and only if that day has no check-in yet and hasn't already been offered. Whether answered or skipped, it is not shown again that day (no re-prompt on reopening, navigating back, or restarting). It never auto-appears for past days. The "offered" ledger (journal date → answered/skipped) lives in app data, so it is per device and disposable; worst case a second machine offers it once.
 - **Settings:** "Ask for mood on first open of the day" toggle (default on). Replaces the old "remembered preference".
 - **Adding more later:** the user can return and write as many times as they like. Extra check-ins are manual: palette command "Add mood check-in" and a mood button on the day view. Same flow, appends to `mood:`.

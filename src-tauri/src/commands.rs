@@ -7,7 +7,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
 use crate::entities::{self, EntityDetail, EntityPatch, RenameResult};
-use crate::index::{EntitySummary, Index, SharedIndex, TagInfo, UpcomingEvent, VaultIndex};
+use crate::index::{EntitySummary, Index, Mention, SharedIndex, TagInfo, UpcomingEvent, VaultIndex};
 use crate::names::Kind;
 use crate::settings::{Settings, SettingsPatch};
 use crate::vault::{self, DayFile, SaveResult, SaveStatus};
@@ -202,6 +202,11 @@ pub fn list_days(ctx: State<AppCtx>, year: i32, month: u32) -> Result<Vec<String
 }
 
 #[tauri::command]
+pub fn list_years(ctx: State<AppCtx>) -> Result<Vec<i32>, String> {
+    Ok(vault::list_years(&ctx.vault()?))
+}
+
+#[tauri::command]
 pub fn list_entities(ctx: State<AppCtx>) -> Result<Vec<EntitySummary>, String> {
     ctx.with_index(|_, idx| idx.entities().map_err(|e| e.to_string()))
 }
@@ -230,6 +235,34 @@ pub fn update_entity(ctx: State<AppCtx>, path: String, patch: EntityPatch) -> Re
 #[tauri::command]
 pub fn rename_entity(ctx: State<AppCtx>, path: String, new_name: String) -> Result<RenameResult, String> {
     ctx.with_index(|v, idx| entities::rename(v, idx, &path, &new_name).map_err(|e| e.to_string()))
+}
+
+/// Moves a person, place, emotion or note to the OS trash (recoverable), not a hard delete.
+#[tauri::command]
+pub fn delete_entity(ctx: State<AppCtx>, path: String) -> Result<(), String> {
+    ctx.with_index(|v, idx| {
+        entities::delete(v, idx, &path, |p| {
+            trash::delete(p).map_err(|e| std::io::Error::other(e.to_string()))
+        })
+        .map_err(|e| e.to_string())
+    })
+}
+
+/// Notes that use `#tag`, newest journal days first, each with the line that mentions it.
+#[tauri::command]
+pub fn tag_notes(ctx: State<AppCtx>, tag: String) -> Result<Vec<Mention>, String> {
+    ctx.with_index(|v, idx| entities::tag_notes(v, idx, &tag).map_err(|e| e.to_string()))
+}
+
+/// Clears the library back to a fresh vault's (see `entities::reset_library`); files go to the OS trash.
+#[tauri::command]
+pub fn reset_library(ctx: State<AppCtx>) -> Result<usize, String> {
+    ctx.with_index(|v, idx| {
+        entities::reset_library(v, idx, |p| {
+            trash::delete(p).map_err(|e| std::io::Error::other(e.to_string()))
+        })
+        .map_err(|e| e.to_string())
+    })
 }
 
 /// `$date` events on or after `from` (YYYY-MM-DD), soonest first.

@@ -344,6 +344,24 @@ pub fn list_days(vault: &Path, year: i32, month: u32) -> Vec<String> {
     days
 }
 
+/// Years that have a `journal/YYYY` folder, oldest first.
+pub fn list_years(vault: &Path) -> Vec<i32> {
+    let Ok(entries) = fs::read_dir(vault.join("journal")) else {
+        return Vec::new();
+    };
+    let mut years: Vec<i32> = entries
+        .flatten()
+        .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+        .filter_map(|e| {
+            let name = e.file_name().to_string_lossy().into_owned();
+            let is_year = name.len() == 4 && name.bytes().all(|b| b.is_ascii_digit());
+            is_year.then(|| name.parse().ok()).flatten()
+        })
+        .collect();
+    years.sort_unstable();
+    years
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -529,6 +547,17 @@ mod tests {
         StagedWrite::stage(&target, b"new content").unwrap().commit().unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "new content");
         assert!(!dir.path().join(".2026-10-28.md.tmp").exists());
+    }
+
+    #[test]
+    fn years_are_the_four_digit_folders_under_journal() {
+        let dir = tempdir().unwrap();
+        assert!(list_years(dir.path()).is_empty());
+        for d in ["journal/2026", "journal/2024", "journal/notes", "journal/20x6"] {
+            fs::create_dir_all(dir.path().join(d)).unwrap();
+        }
+        fs::write(dir.path().join("journal/2030"), "a file, not a folder").unwrap();
+        assert_eq!(list_years(dir.path()), vec![2024, 2026]);
     }
 
     #[test]

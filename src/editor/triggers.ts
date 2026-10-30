@@ -54,7 +54,12 @@ async function pick(editor: Editor, range: Range, item: SuggestItem, opts: Trigg
       }
     }
   }
-  editor.chain().focus().insertContentAt(range, contentOf(insert)).run();
+  // Trailing space so the user can keep typing; the cursor lands after it.
+  editor
+    .chain()
+    .focus()
+    .insertContentAt(range, [contentOf(insert), { type: "text", text: " " }])
+    .run();
 }
 
 function popupRenderer(opts: TriggerOptions) {
@@ -83,6 +88,8 @@ function popupRenderer(opts: TriggerOptions) {
       // Nothing to offer (not a name, not a date...): stay out of the way, and out of the keys.
       if (props.items.length && !unmount) {
         component.element.setAttribute("data-suggest-popup", "");
+        // The plugin positions this wrapper; it must out-stack full-screen layers like onboarding.
+        component.element.style.zIndex = "60";
         unmount = props.mount(component.element);
       } else if (!props.items.length && unmount) {
         unmount();

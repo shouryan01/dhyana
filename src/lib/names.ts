@@ -44,3 +44,12 @@ export function fileStem(name: string): StemResult {
 
 /** The filename for a name that clashes with another kind: `Paris (place)`. */
 export const disambiguated = (stem: string, kind: string): string => `${stem} (${kind})`;
+
+/**
+ * The name as it is written when a person or place is created: lowercase, spaces collapsed.
+ * Other kinds keep what was typed. Mirrors `names::tidy` in Rust.
+ */
+export function tidyName(kind: string, name: string): string {
+  const clean = name.trim().split(/\s+/).join(" ");
+  return kind === "person" || kind === "place" ? clean.toLowerCase() : clean;
+}

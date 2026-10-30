@@ -56,7 +56,13 @@ export const SuggestList = forwardRef<SuggestListHandle, Props>(function Suggest
       className="min-w-[220px] max-w-[340px] rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-foreground/5 anim-pop"
     >
       {items.map((item, i) => {
-        const Icon = ICONS[item.icon];
+        // "Create person / place" borrows the kind's own icon; only "Create tag" keeps the plus.
+        const Icon =
+          item.create?.kind === "person"
+            ? User
+            : item.create?.kind === "place"
+              ? MapPin
+              : ICONS[item.icon];
         return (
           <button
             key={item.id}
@@ -73,7 +79,9 @@ export const SuggestList = forwardRef<SuggestListHandle, Props>(function Suggest
               item.icon === "create" && "text-muted-foreground",
             )}
           >
-            <Icon size={14} className="shrink-0 text-muted-foreground" />
+            {item.icon !== "emotion" && item.icon !== "tag" && (
+              <Icon size={14} className="shrink-0 text-muted-foreground" />
+            )}
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
             {item.detail && (
               <span className="shrink-0 text-[11px] text-muted-foreground">{item.detail}</span>

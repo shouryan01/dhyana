@@ -332,12 +332,12 @@ impl Index {
         })
     }
 
-    /// People, places and emotions, for autocomplete and entity lists.
+    /// People, places, emotions and plain notes, for autocomplete and entity lists.
     pub fn entities(&self) -> Result<Vec<EntitySummary>> {
         let stats = self.mention_stats()?;
         let mut stmt = self.conn.prepare(
             "SELECT path, kind, name, title FROM notes
-             WHERE kind IN ('person','place','emotion') ORDER BY kind, name_key, path",
+             WHERE kind IN ('person','place','emotion','note') ORDER BY kind, name_key, path",
         )?;
         let rows: Vec<(String, String, String, Option<String>)> = stmt
             .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?
@@ -466,6 +466,26 @@ impl Index {
                 kind,
                 name,
                 context: r.get(3)?,
+            })
+        })?;
+        Ok(rows.collect::<std::result::Result<_, _>>()?)
+    }
+
+    /// Notes that use `#tag`, newest journal days first (one row per note, no context yet).
+    pub fn tag_mentions(&self, tag: &str, limit: usize) -> Result<Vec<Mention>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT DISTINCT n.path, n.kind, n.name FROM tags t JOIN notes n ON n.path = t.src
+             WHERE t.tag_key = ?1 ORDER BY (n.kind = 'journal') DESC, n.name DESC, n.path LIMIT ?2",
+        )?;
+        let rows = stmt.query_map(params![names::key(tag), limit as i64], |r| {
+            let kind: String = r.get(1)?;
+            let name: String = r.get(2)?;
+            Ok(Mention {
+                path: r.get(0)?,
+                date: (kind == "journal").then(|| name.clone()),
+                kind,
+                name,
+                context: String::new(),
             })
         })?;
         Ok(rows.collect::<std::result::Result<_, _>>()?)

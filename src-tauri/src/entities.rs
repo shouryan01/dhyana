@@ -1,4 +1,4 @@
-//! Entity notes (people, places, emotions, tags): create, edit, rename, and the seeded defaults.
+//! Entity notes (people, places, emotions, tags, plain notes): create, edit, rename, and the seeded defaults.
 //!
 //! Files are the truth. Every operation changes files first, then asks the index to re-read just
 //! those files. Names follow master plan §4a.
@@ -126,10 +126,8 @@ pub fn create(vault: &Path, idx: &mut Index, kind: Kind, name: &str) -> Result<E
     exists(idx, &names::key(&stem))?;
 
     let mut file = stem.clone();
-    let mut disambiguated = false;
     if !idx.by_name_key(&names::key(&file))?.is_empty() {
         file = names::disambiguated(&stem, kind);
-        disambiguated = true;
         if let Some((path, _)) = idx.by_name_key(&names::key(&file))?.into_iter().next() {
             return Err(EntityError::Exists { name: display.to_string(), path });
         }
@@ -146,13 +144,6 @@ pub fn create(vault: &Path, idx: &mut Index, kind: Kind, name: &str) -> Result<E
     block = yaml::set_scalar(&block, "\n", "type", Some(kind.as_str()));
     if file != display || stem != display {
         block = yaml::set_scalar(&block, "\n", "title", Some(display));
-    }
-    // The clashing name stays reachable as an alias, unless another note already claims it.
-    if disambiguated
-        && kind != Kind::Tag
-        && idx.alias_owner(&names::key(display), "")?.is_none()
-    {
-        block = yaml::set_list(&block, "\n", "aliases", &[display.to_string()]);
     }
     block = yaml::set_scalar(&block, "\n", "created", Some(&now));
 
@@ -230,6 +221,23 @@ pub fn update(vault: &Path, idx: &mut Index, rel: &str, patch: EntityPatch) -> R
     detail(vault, idx, rel)
 }
 
+/// Takes an entity's file out of the vault with `remove` (the app passes "move to the OS trash").
+/// Links to it in other notes are left as written; they simply show as unresolved.
+pub fn delete(
+    vault: &Path,
+    idx: &mut Index,
+    rel: &str,
+    remove: impl FnOnce(&Path) -> std::io::Result<()>,
+) -> Result<()> {
+    entity_at(idx, rel)?;
+    let abs = vault.join(rel);
+    if abs.exists() {
+        remove(&abs)?;
+    }
+    idx.refresh(vault, &[rel.to_string()])?;
+    Ok(())
+}
+
 pub fn rename(vault: &Path, idx: &mut Index, rel: &str, new_name: &str) -> Result<RenameResult> {
     let (old, kind) = entity_at(idx, rel)?;
     if kind == Kind::Tag {
@@ -297,18 +305,21 @@ pub fn rename(vault: &Path, idx: &mut Index, rel: &str, new_name: &str) -> Resul
 }
 
 const EMOTIONS: &[&str] = &[
-    "calm", "content", "grateful", "hopeful", "joyful", "excited", "proud", "loved", "peaceful",
-    "curious", "relieved", "amused", "sad", "anxious", "angry", "frustrated", "lonely", "tired",
-    "overwhelmed", "stressed", "bored", "guilty", "afraid", "disappointed",
+    "amazed", "amused", "angry", "annoyed", "anxious", "ashamed", "brave", "calm", "confident",
+    "content", "disappointed", "discouraged", "disgusted", "drained", "embarrassed", "excited",
+    "frustrated", "grateful", "guilty", "happy", "hopeful", "hopeless", "indifferent",
+    "irritated", "jealous", "joyful", "lonely", "overwhelmed", "passionate", "peaceful", "proud",
+    "relieved", "sad", "satisfied", "scared", "stressed", "surprised", "worried",
 ];
 
 /// (name, icon, extra fields) for the built-in type definitions in `types/`.
 const TYPES: &[(&str, &str, &str)] = &[
     ("journal", "book-open", "date, mood, private"),
-    ("person", "user", "aliases, relationship, birthday"),
-    ("place", "map-pin", "aliases"),
-    ("emotion", "smile", "aliases"),
-    ("tag", "hash", "aliases"),
+    ("person", "user", "relationship, birthday"),
+    ("place", "map-pin", ""),
+    ("emotion", "smile", ""),
+    ("tag", "hash", ""),
+    ("note", "file-text", ""),
 ];
 
 /// Write the built-in type definitions and the starter emotion vocabulary, but only into folders
@@ -328,15 +339,111 @@ pub fn ensure_seeded(vault: &Path) -> Result<()> {
         }
     }
     if !vault.join(Kind::Emotion.dir()).exists() {
-        for name in EMOTIONS {
-            let mut b = yaml::set_scalar("", "\n", "id", Some(&id()));
-            b = yaml::set_scalar(&b, "\n", "type", Some("emotion"));
-            b = yaml::set_scalar(&b, "\n", "created", Some(&now));
-            write_atomic(&vault.join(format!("emotions/{name}.md")), &b)?;
+        seed_missing_emotions(vault)?;
+    }
+    lowercase_starter_emotions(vault)?;
+    Ok(())
+}
+
+/// Starter emotions are lowercase ("calm"). A vault that was seeded with capitals ("Calm.md") gets
+/// those files renamed in place, once; links still resolve because names compare case-insensitively.
+/// Only the starter names are touched, and never when the lowercase file already exists.
+fn lowercase_starter_emotions(vault: &Path) -> Result<()> {
+    let dir = vault.join(Kind::Emotion.dir());
+    let Ok(rd) = fs::read_dir(&dir) else { return Ok(()) };
+    let stems: Vec<String> = rd
+        .flatten()
+        .filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".md").map(String::from))
+        .collect();
+    for stem in &stems {
+        let lower = stem.to_lowercase();
+        if *stem == lower
+            || !EMOTIONS.contains(&lower.as_str())
+            || stems.contains(&lower)
+        {
+            continue;
         }
+        // Two steps, because on a case-insensitive disk a direct rename would be a no-op.
+        let tmp = dir.join(format!(".{lower}.rename"));
+        fs::rename(dir.join(format!("{stem}.md")), &tmp)?;
+        fs::rename(&tmp, dir.join(format!("{lower}.md")))?;
     }
     Ok(())
 }
+
+/// Writes any starter emotion that has no file yet, and returns the vault-relative paths written.
+fn seed_missing_emotions(vault: &Path) -> Result<Vec<String>> {
+    let now = vault::now_string();
+    let have: std::collections::HashSet<String> = fs::read_dir(vault.join(Kind::Emotion.dir()))
+        .map(|rd| {
+            rd.flatten()
+                .filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".md").map(names::key))
+                .collect()
+        })
+        .unwrap_or_default();
+    let mut written = Vec::new();
+    for name in EMOTIONS {
+        if have.contains(&names::key(name)) {
+            continue;
+        }
+        let mut b = yaml::set_scalar("", "\n", "id", Some(&ulid::Ulid::generate().to_string()));
+        b = yaml::set_scalar(&b, "\n", "type", Some("emotion"));
+        b = yaml::set_scalar(&b, "\n", "created", Some(&now));
+        let rel = format!("emotions/{name}.md");
+        write_atomic(&vault.join(&rel), &b)?;
+        written.push(rel);
+    }
+    Ok(written)
+}
+
+/// The notes that use `#tag`, each with the first line that mentions it.
+pub fn tag_notes(vault: &Path, idx: &Index, tag: &str) -> Result<Vec<Mention>> {
+    let needle = format!("#{}", names::key(tag));
+    let mut found = idx.tag_mentions(tag, 200)?;
+    for m in &mut found {
+        if let Some((text, _)) = vault::read_raw(&vault.join(&m.path))? {
+            let body = frontmatter::split(&text).body;
+            if let Some(line) = body.lines().find(|l| names::key(l).contains(&needle)) {
+                m.context = line.trim().chars().take(160).collect();
+            }
+        }
+    }
+    Ok(found)
+}
+
+/// Puts the library back the way a fresh vault has it: every person, place, note and tag page, and
+/// every emotion outside the starter set, goes through `remove` (the app passes "move to the OS
+/// trash"), and any starter emotion that is missing is written back. Journal days are never
+/// touched. Returns how many files were removed.
+pub fn reset_library(
+    vault: &Path,
+    idx: &mut Index,
+    remove: impl Fn(&Path) -> std::io::Result<()>,
+) -> Result<usize> {
+    let mut touched = Vec::new();
+    let mut removed = 0;
+    for kind in [Kind::Person, Kind::Place, Kind::Note, Kind::Tag, Kind::Emotion] {
+        let Ok(rd) = fs::read_dir(vault.join(kind.dir())) else { continue };
+        for e in rd.flatten() {
+            let name = e.file_name().to_string_lossy().into_owned();
+            let Some(stem) = name.strip_suffix(".md") else { continue };
+            if name.starts_with('.') || !e.file_type().map(|t| t.is_file()).unwrap_or(false) {
+                continue;
+            }
+            let is_starter = EMOTIONS.iter().any(|d| names::key(d) == names::key(stem));
+            if kind == Kind::Emotion && is_starter {
+                continue;
+            }
+            remove(&e.path())?;
+            removed += 1;
+            touched.push(format!("{}/{name}", kind.dir()));
+        }
+    }
+    touched.extend(seed_missing_emotions(vault)?);
+    idx.refresh(vault, &touched)?;
+    Ok(removed)
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -380,16 +487,16 @@ mod tests {
     }
 
     #[test]
-    fn cross_kind_clash_gets_a_disambiguated_filename_title_and_alias() {
+    fn cross_kind_clash_gets_a_disambiguated_filename_and_title_silently() {
         let (dir, mut idx) = setup();
         create(dir.path(), &mut idx, Kind::Person, "Paris").unwrap();
         let place = create(dir.path(), &mut idx, Kind::Place, "Paris").unwrap();
         assert_eq!(place.path, "places/Paris (place).md");
         assert_eq!(place.display, "Paris");
-        assert_eq!(place.aliases, vec!["Paris"]);
+        assert!(place.aliases.is_empty());
         let text = fs::read_to_string(dir.path().join(&place.path)).unwrap();
         assert!(text.contains("title: Paris\n"));
-        assert!(text.contains("aliases: [Paris]\n"));
+        assert!(!text.contains("aliases"));
         // And a second "Paris" place is a duplicate, found through its title.
         assert!(matches!(create(dir.path(), &mut idx, Kind::Place, "Paris"), Err(EntityError::Exists { .. })));
     }
@@ -483,6 +590,100 @@ mod tests {
             assert!(update(dir.path(), &mut idx, bad, EntityPatch::default()).is_err(), "{bad}");
             assert!(rename(dir.path(), &mut idx, bad, "X").is_err(), "{bad}");
         }
+    }
+
+    #[test]
+    fn reset_library_clears_what_the_user_made_and_keeps_the_journal_and_starters() {
+        let (dir, mut idx) = setup();
+        ensure_seeded(dir.path()).unwrap();
+        create(dir.path(), &mut idx, Kind::Person, "Alice").unwrap();
+        create(dir.path(), &mut idx, Kind::Place, "Paris").unwrap();
+        create(dir.path(), &mut idx, Kind::Note, "Reading list").unwrap();
+        create(dir.path(), &mut idx, Kind::Tag, "work").unwrap();
+        create(dir.path(), &mut idx, Kind::Emotion, "Wistful").unwrap();
+        put(dir.path(), "journal/2026/10/2026-10-28.md", "Saw [[Alice]] in [[Paris]].
+");
+        fs::remove_file(dir.path().join("emotions/calm.md")).unwrap(); // a starter the user deleted
+
+        let n = reset_library(dir.path(), &mut idx, |p| fs::remove_file(p)).unwrap();
+        assert_eq!(n, 5);
+        for gone in ["people/Alice.md", "places/Paris.md", "notes/Reading list.md", "tags/work.md", "emotions/Wistful.md"] {
+            assert!(!dir.path().join(gone).exists(), "{gone}");
+        }
+        assert!(dir.path().join("emotions/sad.md").exists());
+        assert!(dir.path().join("emotions/calm.md").exists(), "starter restored");
+        assert!(dir.path().join("journal/2026/10/2026-10-28.md").exists());
+        assert!(idx.summary("people/Alice.md").unwrap().is_none());
+        assert!(idx.summary("emotions/calm.md").unwrap().is_some());
+        assert!(idx.summary("emotions/Wistful.md").unwrap().is_none());
+    }
+
+    #[test]
+    fn tag_notes_lists_the_notes_that_use_a_tag_with_the_line() {
+        let (dir, mut idx) = setup();
+        put(dir.path(), "journal/2026/10/2026-10-27.md", "---
+id: A
+---
+nothing here
+");
+        put(dir.path(), "journal/2026/10/2026-10-28.md", "Morning.
+Big day at the #Work site #deep/focus
+");
+        put(dir.path(), "notes/Plan.md", "---
+id: B
+type: note
+---
+To do #work later
+");
+        idx.sync(dir.path()).unwrap();
+        let got = tag_notes(dir.path(), &idx, "work").unwrap();
+        let shown: Vec<(&str, &str)> = got.iter().map(|m| (m.path.as_str(), m.context.as_str())).collect();
+        assert_eq!(
+            shown,
+            vec![
+                ("journal/2026/10/2026-10-28.md", "Big day at the #Work site #deep/focus"),
+                ("notes/Plan.md", "To do #work later"),
+            ]
+        );
+        assert!(tag_notes(dir.path(), &idx, "play").unwrap().is_empty());
+    }
+
+    #[test]
+    fn starter_emotions_seeded_with_capitals_are_renamed_to_lowercase() {
+        let dir = tempdir().unwrap();
+        put(dir.path(), "emotions/Calm.md", "---\nid: A\ntype: emotion\n---\n");
+        put(dir.path(), "emotions/Wistful.md", "---\nid: B\ntype: emotion\n---\n");
+        put(dir.path(), "emotions/types.md", "---\nid: C\n---\n");
+        lowercase_starter_emotions(dir.path()).unwrap();
+        let mut names: Vec<String> = fs::read_dir(dir.path().join("emotions"))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        // Windows and macOS disks fold case in lookups but keep it in listings, so list, don't probe.
+        assert_eq!(names, vec!["Wistful.md", "calm.md", "types.md"]);
+        assert!(fs::read_to_string(dir.path().join("emotions/calm.md")).unwrap().contains("id: A"));
+    }
+
+    #[test]
+    fn delete_removes_the_file_and_the_index_row_but_only_for_entities() {
+        let dir = tempdir().unwrap();
+        let mut idx = Index::open_in_memory().unwrap();
+        let alice = create(dir.path(), &mut idx, Kind::Person, "Alice").unwrap();
+        put(dir.path(), "journal/2026/10/2026-10-28.md", "hi [[Alice]]
+");
+        idx.refresh(dir.path(), &["journal/2026/10/2026-10-28.md".into()]).unwrap();
+
+        let rm = |p: &Path| fs::remove_file(p);
+        delete(dir.path(), &mut idx, &alice.path, rm).unwrap();
+        assert!(!dir.path().join(&alice.path).exists());
+        assert!(idx.summary(&alice.path).unwrap().is_none());
+        // The journal day that linked to her is untouched.
+        assert!(dir.path().join("journal/2026/10/2026-10-28.md").exists());
+        // Journal days and unknown paths are not entities.
+        assert!(delete(dir.path(), &mut idx, "journal/2026/10/2026-10-28.md", rm).is_err());
+        assert!(delete(dir.path(), &mut idx, "../outside.md", rm).is_err());
     }
 
     #[test]

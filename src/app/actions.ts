@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
+import { flushAll } from "@/app/flush";
 import { backend } from "@/lib";
 import { parseTheme, themeOf, type ThemeFamily } from "@/lib/backend";
 import { addDays, formatShort, isISODate } from "@/lib/dates";
@@ -73,12 +74,28 @@ export function useActions(): Action[] {
         run: () => app.openPalette("entity"),
       },
       {
+        id: "library",
+        label: "Open library",
+        group: "Navigate",
+        shortcut: "g l",
+        keywords: "people places emotions tags browse all entities edit",
+        run: () => navigate({ to: "/library" }),
+      },
+      {
         id: "delete",
         label: "Delete this note…",
         group: "Journal",
         keywords: "remove trash page entry",
         run: () =>
           app.deleteNote.current ? app.deleteNote.current() : toast("Open a note to delete it"),
+      },
+      {
+        id: "save",
+        label: "Save now",
+        group: "Journal",
+        shortcut: "mod+s",
+        keywords: "write flush autosave",
+        run: () => void flushAll().then(() => toast.success("Saved", { duration: 1200 })),
       },
       {
         id: "focus",

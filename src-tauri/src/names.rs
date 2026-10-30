@@ -12,16 +12,18 @@ pub enum Kind {
     Place,
     Emotion,
     Tag,
+    Note,
     Type,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 6] = [
+    pub const ALL: [Kind; 7] = [
         Kind::Journal,
         Kind::Person,
         Kind::Place,
         Kind::Emotion,
         Kind::Tag,
+        Kind::Note,
         Kind::Type,
     ];
 
@@ -32,6 +34,7 @@ impl Kind {
             Kind::Place => "places",
             Kind::Emotion => "emotions",
             Kind::Tag => "tags",
+            Kind::Note => "notes",
             Kind::Type => "types",
         }
     }
@@ -43,6 +46,7 @@ impl Kind {
             Kind::Place => "place",
             Kind::Emotion => "emotion",
             Kind::Tag => "tag",
+            Kind::Note => "note",
             Kind::Type => "type",
         }
     }
@@ -57,7 +61,7 @@ impl Kind {
 
     /// Kinds a user can create and rename from the UI.
     pub fn is_entity(self) -> bool {
-        matches!(self, Kind::Person | Kind::Place | Kind::Emotion | Kind::Tag)
+        matches!(self, Kind::Person | Kind::Place | Kind::Emotion | Kind::Tag | Kind::Note)
     }
 }
 

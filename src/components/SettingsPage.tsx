@@ -2,11 +2,24 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { backend } from "@/lib";
 import { parseTheme, themeOf, type Font, type Mode, type ThemeFamily } from "@/lib/backend";
 import { getDevSettings, IS_DEV, setDevSettings } from "@/lib/devSettings";
+import { nameKey } from "@/lib/names";
+import { SEEDED_EMOTIONS } from "@/lib/schema";
+import { trashName } from "@/lib/utils";
 import { previewSplash } from "@/lib/splash";
 
 const FAMILIES: ThemeFamily[] = ["dhyana", "basic"];
@@ -93,9 +106,72 @@ export function SettingsPage() {
           </Row>
         </Section>
 
+        <ResetSection />
+
         <p className="mt-10 text-[12px] text-muted-foreground">dhyāna 0.1.0</p>
       </div>
     </div>
+  );
+}
+
+/** Puts the look and the library back to a fresh install's. Journal entries are never touched. */
+function ResetSection() {
+  const app = useApp();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const starter = new Set(SEEDED_EMOTIONS.map(nameKey));
+  const mine = app.entities.filter(
+    (e) => !(e.kind === "emotion" && starter.has(nameKey(e.name))),
+  ).length;
+
+  const reset = async () => {
+    setOpen(false);
+    setBusy(true);
+    try {
+      const removed = await backend.resetLibrary();
+      await app.updateSettings({ theme: "dhyana-light", font: "serif" });
+      await app.refreshEntities();
+      toast.success("Back to defaults", {
+        description: removed
+          ? `${removed} ${removed === 1 ? "note is" : "notes are"} in your ${trashName()} if you need them back.`
+          : undefined,
+      });
+    } catch (e) {
+      toast.error(`Couldn't reset: ${e}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title="Reset">
+      <Row
+        label="Reset to defaults"
+        hint="Theme and font go back to the defaults, and your library is cleared. Journal entries are not touched."
+      >
+        <Button variant="outline" disabled={busy} onClick={() => setOpen(true)}>
+          Reset…
+        </Button>
+      </Row>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent className="sm:max-w-[420px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to defaults?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your people, places, notes, topic pages and any emotions you added
+              {mine ? ` (${mine} in your library now)` : ""} move to your {trashName()}, and the
+              starter emotions come back. Theme and font return to the defaults. Your journal
+              entries and your vault folder stay exactly as they are.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void reset()}>Reset</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Section>
   );
 }
 

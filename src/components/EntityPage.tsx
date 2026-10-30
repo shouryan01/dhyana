@@ -1,36 +1,36 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Hash, MapPin, Smile, User } from "lucide-react";
+import { FileText, Hash, MapPin, Smile, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import { registerFlush } from "@/app/flush";
+import { NoteEditor } from "@/components/NoteEditor";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { backend } from "@/lib";
 import { formatShort } from "@/lib/dates";
+import { plainContext } from "@/lib/snippet";
 import type { EntityDetail, Mention } from "@/lib/schema";
 
 const AUTOSAVE_MS = 700;
 
-const KIND_ICON = { person: User, place: MapPin, emotion: Smile, tag: Hash } as const;
-const KIND_LABEL = { person: "Person", place: "Place", emotion: "Emotion", tag: "Tag" } as const;
-
-/** `[[Alice|Ali]]` reads as "Ali" in a list of snippets. */
-const plainContext = (s: string) =>
-  s.replace(/\[\[([^\]|]+?)(?:\|([^\]]*))?\]\]/g, (_m, target: string, label?: string) =>
-    (label || target).trim(),
-  );
-
-const fromList = (items: string[]) => items.join(", ");
-const toList = (text: string) =>
-  text
-    .split(/[,\n]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+const KIND_ICON = {
+  person: User,
+  place: MapPin,
+  emotion: Smile,
+  tag: Hash,
+  note: FileText,
+} as const;
+const KIND_LABEL = {
+  person: "Person",
+  place: "Place",
+  emotion: "Emotion",
+  tag: "Tag",
+  note: "Note",
+} as const;
 
 interface Fields {
   name: string;
-  aliases: string;
   relationship: string;
   birthday: string;
   notes: string;
@@ -38,7 +38,6 @@ interface Fields {
 
 const fieldsOf = (d: EntityDetail): Fields => ({
   name: d.display,
-  aliases: fromList(d.aliases),
   relationship: d.relationship ?? "",
   birthday: d.birthday ?? "",
   notes: d.notes,
@@ -85,7 +84,7 @@ export function EntityPage({ path }: { path: string }) {
     try {
       const next = await backend.updateEntity(path, patch);
       setDetail(next);
-      // Show what was stored (aliases de-duplicated, trimmed) unless the user has moved on.
+      // Show what was stored (trimmed) unless the user has moved on.
       if (!edited.current) setFields(fieldsOf(next));
     } catch (e) {
       toast.error(String(e instanceof Error ? e.message : e));
@@ -113,17 +112,12 @@ export function EntityPage({ path }: { path: string }) {
     setFields((f) => (f ? { ...f, ...patch } : f));
   };
 
-  const commit = async (key: "aliases" | "relationship" | "birthday") => {
+  const commit = async (key: "relationship" | "birthday") => {
     const { detail: d, fields: f } = latest.current;
     if (!d || !f) return;
-    const before =
-      key === "aliases"
-        ? fromList(d.aliases)
-        : key === "relationship"
-          ? (d.relationship ?? "")
-          : (d.birthday ?? "");
+    const before = key === "relationship" ? (d.relationship ?? "") : (d.birthday ?? "");
     if (f[key] === before) return;
-    await save({ [key]: key === "aliases" ? toList(f.aliases) : f[key].trim() });
+    await save({ [key]: f[key].trim() });
   };
 
   const rename = async () => {
@@ -167,8 +161,7 @@ export function EntityPage({ path }: { path: string }) {
     <div className="writing h-full overflow-y-auto">
       <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
         <p className="mb-2 flex items-center gap-1.5 text-[12px] text-muted-foreground select-none">
-          <Icon size={13} /> {KIND_LABEL[kind] ?? kind}
-          <span className="opacity-60">· {detail.path}</span>
+          {kind !== "emotion" && <Icon size={13} />} {KIND_LABEL[kind] ?? kind}
         </p>
         <input
           aria-label="Name"
@@ -185,59 +178,59 @@ export function EntityPage({ path }: { path: string }) {
           className="mb-8 w-full rounded-md bg-transparent font-[family-name:var(--font-body)] text-[26px] leading-tight font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         />
 
-        <dl className="mb-8 grid grid-cols-[110px_1fr] items-center gap-x-4 gap-y-3 text-[13px]">
-          <dt className="text-muted-foreground">Aliases</dt>
-          <dd>
-            <Input
-              aria-label="Aliases"
-              placeholder="Other names, separated by commas"
-              value={fields.aliases}
-              onChange={(e) => set({ aliases: e.target.value })}
-              onBlur={() => void commit("aliases")}
-            />
-          </dd>
-          {isPerson && (
-            <>
-              <dt className="text-muted-foreground">Relationship</dt>
-              <dd>
-                <Input
-                  aria-label="Relationship"
-                  placeholder="friend, sister, coworker…"
-                  value={fields.relationship}
-                  onChange={(e) => set({ relationship: e.target.value })}
-                  onBlur={() => void commit("relationship")}
-                />
-              </dd>
-              <dt className="text-muted-foreground">Birthday</dt>
-              <dd>
-                <Input
-                  aria-label="Birthday"
-                  type="date"
-                  className="w-[180px]"
-                  value={fields.birthday}
-                  onChange={(e) => set({ birthday: e.target.value })}
-                  onBlur={() => void commit("birthday")}
-                />
-              </dd>
-            </>
-          )}
-        </dl>
+        {isPerson && (
+          <dl className="mb-8 grid grid-cols-[110px_1fr] items-center gap-x-4 gap-y-3 text-[13px]">
+            <dt className="text-muted-foreground">Relationship</dt>
+            <dd>
+              <Input
+                aria-label="Relationship"
+                placeholder="friend, sister, coworker…"
+                value={fields.relationship}
+                onChange={(e) => set({ relationship: e.target.value })}
+                onBlur={() => void commit("relationship")}
+              />
+            </dd>
+            <dt className="text-muted-foreground">Birthday</dt>
+            <dd>
+              <Input
+                aria-label="Birthday"
+                type="date"
+                className="w-[180px]"
+                value={fields.birthday}
+                onChange={(e) => set({ birthday: e.target.value })}
+                onBlur={() => void commit("birthday")}
+              />
+            </dd>
+          </dl>
+        )}
 
-        <h2 className="mb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase select-none">
-          Notes
-        </h2>
-        <Textarea
-          aria-label="Notes"
-          placeholder="Anything worth remembering…"
-          className="mb-10 min-h-[120px] font-[family-name:var(--font-body)] text-[15px] leading-relaxed"
-          value={fields.notes}
-          onChange={(e) => {
-            set({ notes: e.target.value });
-            window.clearTimeout(timer.current);
-            timer.current = window.setTimeout(() => void flushNotes(), AUTOSAVE_MS);
-          }}
-          onBlur={() => void flushNotes()}
-        />
+        {kind === "note" ? (
+          <div className="mb-10">
+            <NoteEditor
+              initial={detail.notes}
+              label={`Note: ${detail.display}`}
+              onSave={(body) => save({ notes: body })}
+            />
+          </div>
+        ) : (
+          <>
+            <h2 className="mb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase select-none">
+              Notes
+            </h2>
+            <Textarea
+              aria-label="Notes"
+              placeholder="Anything worth remembering…"
+              className="mb-10 min-h-[120px] font-[family-name:var(--font-body)] text-[15px] leading-relaxed"
+              value={fields.notes}
+              onChange={(e) => {
+                set({ notes: e.target.value });
+                window.clearTimeout(timer.current);
+                timer.current = window.setTimeout(() => void flushNotes(), AUTOSAVE_MS);
+              }}
+              onBlur={() => void flushNotes()}
+            />
+          </>
+        )}
 
         <h2 className="mb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase select-none">
           Mentions · {detail.backlinks.length}

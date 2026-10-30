@@ -1,6 +1,5 @@
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
-import Placeholder from "@tiptap/extension-placeholder";
 import { useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -21,12 +20,10 @@ import {
 import { backend } from "@/lib";
 import type { DayFile } from "@/lib/backend";
 import { formatLong } from "@/lib/dates";
-import { baseTarget, resolveTarget } from "@/lib/entityDirectory";
-import { TagHighlight } from "@/editor/tagHighlight";
-import { Triggers } from "@/editor/triggers";
+import { trashName } from "@/lib/utils";
+import { editorExtensions, useOpenWikilink } from "@/editor/wiring";
 import { UpcomingPanel } from "@/components/UpcomingPanel";
 import { createCanon, defaultSchema } from "@/markdown/canon";
-import { createExtensions } from "@/markdown/extensions";
 import type { PMNode } from "@/markdown/pm";
 import { loadBody, saveBody, type BodyContext } from "@/markdown/roundtrip";
 
@@ -86,33 +83,11 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   appRef.current = app;
   const editorRef = useRef<Editor | null>(null);
 
-  /** Clicking an entity chip opens its page; a date chip opens that day. */
-  const openLink = (el: HTMLElement) => {
-    const target = el.dataset.target ?? "";
-    const hit = resolveTarget(target);
-    if (hit?.kind === "date") {
-      void navigate({ to: "/day/$date", params: { date: baseTarget(target) } });
-    } else if (hit?.path) {
-      void navigate({ to: "/entity", search: { path: hit.path } });
-    } else {
-      toast(`There's no note called “${baseTarget(target)}” yet`);
-    }
-  };
+  const openLink = useOpenWikilink();
 
   // Everything below reads refs only, so callbacks captured by the editor never go stale.
   const editor = useEditor({
-    extensions: createExtensions([
-      Placeholder.configure({ placeholder: "Start writing…" }),
-      TagHighlight,
-      Triggers.configure({
-        getData: () => ({
-          entities: appRef.current.entities,
-          tags: appRef.current.tags,
-          today: appRef.current.today,
-        }),
-        createEntity: (kind, name) => appRef.current.createEntity(kind, name),
-      }),
-    ]),
+    extensions: editorExtensions(appRef, "Start writing…"),
     content: initialDoc.current,
     editorProps: {
       attributes: { spellcheck: "true", "aria-label": `Journal entry for ${date}` },
@@ -337,9 +312,6 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     </div>
   );
 }
-
-const trashName = () =>
-  /win/i.test(navigator.platform || navigator.userAgent) ? "Recycle Bin" : "Trash";
 
 function formatTime(iso: string): string {
   const d = new Date(iso);

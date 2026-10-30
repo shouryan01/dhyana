@@ -146,6 +146,11 @@ export function createMemoryBackend(): Backend {
         .filter((d) => d.startsWith(prefix))
         .sort();
     },
+    async listYears() {
+      return [...new Set(Object.keys(files).map((d) => Number(d.slice(0, 4))))].sort(
+        (a, b) => a - b,
+      );
+    },
     async onVaultChanged(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
@@ -167,6 +172,15 @@ export function createMemoryBackend(): Backend {
     },
     async renameEntity(path, newName) {
       return mutate(() => store.rename(path, newName));
+    },
+    async deleteEntity(path) {
+      mutate(() => store.delete(path));
+    },
+    async tagNotes(tag) {
+      return store.tagNotes(tag);
+    },
+    async resetLibrary() {
+      return mutate(() => store.reset());
     },
     async upcoming(from, limit) {
       return store.upcoming(from, limit);

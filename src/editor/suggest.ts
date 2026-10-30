@@ -8,7 +8,7 @@
  *   $  dates ("next friday"), creating an event link
  */
 import { formatShort, parseDateInput, parseISODate } from "@/lib/dates";
-import { nameKey } from "@/lib/names";
+import { nameKey, tidyName } from "@/lib/names";
 import type { EntityKind, EntitySummary, TagInfo } from "@/lib/schema";
 
 export type SuggestIcon = "person" | "place" | "emotion" | "tag" | "date" | "create";
@@ -106,7 +106,6 @@ export function mentionItems(query: string, data: TriggerData): SuggestItem[] {
       id: e.path,
       icon: e.kind as SuggestIcon,
       label: e.display,
-      detail: e.display !== e.name ? e.name : e.aliases[0],
       insert: linkTo(e),
     }));
   const q = query.trim();
@@ -114,11 +113,12 @@ export function mentionItems(query: string, data: TriggerData): SuggestItem[] {
     for (const kind of ["person", "place"] as const) {
       const taken = pool.some((e) => e.kind === kind && matchRank(namesOf(e), q) === 0);
       if (!taken) {
+        const name = tidyName(kind, q);
         items.push({
           id: `create-${kind}`,
           icon: "create",
-          label: `Create ${kind} “${q}”`,
-          create: { kind, name: q },
+          label: `Create ${kind} “${name}”`,
+          create: { kind, name },
           insert: { type: "link", target: q, label: null },
         });
       }

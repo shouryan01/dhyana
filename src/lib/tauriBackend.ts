@@ -7,6 +7,7 @@ import {
   EntityDetailSchema,
   EntityPatchSchema,
   EntitySummarySchema,
+  MentionSchema,
   RenameResultSchema,
   TagInfoSchema,
   UpcomingEventSchema,
@@ -44,6 +45,9 @@ export const tauriBackend: Backend = {
   async listDays(year, month) {
     return z.array(z.string()).parse(await invoke("list_days", { year, month }));
   },
+  async listYears() {
+    return z.array(z.number()).parse(await invoke("list_years"));
+  },
   async onVaultChanged(cb) {
     return listen("vault://changed", (e) => cb(ChangedSchema.parse(e.payload).dates));
   },
@@ -66,6 +70,15 @@ export const tauriBackend: Backend = {
   },
   async renameEntity(path, newName) {
     return RenameResultSchema.parse(await invoke("rename_entity", { path, newName }));
+  },
+  async deleteEntity(path) {
+    await invoke("delete_entity", { path });
+  },
+  async tagNotes(tag) {
+    return z.array(MentionSchema).parse(await invoke("tag_notes", { tag }));
+  },
+  async resetLibrary() {
+    return z.number().parse(await invoke("reset_library"));
   },
   async upcoming(from, limit) {
     return z.array(UpcomingEventSchema).parse(await invoke("upcoming", { from, limit }));

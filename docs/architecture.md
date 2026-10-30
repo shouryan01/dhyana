@@ -20,7 +20,7 @@ flowchart TB
     Vault["vault: read, atomic save, delete to trash, list"]
     Ent["entities: create, edit, rename, seed"]
     FM["frontmatter + yaml: line-level edits"]
-    Idx["index (SQLite, app data):<br/>notes · aliases · links · tags"]
+    Idx["index (SQLite, app data):<br/>notes · links · tags"]
     Set["settings (app data)"]
     Watch["watcher (notify)"]
     Cmd --> Vault --> FM

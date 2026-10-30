@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { formatLong, parseDateInput } from "@/lib/dates";
-import { nameKey } from "@/lib/names";
+import { nameKey, tidyName } from "@/lib/names";
 import type { EntityKind } from "@/lib/schema";
 import type { Action } from "@/lib/shortcuts";
 
@@ -101,7 +101,7 @@ function EntityPicker({ query, setQuery }: { query: string; setQuery(q: string):
   };
   const create = async (kind: EntityKind) => {
     try {
-      const made = await app.createEntity(kind, q);
+      const made = await app.createEntity(kind, tidyName(kind, q));
       open(made.path);
     } catch (e) {
       toast.error(String(e instanceof Error ? e.message : e));

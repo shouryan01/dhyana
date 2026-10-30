@@ -6,7 +6,7 @@
 import { z } from "zod";
 import { isISODate } from "./dates";
 
-export const ENTITY_KINDS = ["person", "place", "emotion", "tag"] as const;
+export const ENTITY_KINDS = ["person", "place", "emotion", "tag", "note"] as const;
 export const EntityKindSchema = z.enum(ENTITY_KINDS);
 export type EntityKind = z.infer<typeof EntityKindSchema>;
 
@@ -17,34 +17,49 @@ export const BUILTIN_TYPES = {
   place: { label: "Place", icon: "map-pin" },
   emotion: { label: "Emotion", icon: "smile" },
   tag: { label: "Tag", icon: "hash" },
+  note: { label: "Note", icon: "file-text" },
 } as const;
 
 /** Written to `emotions/` the first time a vault is opened; mirrors the Rust list. */
 export const SEEDED_EMOTIONS = [
-  "calm",
-  "content",
-  "grateful",
-  "hopeful",
-  "joyful",
-  "excited",
-  "proud",
-  "loved",
-  "peaceful",
-  "curious",
-  "relieved",
+  "amazed",
   "amused",
-  "sad",
-  "anxious",
   "angry",
-  "frustrated",
-  "lonely",
-  "tired",
-  "overwhelmed",
-  "stressed",
-  "bored",
-  "guilty",
-  "afraid",
+  "annoyed",
+  "anxious",
+  "ashamed",
+  "brave",
+  "calm",
+  "confident",
+  "content",
   "disappointed",
+  "discouraged",
+  "disgusted",
+  "drained",
+  "embarrassed",
+  "excited",
+  "frustrated",
+  "grateful",
+  "guilty",
+  "happy",
+  "hopeful",
+  "hopeless",
+  "indifferent",
+  "irritated",
+  "jealous",
+  "joyful",
+  "lonely",
+  "overwhelmed",
+  "passionate",
+  "peaceful",
+  "proud",
+  "relieved",
+  "sad",
+  "satisfied",
+  "scared",
+  "stressed",
+  "surprised",
+  "worried",
 ] as const;
 
 const dateOrEmpty = z

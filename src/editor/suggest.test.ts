@@ -82,12 +82,13 @@ describe("@ people and places", () => {
     expect(paris.insert).toEqual({ type: "link", target: "Paris (place)", label: "Paris" });
   });
 
-  it("offers to create a person or place when nothing matches exactly", () => {
+  it("offers to create a person or place when nothing matches exactly, in lowercase", () => {
     const items = mentionItems("Zed", data);
     expect(items.filter((i) => i.icon === "create").map((i) => i.create)).toEqual([
-      { kind: "person", name: "Zed" },
-      { kind: "place", name: "Zed" },
+      { kind: "person", name: "zed" },
+      { kind: "place", name: "zed" },
     ]);
+    expect(items.at(-1)?.label).toBe("Create place “zed”");
   });
 
   it("only offers the kind that doesn't exist yet", () => {

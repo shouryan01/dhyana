@@ -14,7 +14,7 @@ pnpm tauri dev      # the desktop app, with hot reload
 pnpm dev            # UI only, in a browser, with an in-memory fake vault (no Rust needed)
 ```
 
-On first launch the onboarding flow asks where your vault lives (default: `Documents/dhyana`). You can change the vault later in **Settings → Vault → Change…**; that only changes which folder is opened and never moves or deletes files. To see onboarding again, use the developer settings (see [development](development.md)).
+On first launch the onboarding flow asks where your vault lives (default: `Documents/dhyana`). You can change the vault later in **Settings → Vault → Change…**; that only changes which folder is opened and never moves or deletes files. To see onboarding again, use the developer settings (see [development](development.md)). It ends with a short practice note that walks you through `!`, `@`, `$` and `#` step by step; nothing typed there is saved.
 
 ## Test and check
 

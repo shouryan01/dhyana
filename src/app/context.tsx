@@ -24,7 +24,7 @@ import type { EntityKind, EntitySummary, TagInfo } from "@/lib/schema";
 
 type PaletteMode = "commands" | "goto-date" | "entity";
 
-interface AppContextValue {
+export interface AppContextValue {
   app: AppState | null;
   loadError: string | null;
   updateSettings(patch: SettingsPatch): Promise<void>;
@@ -117,10 +117,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const entitiesRef = useRef<EntitySummary[]>([]);
   const refreshEntities = useCallback(async () => {
     try {
       const [list, tagList] = await Promise.all([backend.listEntities(), backend.listTags()]);
       setDirectory(list); // before state, so chips rendered right after resolve correctly
+      entitiesRef.current = list;
       setEntities(list);
       setTags(tagList);
     } catch {
@@ -159,6 +161,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const createEntity = useCallback(
     async (kind: EntityKind, name: string) => {
       const made = await backend.createEntity(kind, name);
+      // Show it at once (chips resolve, lists update); the full refresh then settles the details.
+      if (kind !== "tag") {
+        const next = [...entitiesRef.current.filter((e) => e.path !== made.path), made];
+        entitiesRef.current = next;
+        setDirectory(next);
+        setEntities(next);
+      }
       await refreshEntities();
       return made;
     },
