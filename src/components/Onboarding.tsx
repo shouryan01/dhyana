@@ -104,7 +104,7 @@ export function Onboarding() {
       <div className="w-full max-w-[460px]">
         {step === "welcome" && (
           <div className="group anim-pop mb-6 flex justify-center">
-            <Logo size={56} className="logo-mark text-accent" />
+            <Logo size={56} className="logo-mark text-primary" />
           </div>
         )}
         <div
@@ -116,7 +116,7 @@ export function Onboarding() {
               key={s}
               className={cn(
                 "h-1 w-8 rounded-full transition-colors duration-150",
-                i <= idx ? "bg-accent" : "bg-border",
+                i <= idx ? "bg-primary" : "bg-border",
               )}
             />
           ))}
@@ -127,7 +127,7 @@ export function Onboarding() {
             title="Welcome to dhyāna"
             body="A quiet place to write. Your journal is plain markdown files in a folder you choose, and everything works offline."
           >
-            <p className="text-muted">
+            <p className="text-muted-foreground">
               One note per day. Opens to today. No account, nothing leaves your machine.
             </p>
           </Panel>
@@ -139,12 +139,13 @@ export function Onboarding() {
             body="Pick a folder. Notes are saved inside it as journal/2026/10/2026-10-28.md."
           >
             <div className="flex items-center gap-2 rounded-lg border border-border bg-popover px-3 py-2.5">
-              <FolderOpen size={16} className="shrink-0 text-muted" />
+              <FolderOpen size={16} className="shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1 truncate font-mono text-[12px]" title={vault ?? ""}>
                 {vault ?? "…"}
               </span>
               <Button
                 size="sm"
+                variant="outline"
                 onClick={async () => {
                   const picked = await backend.pickFolder();
                   if (picked) setVault(picked);
@@ -153,7 +154,7 @@ export function Onboarding() {
                 Choose…
               </Button>
             </div>
-            <p className="mt-2 text-[12px] text-muted">
+            <p className="mt-2 text-[12px] text-muted-foreground">
               {replay && !switching
                 ? "This is your current vault. Keep it, or choose another; your existing files are never moved or deleted."
                 : switching
@@ -201,14 +202,14 @@ export function Onboarding() {
             title="You're set"
             body="Today's note is ready whenever you are. Nothing is created until you type."
           >
-            <ul className="space-y-1.5 text-muted">
+            <ul className="space-y-1.5 text-muted-foreground">
               <li>
-                <b className="text-fg">{shortcutLabel("mod+k")}</b> opens the command palette. Every
-                action is in there.
+                <b className="text-foreground">{shortcutLabel("mod+k")}</b> opens the command
+                palette. Every action is in there.
               </li>
               <li>
-                <b className="text-fg">Esc</b> leaves the editor, then{" "}
-                <b className="text-fg">G T</b> jumps to today.
+                <b className="text-foreground">Esc</b> leaves the editor, then{" "}
+                <b className="text-foreground">G T</b> jumps to today.
               </li>
             </ul>
           </Panel>
@@ -223,12 +224,12 @@ export function Onboarding() {
         <div className="mt-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {idx > 0 && (
-              <Button variant="ghost" onClick={back} disabled={busy}>
+              <Button size="sm" variant="ghost" onClick={back} disabled={busy}>
                 Back
               </Button>
             )}
             {replay ? (
-              <Button variant="ghost" onClick={cancel} disabled={busy}>
+              <Button size="sm" variant="ghost" onClick={cancel} disabled={busy}>
                 Cancel
               </Button>
             ) : (
@@ -244,11 +245,11 @@ export function Onboarding() {
             )}
           </div>
           {step === "done" ? (
-            <Button variant="primary" onClick={() => void finish()} disabled={busy}>
+            <Button size="sm" onClick={() => void finish()} disabled={busy}>
               {switching ? "Switch vault & finish" : replay ? "Finish" : "Start writing"}
             </Button>
           ) : (
-            <Button variant="primary" onClick={next} disabled={busy}>
+            <Button size="sm" onClick={next} disabled={busy}>
               Continue
             </Button>
           )}
@@ -270,14 +271,14 @@ function Panel({
   return (
     <div key={title} className="anim-pop">
       <h1 className="mb-2 text-[22px] font-semibold tracking-tight">{title}</h1>
-      <p className="mb-5 text-[14px] text-muted">{body}</p>
+      <p className="mb-5 text-[14px] text-muted-foreground">{body}</p>
       {children}
     </div>
   );
 }
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <div className="mb-1.5 text-[12px] font-medium text-muted">{children}</div>
+  <div className="mb-1.5 text-[12px] font-medium text-muted-foreground">{children}</div>
 );
 
 function Choice({
@@ -295,11 +296,11 @@ function Choice({
       aria-pressed={selected}
       className={cn(
         "relative flex flex-col gap-1.5 rounded-lg border bg-popover p-2 text-center text-[12px] transition-spring hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]",
-        selected ? "border-accent" : "border-border hover:bg-chrome-hover",
+        selected ? "border-primary" : "border-border hover:bg-chrome-hover",
       )}
     >
       {children}
-      {selected && <Check size={12} className="anim-pop absolute right-1.5 top-1.5 text-accent" />}
+      {selected && <Check size={12} className="anim-pop absolute right-1.5 top-1.5 text-primary" />}
     </button>
   );
 }

@@ -48,7 +48,7 @@ export function WindowControls() {
   if (!show) return null;
   const run = (fn: (w: Win) => Promise<unknown>) => () => void currentWindow().then(fn);
   return (
-    <div className="flex h-8 items-stretch self-start text-muted">
+    <div className="flex h-8 items-stretch self-start text-muted-foreground">
       <ControlButton label="Minimize" onClick={run((w) => w.minimize())}>
         <path d="M0 5.5h10" />
       </ControlButton>
@@ -90,7 +90,9 @@ function ControlButton({
       onClick={onClick}
       className={cn(
         "flex w-[46px] items-center justify-center transition-colors duration-100",
-        danger ? "hover:bg-[#e81123] hover:text-white" : "hover:bg-chrome-hover hover:text-fg",
+        danger
+          ? "hover:bg-[#e81123] hover:text-white"
+          : "hover:bg-chrome-hover hover:text-foreground",
       )}
     >
       <svg

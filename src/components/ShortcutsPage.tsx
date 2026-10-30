@@ -11,7 +11,7 @@ export function ShortcutsPage() {
       <div className="anim-fade mx-auto max-w-[620px] px-8 pb-24 pt-14">
         <Link
           to="/settings"
-          className="mb-4 inline-flex items-center gap-1.5 text-[12px] text-muted transition-colors duration-100 hover:text-fg"
+          className="mb-4 inline-flex items-center gap-1.5 text-[12px] text-muted-foreground transition-colors duration-100 hover:text-foreground"
         >
           <ArrowLeft size={13} />
           Settings
@@ -25,17 +25,17 @@ export function ShortcutsPage() {
               {a.shortcut ? (
                 <Kbd shortcut={a.shortcut} />
               ) : (
-                <span className="text-[12px] text-muted">palette only</span>
+                <span className="text-[12px] text-muted-foreground">palette only</span>
               )}
               {a.also?.map((s) => (
-                <span key={s} className="flex items-center gap-2 text-muted">
+                <span key={s} className="flex items-center gap-2 text-muted-foreground">
                   or <Kbd shortcut={s} />
                 </span>
               ))}
             </span>
           </div>
         ))}
-        <p className="px-1 pt-3 text-[12px] text-muted">
+        <p className="px-1 pt-3 text-[12px] text-muted-foreground">
           Single-key shortcuts (like G T) work outside the editor. Press Esc to leave the editor.
         </p>
       </div>

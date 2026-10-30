@@ -3,11 +3,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { backend } from "@/lib";
 import { parseTheme, themeOf, type Font, type Mode, type ThemeFamily } from "@/lib/backend";
 import { getDevSettings, IS_DEV, setDevSettings } from "@/lib/devSettings";
 import { previewSplash } from "@/lib/splash";
-import { cn } from "@/lib/utils";
 
 const FAMILIES: ThemeFamily[] = ["dhyana", "basic"];
 const MODES: Mode[] = ["light", "dark"];
@@ -73,7 +73,9 @@ export function SettingsPage() {
               >
                 {state.vaultPath}
               </span>
-              <Button onClick={() => void changeVault()}>Change…</Button>
+              <Button size="sm" variant="outline" onClick={() => void changeVault()}>
+                Change…
+              </Button>
             </span>
           </Row>
         </Section>
@@ -85,13 +87,13 @@ export function SettingsPage() {
             label="Shortcuts"
             hint="Every action and its keys. Press ? anywhere outside the editor."
           >
-            <Button asChild>
+            <Button size="sm" variant="outline" asChild>
               <Link to="/shortcuts">View all</Link>
             </Button>
           </Row>
         </Section>
 
-        <p className="mt-10 text-[12px] text-muted">dhyāna 0.1.0</p>
+        <p className="mt-10 text-[12px] text-muted-foreground">dhyāna 0.1.0</p>
       </div>
     </div>
   );
@@ -123,8 +125,12 @@ function DeveloperSection({ onPreviewOnboarding }: { onPreviewOnboarding(): void
       </Row>
       <Row label="Preview now">
         <span className="flex gap-2">
-          <Button onClick={() => previewSplash()}>Splash</Button>
-          <Button onClick={onPreviewOnboarding}>Onboarding</Button>
+          <Button size="sm" variant="outline" onClick={() => previewSplash()}>
+            Splash
+          </Button>
+          <Button size="sm" variant="outline" onClick={onPreviewOnboarding}>
+            Onboarding
+          </Button>
         </span>
       </Row>
     </Section>
@@ -142,7 +148,7 @@ function Section({
 }) {
   return (
     <section id={id} className="mb-9">
-      <h2 className="mb-2 border-b border-border pb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
+      <h2 className="mb-2 border-b border-border pb-2 text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
         {title}
       </h2>
       {children}
@@ -163,7 +169,7 @@ function Row({
     <div className="flex min-h-10 items-center justify-between gap-4 py-1.5">
       <div>
         <div className="text-[13px]">{label}</div>
-        {hint && <div className="text-[12px] text-muted">{hint}</div>}
+        {hint && <div className="text-[12px] text-muted-foreground">{hint}</div>}
       </div>
       {children}
     </div>
@@ -182,20 +188,18 @@ function Segmented<T extends string>({
   onChange(v: T): void;
 }) {
   return (
-    <div className="flex rounded-md border border-border bg-popover p-0.5" role="group">
+    <ToggleGroup
+      type="single"
+      variant="outline"
+      size="sm"
+      value={value}
+      onValueChange={(v) => v && onChange(v as T)} // clicking the selected item would clear it; ignore that
+    >
       {options.map((o) => (
-        <button
-          key={o}
-          onClick={() => onChange(o)}
-          aria-pressed={value === o}
-          className={cn(
-            "h-6 rounded px-2.5 text-[12px] transition-colors duration-100",
-            value === o ? "bg-chrome-active text-fg" : "text-muted hover:text-fg",
-          )}
-        >
+        <ToggleGroupItem key={o} value={o} className="px-3 text-[12px]">
           {labels?.[o] ?? cap(o)}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }
