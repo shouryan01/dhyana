@@ -1,4 +1,24 @@
 import { z } from "zod";
+import type {
+  EntityDetail,
+  EntityKind,
+  EntityPatch,
+  EntitySummary,
+  RenameResult,
+  TagInfo,
+  UpcomingEvent,
+} from "./schema";
+
+export type {
+  EntityDetail,
+  EntityKind,
+  EntityPatch,
+  EntitySummary,
+  Mention,
+  RenameResult,
+  TagInfo,
+  UpcomingEvent,
+} from "./schema";
 
 export const THEMES = ["dhyana-light", "dhyana-dark", "basic-light", "basic-dark"] as const;
 export type Theme = (typeof THEMES)[number];
@@ -77,4 +97,22 @@ export interface Backend {
   deleteDay(date: string): Promise<boolean>;
   listDays(year: number, month: number): Promise<string[]>;
   onVaultChanged(cb: (dates: string[]) => void): Promise<() => void>;
+
+  /** People, places and emotions (not tags), with how often they are mentioned. */
+  listEntities(): Promise<EntitySummary[]>;
+  /** Tags in use plus registered ones, most used first. */
+  listTags(): Promise<TagInfo[]>;
+  /** An entity's properties, notes and backlinks. `path` is the vault-relative path from a summary. */
+  getEntity(path: string): Promise<EntityDetail>;
+  /** Creates the note. Rejects with a readable message if the name is taken or invalid. */
+  createEntity(kind: EntityKind, name: string): Promise<EntitySummary>;
+  updateEntity(path: string, patch: EntityPatch): Promise<EntityDetail>;
+  /** Renames the note and rewrites every link to it across the vault. */
+  renameEntity(path: string, newName: string): Promise<RenameResult>;
+  /** `$date` events on or after `from` (YYYY-MM-DD), soonest first. */
+  upcoming(from: string, limit?: number): Promise<UpcomingEvent[]>;
+  /** Drops the index and rebuilds it from the files. */
+  rebuildIndex(): Promise<void>;
+  /** Fires when entities, links or tags may have changed (any note file changed). */
+  onEntitiesChanged(cb: () => void): Promise<() => void>;
 }

@@ -5,6 +5,7 @@ import {
   type DayFile,
   type SaveResult,
 } from "./backend";
+import { createEntityStore, seedEntities, type MemEntity } from "./memoryEntities";
 
 /**
  * In-memory/localStorage stand-in for the Rust core, used when the UI runs in a plain browser
@@ -18,6 +19,7 @@ interface MemFile {
 
 const KEY_SETTINGS = "dhyana:mem:settings";
 const KEY_FILES = "dhyana:mem:files";
+const KEY_ENTITIES = "dhyana:mem:entities";
 
 const read = <T>(key: string, fallback: T): T => {
   try {
@@ -54,6 +56,26 @@ export function createMemoryBackend(): Backend {
   let settings: AppState = AppStateSchema.parse(stored);
   const files = read<Record<string, MemFile>>(KEY_FILES, {});
   const listeners = new Set<(dates: string[]) => void>();
+  const entityListeners = new Set<() => void>();
+  const notifyEntities = () => entityListeners.forEach((cb) => cb());
+  const store = createEntityStore(
+    {
+      dates: () => Object.keys(files),
+      body: (d) => files[d]?.body ?? "",
+      setBody: (d, body) => {
+        files[d] = { ...files[d], body, modified: now() };
+        write(KEY_FILES, files);
+      },
+    },
+    read<Record<string, MemEntity>>(KEY_ENTITIES, seedEntities()),
+    (all) => write(KEY_ENTITIES, all),
+  );
+  /** Runs an entity mutation, then tells listeners (the real core does this via the watcher). */
+  const mutate = <T>(fn: () => T): T => {
+    const out = fn();
+    notifyEntities();
+    return out;
+  };
 
   const persistSettings = () => write(KEY_SETTINGS, settings);
 
@@ -108,12 +130,14 @@ export function createMemoryBackend(): Backend {
       const t = now();
       files[date] = { body, created: f?.created ?? t, modified: t };
       write(KEY_FILES, files);
+      notifyEntities();
       return { status: "saved", hash: hash(body), created: files[date].created, modified: t };
     },
     async deleteDay(date) {
       if (!files[date]) return false;
       delete files[date];
       write(KEY_FILES, files);
+      notifyEntities();
       return true;
     },
     async listDays(year, month) {
@@ -125,6 +149,34 @@ export function createMemoryBackend(): Backend {
     async onVaultChanged(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
+    },
+    async listEntities() {
+      return store.list();
+    },
+    async listTags() {
+      return store.tags();
+    },
+    async getEntity(path) {
+      return store.get(path);
+    },
+    async createEntity(kind, name) {
+      return mutate(() => store.create(kind, name));
+    },
+    async updateEntity(path, patch) {
+      return mutate(() => store.update(path, patch));
+    },
+    async renameEntity(path, newName) {
+      return mutate(() => store.rename(path, newName));
+    },
+    async upcoming(from, limit) {
+      return store.upcoming(from, limit);
+    },
+    async rebuildIndex() {
+      notifyEntities();
+    },
+    async onEntitiesChanged(cb) {
+      entityListeners.add(cb);
+      return () => entityListeners.delete(cb);
     },
   };
 }

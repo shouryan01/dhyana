@@ -172,8 +172,7 @@ function convertInline(
   for (const n of nodes) {
     switch (n.type) {
       case "text": {
-        const text = normalizeNewlines(n.value);
-        if (text) out.push({ type: "text", text, ...(marks.length ? { marks } : {}) });
+        out.push(...splitWikilinks(normalizeNewlines(n.value), marks));
         break;
       }
       case "emphasis":
@@ -208,6 +207,30 @@ function convertInline(
     }
   }
   return mergeText(out);
+}
+
+const WIKILINK = /\[\[([^[\]|\n]+)(?:\|([^[\]\n]*))?\]\]/g;
+
+/** Text with `[[target|label]]` split out into wikilink atoms. `![[embeds]]` stay text. */
+function splitWikilinks(text: string, marks: PMMark[]): PMNode[] {
+  const withMarks = marks.length ? { marks } : {};
+  const out: PMNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(WIKILINK)) {
+    const start = m.index;
+    if (text[start - 1] === "!") continue;
+    const target = m[1].trim();
+    if (!target) continue;
+    if (start > last) out.push({ type: "text", text: text.slice(last, start), ...withMarks });
+    out.push({
+      type: "wikilink",
+      attrs: { target, label: m[2] || null },
+      ...withMarks,
+    });
+    last = start + m[0].length;
+  }
+  if (last < text.length) out.push({ type: "text", text: text.slice(last), ...withMarks });
+  return out;
 }
 
 function inlineRaw(source: string, depth: number): PMNode {

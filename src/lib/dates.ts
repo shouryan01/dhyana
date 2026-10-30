@@ -72,6 +72,65 @@ export function monthGrid(year: number, month: number, weekStart: number): (stri
 }
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const MONTHS = [
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
+];
+
+/** Same day of the month, `n` months on (clamped to the end of a shorter month). */
+export function addMonths(iso: string, n: number): string {
+  const d = parseISODate(iso);
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  return toISODate(d);
+}
+
+const monthIndex = (word: string): number =>
+  word.length >= 3 ? MONTHS.findIndex((m) => m === word || m.startsWith(word)) : -1;
+
+/**
+ * "dec 25", "25 december", "december 25th 2027", "12/25": a month and day, with an optional year.
+ * Without a year it is the next such day, today included.
+ */
+function parseMonthDay(s: string, base: string): string | null {
+  let month = -1;
+  let day = 0;
+  let year: number | null = null;
+  let m = /^([a-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?$/.exec(s);
+  if (m) {
+    month = monthIndex(m[1]);
+    day = Number(m[2]);
+    year = m[3] ? Number(m[3]) : null;
+  } else if ((m = /^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\.?(?:,?\s+(\d{4}))?$/.exec(s))) {
+    month = monthIndex(m[2]);
+    day = Number(m[1]);
+    year = m[3] ? Number(m[3]) : null;
+  } else if ((m = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/.exec(s))) {
+    month = Number(m[1]) - 1;
+    day = Number(m[2]);
+    year = m[3] ? Number(m[3]) : null;
+  }
+  if (month < 0 || month > 11 || day < 1) return null;
+  const build = (y: number) => `${y}-${pad(month + 1)}-${pad(day)}`;
+  if (year !== null) return isISODate(build(year)) ? build(year) : null;
+  const thisYear = parseISODate(base).getFullYear();
+  for (const y of [thisYear, thisYear + 1]) {
+    if (isISODate(build(y)) && build(y) >= base) return build(y);
+  }
+  return null;
+}
 
 /**
  * Parses what a person types into "go to date": ISO, today/yesterday/tomorrow, +3 / -2 (days),
@@ -86,6 +145,16 @@ export function parseDateInput(input: string, base: string = todayISO()): string
   if (s === "tomorrow") return addDays(base, 1);
   const rel = /^([+-])\s*(\d{1,4})\s*d?$/.exec(s);
   if (rel) return addDays(base, (rel[1] === "-" ? -1 : 1) * Number(rel[2]));
+  const ahead = /^in\s+(a|an|\d{1,3})\s+(day|week|month)s?$/.exec(s);
+  if (ahead) {
+    const n = /^\d/.test(ahead[1]) ? Number(ahead[1]) : 1;
+    if (ahead[2] === "month") return addMonths(base, n);
+    return addDays(base, n * (ahead[2] === "week" ? 7 : 1));
+  }
+  if (s === "next week") return addDays(base, 7);
+  if (s === "next month") return addMonths(base, 1);
+  const monthDay = parseMonthDay(s, base);
+  if (monthDay) return monthDay;
   const wk = /^(next|last|this)?\s*([a-z]+)$/.exec(s);
   if (wk) {
     const target = WEEKDAYS.findIndex(
