@@ -94,7 +94,7 @@ const specsOf = (a: Action): string[] => [a.shortcut, ...(a.also ?? [])].filter(
  * Stateful dispatcher for key events: returns the action a key event triggers (or null), tracking
  * the first key of a two-key sequence like "g t".
  */
-export function createDispatcher(getActions: () => Action[], now: () => number = Date.now) {
+export function createDispatcher(getActions: () => Action[], now: () => number = Date.now, mac: boolean = isMac()) {
   let pending: { key: string; at: number } | null = null;
   const SEQUENCE_WINDOW_MS = 1000;
 
@@ -102,7 +102,7 @@ export function createDispatcher(getActions: () => Action[], now: () => number =
     const entries = getActions().flatMap((a) => specsOf(a).map((spec) => ({ a, spec })));
 
     for (const { a, spec } of entries) {
-      if (isChord(spec) && matchChord(e, spec)) {
+      if (isChord(spec) && matchChord(e, spec, mac)) {
         pending = null;
         return a;
       }

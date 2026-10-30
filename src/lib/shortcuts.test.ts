@@ -38,7 +38,7 @@ describe("shortcuts", () => {
 
   it("chords fire anywhere; single keys and sequences only outside text fields", () => {
     const actions = [act("palette", "mod+k"), act("today", "g t"), act("help", "?")];
-    const d = createDispatcher(() => actions);
+    const d = createDispatcher(() => actions, undefined, false); // pin to Windows: the default follows the host OS
     expect(d(ev("k", { ctrlKey: true }), true)?.id).toBe("palette");
     expect(d(ev("g"), true)).toBeNull();
     expect(d(ev("t"), true)).toBeNull();

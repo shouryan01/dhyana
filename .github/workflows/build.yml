@@ -24,9 +24,6 @@ jobs:
           - name: macOS (Apple Silicon)
             os: macos-latest
             args: --target aarch64-apple-darwin
-          - name: macOS (Intel)
-            os: macos-latest
-            args: --target x86_64-apple-darwin
 
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +39,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
 
       - uses: swatinem/rust-cache@v2
         with:
