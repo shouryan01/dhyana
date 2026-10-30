@@ -37,7 +37,9 @@ struct Pending {
 
 impl Default for Activity {
     fn default() -> Self {
-        Activity { state: Mutex::new(Pending::default()) }
+        Activity {
+            state: Mutex::new(Pending::default()),
+        }
     }
 }
 
@@ -53,8 +55,12 @@ impl Activity {
     /// True (once) if something changed and either nothing has for `quiet`, or the first
     /// unrecorded change is `max` old.
     pub fn take_if_due(&self, quiet: Duration, max: Duration) -> bool {
-        let Ok(mut s) = self.state.lock() else { return false };
-        let (Some(since), Some(last)) = (s.since, s.last) else { return false };
+        let Ok(mut s) = self.state.lock() else {
+            return false;
+        };
+        let (Some(since), Some(last)) = (s.since, s.last) else {
+            return false;
+        };
         if last.elapsed() >= quiet || since.elapsed() >= max {
             *s = Pending::default();
             return true;
@@ -71,7 +77,10 @@ pub struct VaultWatcher {
 /// `YYYY-MM-DD` if `path` is `<vault>/journal/YYYY/MM/YYYY-MM-DD.md`.
 pub fn date_for_path(vault: &Path, path: &Path) -> Option<String> {
     let rel = path.strip_prefix(vault).ok()?;
-    let parts: Vec<_> = rel.components().map(|c| c.as_os_str().to_string_lossy()).collect();
+    let parts: Vec<_> = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect();
     if parts.len() != 4 || parts[0] != "journal" {
         return None;
     }
@@ -79,7 +88,10 @@ pub fn date_for_path(vault: &Path, path: &Path) -> Option<String> {
     (date.starts_with(&format!("{}-{}-", parts[1], parts[2]))).then_some(date)
 }
 
-pub fn dates_for_paths<'a>(vault: &Path, paths: impl IntoIterator<Item = &'a PathBuf>) -> Vec<String> {
+pub fn dates_for_paths<'a>(
+    vault: &Path,
+    paths: impl IntoIterator<Item = &'a PathBuf>,
+) -> Vec<String> {
     let mut dates: Vec<String> = paths
         .into_iter()
         .filter_map(|p| date_for_path(vault, p))
@@ -140,7 +152,11 @@ mod tests {
     #[test]
     fn maps_day_files_only() {
         let v = Path::new("/vault");
-        let ok = v.join("journal").join("2026").join("10").join("2026-10-28.md");
+        let ok = v
+            .join("journal")
+            .join("2026")
+            .join("10")
+            .join("2026-10-28.md");
         assert_eq!(date_for_path(v, &ok).as_deref(), Some("2026-10-28"));
 
         for p in [
@@ -160,11 +176,17 @@ mod tests {
     fn activity_is_due_when_quiet_or_when_it_has_waited_too_long() {
         let hour = Duration::from_secs(3600);
         let a = Activity::default();
-        assert!(!a.take_if_due(Duration::ZERO, Duration::ZERO), "nothing changed yet");
+        assert!(
+            !a.take_if_due(Duration::ZERO, Duration::ZERO),
+            "nothing changed yet"
+        );
         a.touch();
         assert!(!a.take_if_due(hour, hour), "neither quiet nor old enough");
         assert!(a.take_if_due(Duration::ZERO, hour), "quiet long enough");
-        assert!(!a.take_if_due(Duration::ZERO, Duration::ZERO), "already taken");
+        assert!(
+            !a.take_if_due(Duration::ZERO, Duration::ZERO),
+            "already taken"
+        );
         // Still typing (changes keep arriving, so never quiet), but the first one is old enough.
         a.touch();
         assert!(a.take_if_due(hour, Duration::ZERO), "waited too long");

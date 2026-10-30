@@ -10,7 +10,8 @@ use crate::entities::{self, EntityDetail, EntityPatch, RenameResult};
 use crate::frontmatter;
 use crate::history::{History, Version, VersionContent};
 use crate::index::{
-    vault_id, DayStat, EntitySummary, Index, Mention, SharedIndex, TagInfo, UpcomingEvent, VaultIndex,
+    vault_id, DayStat, EntitySummary, Index, Mention, SharedIndex, TagInfo, UpcomingEvent,
+    VaultIndex,
 };
 use crate::mood::{self, CheckIn, MoodStore};
 use crate::names::{self, Kind};
@@ -52,9 +53,7 @@ impl AppState {
     fn from(s: &Settings) -> Self {
         AppState {
             onboarding_completed: s.onboarding_completed,
-            vault_path: s
-                .existing_vault()
-                .map(|p| p.display().to_string()),
+            vault_path: s.existing_vault().map(|p| p.display().to_string()),
             theme: s.theme.clone(),
             font: s.font.clone(),
             ask_mood: s.ask_mood,
@@ -122,15 +121,19 @@ impl AppCtx {
             *slot = opened;
         }
         if let Ok(mut slot) = self.mood.lock() {
-            *slot = vault.as_ref().map(|v| MoodStore::open(&self.mood_dir, &vault_id(v)));
+            *slot = vault
+                .as_ref()
+                .map(|v| MoodStore::open(&self.mood_dir, &vault_id(v)));
         }
-        let history = vault.as_ref().and_then(|v| match History::open(v, &self.history_dir) {
-            Ok(h) => Some(h),
-            Err(e) => {
-                eprintln!("dhyana: could not open history: {e}");
-                None
-            }
-        });
+        let history = vault
+            .as_ref()
+            .and_then(|v| match History::open(v, &self.history_dir) {
+                Ok(h) => Some(h),
+                Err(e) => {
+                    eprintln!("dhyana: could not open history: {e}");
+                    None
+                }
+            });
         if let Ok(mut slot) = self.history.lock() {
             // Record the outgoing vault's last changes before switching.
             if let Some(old) = slot.as_mut() {
@@ -148,18 +151,30 @@ impl AppCtx {
         f: impl FnOnce(&Path, &mut Index) -> Result<T, String>,
     ) -> Result<T, String> {
         let mut slot = self.index.lock().map_err(|e| e.to_string())?;
-        let open = slot.as_mut().ok_or_else(|| "the index is not available".to_string())?;
+        let open = slot
+            .as_mut()
+            .ok_or_else(|| "the index is not available".to_string())?;
         f(&open.vault.clone(), &mut open.index)
     }
 
-    fn with_mood<T>(&self, f: impl FnOnce(&mut MoodStore) -> Result<T, String>) -> Result<T, String> {
+    fn with_mood<T>(
+        &self,
+        f: impl FnOnce(&mut MoodStore) -> Result<T, String>,
+    ) -> Result<T, String> {
         let mut slot = self.mood.lock().map_err(|e| e.to_string())?;
-        f(slot.as_mut().ok_or_else(|| "no vault configured".to_string())?)
+        f(slot
+            .as_mut()
+            .ok_or_else(|| "no vault configured".to_string())?)
     }
 
-    fn with_history<T>(&self, f: impl FnOnce(&mut History) -> Result<T, String>) -> Result<T, String> {
+    fn with_history<T>(
+        &self,
+        f: impl FnOnce(&mut History) -> Result<T, String>,
+    ) -> Result<T, String> {
         let mut slot = self.history.lock().map_err(|e| e.to_string())?;
-        f(slot.as_mut().ok_or_else(|| "version history is not available".to_string())?)
+        f(slot
+            .as_mut()
+            .ok_or_else(|| "version history is not available".to_string())?)
     }
 
     /// Re-read one file into the index now, rather than when the watcher gets to it.
@@ -177,7 +192,9 @@ impl AppCtx {
         if !self.auto_commit() {
             return false;
         }
-        let Ok(mut slot) = self.history.lock() else { return false };
+        let Ok(mut slot) = self.history.lock() else {
+            return false;
+        };
         let Some(h) = slot.as_mut() else { return false };
         match h.autocommit() {
             Ok(made) => made.is_some(),
@@ -283,7 +300,10 @@ pub fn save_day(
             ctx.with_mood(|m| m.set_pending(&date, Vec::new()).map_err(|e| e.to_string()))?;
         }
         // Backlinks and upcoming dates reflect this save immediately, not after the watcher fires.
-        ctx.refresh(&vault::day_path(&vault_dir, vault::validate_date(&date).map_err(|e| e.to_string())?));
+        ctx.refresh(&vault::day_path(
+            &vault_dir,
+            vault::validate_date(&date).map_err(|e| e.to_string())?,
+        ));
     }
     Ok(res)
 }
@@ -299,10 +319,15 @@ enum MoodChange {
 /// a check-in alone never creates the day file. `index` counts file check-ins, then pending ones.
 fn change_mood(ctx: &AppCtx, date: &str, change: MoodChange) -> Result<DayFile, String> {
     let vault_dir = ctx.vault()?;
-    let path = vault::day_path(&vault_dir, vault::validate_date(date).map_err(|e| e.to_string())?);
+    let path = vault::day_path(
+        &vault_dir,
+        vault::validate_date(date).map_err(|e| e.to_string())?,
+    );
     let change = match change {
         MoodChange::Add(c) => MoodChange::Add(c.normalized().map_err(|e| e.to_string())?),
-        MoodChange::Update(i, c) => MoodChange::Update(i, c.normalized().map_err(|e| e.to_string())?),
+        MoodChange::Update(i, c) => {
+            MoodChange::Update(i, c.normalized().map_err(|e| e.to_string())?)
+        }
         d => d,
     };
     let op = |change: MoodChange| match change {
@@ -315,10 +340,14 @@ fn change_mood(ctx: &AppCtx, date: &str, change: MoodChange) -> Result<DayFile, 
         let now = vault::now_string();
         if path.is_file() {
             if !pending.is_empty() {
-                vault::edit_day_mood_at(&vault_dir, date, mood::Op::Merge(&pending), &now).map_err(|e| e.to_string())?;
-                store.set_pending(date, Vec::new()).map_err(|e| e.to_string())?;
+                vault::edit_day_mood_at(&vault_dir, date, mood::Op::Merge(&pending), &now)
+                    .map_err(|e| e.to_string())?;
+                store
+                    .set_pending(date, Vec::new())
+                    .map_err(|e| e.to_string())?;
             }
-            vault::edit_day_mood_at(&vault_dir, date, op(change), &now).map_err(|e| e.to_string())?;
+            vault::edit_day_mood_at(&vault_dir, date, op(change), &now)
+                .map_err(|e| e.to_string())?;
         } else {
             let mut list = pending;
             mood::apply(&mut list, op(change)).map_err(|e| e.to_string())?;
@@ -336,7 +365,12 @@ pub fn add_mood(ctx: State<AppCtx>, date: String, checkin: CheckIn) -> Result<Da
 }
 
 #[tauri::command]
-pub fn update_mood(ctx: State<AppCtx>, date: String, index: usize, checkin: CheckIn) -> Result<DayFile, String> {
+pub fn update_mood(
+    ctx: State<AppCtx>,
+    date: String,
+    index: usize,
+    checkin: CheckIn,
+) -> Result<DayFile, String> {
     change_mood(&ctx, &date, MoodChange::Update(index, checkin))
 }
 
@@ -399,7 +433,11 @@ pub fn on_this_day(ctx: State<AppCtx>, date: String) -> Result<Vec<OnThisDay>, S
                     .chars()
                     .take(EXCERPT_CHARS)
                     .collect();
-                OnThisDay { date, words, excerpt }
+                OnThisDay {
+                    date,
+                    words,
+                    excerpt,
+                }
             })
             .collect())
     })
@@ -412,7 +450,11 @@ pub fn note_history(ctx: State<AppCtx>, path: String) -> Result<Vec<Version>, St
 }
 
 #[tauri::command]
-pub fn note_version(ctx: State<AppCtx>, path: String, id: String) -> Result<VersionContent, String> {
+pub fn note_version(
+    ctx: State<AppCtx>,
+    path: String,
+    id: String,
+) -> Result<VersionContent, String> {
     ctx.with_history(|h| h.content(&path, &id).map_err(|e| e.to_string()))
 }
 
@@ -428,7 +470,11 @@ pub fn restore_version(ctx: State<AppCtx>, path: String, id: String) -> Result<(
 #[tauri::command]
 pub fn checkpoint(ctx: State<AppCtx>, reason: String) -> Result<Option<String>, String> {
     let reason = reason.trim();
-    let reason = if reason.is_empty() { "Checkpoint" } else { reason };
+    let reason = if reason.is_empty() {
+        "Checkpoint"
+    } else {
+        reason
+    };
     ctx.with_history(|h| {
         h.checkpoint(reason)
             .map(|o| o.map(|id| id.to_string()))
@@ -445,7 +491,10 @@ pub fn delete_day(ctx: State<AppCtx>, date: String) -> Result<bool, String> {
     })
     .map_err(|e| e.to_string())?;
     if removed {
-        ctx.refresh(&vault::day_path(&vault_dir, vault::validate_date(&date).map_err(|e| e.to_string())?));
+        ctx.refresh(&vault::day_path(
+            &vault_dir,
+            vault::validate_date(&date).map_err(|e| e.to_string())?,
+        ));
     }
     Ok(removed)
 }
@@ -476,20 +525,34 @@ pub fn get_entity(ctx: State<AppCtx>, path: String) -> Result<EntityDetail, Stri
 }
 
 #[tauri::command]
-pub fn create_entity(ctx: State<AppCtx>, kind: String, name: String) -> Result<EntitySummary, String> {
+pub fn create_entity(
+    ctx: State<AppCtx>,
+    kind: String,
+    name: String,
+) -> Result<EntitySummary, String> {
     let kind = Kind::parse(&kind).ok_or_else(|| format!("unknown kind: {kind}"))?;
     ctx.with_index(|v, idx| entities::create(v, idx, kind, &name).map_err(|e| e.to_string()))
 }
 
 #[tauri::command]
-pub fn update_entity(ctx: State<AppCtx>, path: String, patch: EntityPatch) -> Result<EntityDetail, String> {
+pub fn update_entity(
+    ctx: State<AppCtx>,
+    path: String,
+    patch: EntityPatch,
+) -> Result<EntityDetail, String> {
     ctx.with_index(|v, idx| entities::update(v, idx, &path, patch).map_err(|e| e.to_string()))
 }
 
 #[tauri::command]
-pub fn rename_entity(ctx: State<AppCtx>, path: String, new_name: String) -> Result<RenameResult, String> {
+pub fn rename_entity(
+    ctx: State<AppCtx>,
+    path: String,
+    new_name: String,
+) -> Result<RenameResult, String> {
     let old = ctx.with_index(|_, idx| idx.summary(&path).map_err(|e| e.to_string()))?;
-    let res = ctx.with_index(|v, idx| entities::rename(v, idx, &path, &new_name).map_err(|e| e.to_string()))?;
+    let res = ctx.with_index(|v, idx| {
+        entities::rename(v, idx, &path, &new_name).map_err(|e| e.to_string())
+    })?;
     // Check-ins still waiting for their day file name emotions too.
     if let Some(old) = old.filter(|o| o.kind == Kind::Emotion.as_str()) {
         ctx.with_mood(|m| {
@@ -530,9 +593,16 @@ pub fn reset_library(ctx: State<AppCtx>) -> Result<usize, String> {
 
 /// `$date` events on or after `from` (YYYY-MM-DD), soonest first.
 #[tauri::command]
-pub fn upcoming(ctx: State<AppCtx>, from: String, limit: Option<usize>) -> Result<Vec<UpcomingEvent>, String> {
+pub fn upcoming(
+    ctx: State<AppCtx>,
+    from: String,
+    limit: Option<usize>,
+) -> Result<Vec<UpcomingEvent>, String> {
     vault::validate_date(&from).map_err(|e| e.to_string())?;
-    ctx.with_index(|_, idx| idx.upcoming(&from, limit.unwrap_or(50).min(500)).map_err(|e| e.to_string()))
+    ctx.with_index(|_, idx| {
+        idx.upcoming(&from, limit.unwrap_or(50).min(500))
+            .map_err(|e| e.to_string())
+    })
 }
 
 /// Throw the index away and rebuild it from the files.

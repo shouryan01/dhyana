@@ -15,7 +15,10 @@ pub fn quote(v: &str) -> String {
         || v.contains(" #")
         || v.ends_with(':')
         || v.contains(['\n', '\r', ',', '[', ']', '{', '}'])
-        || matches!(lower.as_str(), "true" | "false" | "null" | "yes" | "no" | "on" | "off" | "~")
+        || matches!(
+            lower.as_str(),
+            "true" | "false" | "null" | "yes" | "no" | "on" | "off" | "~"
+        )
         || v.parse::<f64>().is_ok();
     if !needs {
         return v.to_string();
@@ -211,7 +214,14 @@ pub fn set_list(block: &str, eol: &str, key: &str, items: &[String]) -> String {
             return out;
         }
     }
-    let flow = format!("[{}]", items.iter().map(|s| quote(s)).collect::<Vec<_>>().join(", "));
+    let flow = format!(
+        "[{}]",
+        items
+            .iter()
+            .map(|s| quote(s))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
     replace_value(block, eol, key, Some(&flow))
 }
 
@@ -228,8 +238,22 @@ mod tests {
     #[test]
     fn quoting_round_trips() {
         for v in [
-            "Alice", "Dr. Smith", "Mom's", "a: b", "x #y", "[x]", "true", "42", "", " pad ",
-            "say \"hi\"", "back\\slash", "line\nbreak", "-dash", "ends:", "a, b",
+            "Alice",
+            "Dr. Smith",
+            "Mom's",
+            "a: b",
+            "x #y",
+            "[x]",
+            "true",
+            "42",
+            "",
+            " pad ",
+            "say \"hi\"",
+            "back\\slash",
+            "line\nbreak",
+            "-dash",
+            "ends:",
+            "a, b",
         ] {
             assert_eq!(unquote(&quote(v)), v, "{v:?} via {:?}", quote(v));
         }
@@ -243,8 +267,14 @@ mod tests {
         let b = "---\naliases: [Ali, \"Al, the pal\", 'x']\nother:\n  - a\n  - \"b\" # note\n---\n";
         assert_eq!(get_list(b, "aliases"), vec!["Ali", "Al, the pal", "x"]);
         assert_eq!(get_list(b, "other"), vec!["a", "b"]);
-        assert_eq!(get_list("---\naliases: Solo\n---\n", "aliases"), vec!["Solo"]);
-        assert_eq!(get_list("---\naliases:\n- a\n- b\n---\n", "aliases"), vec!["a", "b"]);
+        assert_eq!(
+            get_list("---\naliases: Solo\n---\n", "aliases"),
+            vec!["Solo"]
+        );
+        assert_eq!(
+            get_list("---\naliases:\n- a\n- b\n---\n", "aliases"),
+            vec!["a", "b"]
+        );
         assert!(get_list(b, "missing").is_empty());
         assert!(get_list("", "aliases").is_empty());
         assert!(get_list("---\naliases: []\n---\n", "aliases").is_empty());
@@ -252,7 +282,8 @@ mod tests {
 
     #[test]
     fn set_scalar_replaces_in_place_and_keeps_comment() {
-        let b = "---\n# who\nid: X\nrelationship:   friend   # since 2010\nbirthday: 1990-05-02\n---\n";
+        let b =
+            "---\n# who\nid: X\nrelationship:   friend   # since 2010\nbirthday: 1990-05-02\n---\n";
         let out = set_scalar(b, "\n", "relationship", Some("sister"));
         assert_eq!(
             out,
@@ -264,7 +295,10 @@ mod tests {
     fn set_scalar_inserts_before_close_and_removes() {
         let b = "---\nid: X\nlist:\n  - a\n---\n";
         let added = set_scalar(b, "\n", "title", Some("Paris: the city"));
-        assert_eq!(added, "---\nid: X\nlist:\n  - a\ntitle: \"Paris: the city\"\n---\n");
+        assert_eq!(
+            added,
+            "---\nid: X\nlist:\n  - a\ntitle: \"Paris: the city\"\n---\n"
+        );
         assert_eq!(set_scalar(&added, "\n", "title", None), b);
         assert_eq!(set_scalar(b, "\n", "nope", None), b);
     }
@@ -280,7 +314,10 @@ mod tests {
 
     #[test]
     fn set_scalar_into_empty_block_makes_one() {
-        assert_eq!(set_scalar("", "\n", "title", Some("T")), "---\ntitle: T\n---\n");
+        assert_eq!(
+            set_scalar("", "\n", "title", Some("T")),
+            "---\ntitle: T\n---\n"
+        );
         assert_eq!(set_scalar("", "\n", "title", None), "");
     }
 

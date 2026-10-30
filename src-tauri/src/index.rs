@@ -40,7 +40,10 @@ pub fn vault_id(vault: &Path) -> String {
 /// Vault-relative path with `/` separators.
 pub fn rel_of(vault: &Path, abs: &Path) -> Option<String> {
     let rel = abs.strip_prefix(vault).ok()?;
-    let parts: Vec<_> = rel.components().map(|c| c.as_os_str().to_string_lossy()).collect();
+    let parts: Vec<_> = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect();
     (!parts.is_empty()).then(|| parts.join("/"))
 }
 
@@ -161,7 +164,9 @@ fn mtime_ns(meta: &fs::Metadata) -> i64 {
 /// All note files the index covers, as `(relative path, mtime, size)`.
 fn walk_vault(vault: &Path) -> Vec<(String, i64, i64)> {
     fn walk(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
-        let Ok(entries) = fs::read_dir(dir) else { return };
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
         for e in entries.flatten() {
             let Ok(t) = e.file_type() else { continue };
             if t.is_dir() && depth > 0 {
@@ -212,12 +217,18 @@ impl VaultIndex {
             }
         };
         index.sync(vault)?;
-        Ok(VaultIndex { vault: vault.to_path_buf(), index })
+        Ok(VaultIndex {
+            vault: vault.to_path_buf(),
+            index,
+        })
     }
 
     /// Re-read the indexed notes among `paths` (absolute). Returns the vault-relative paths
     /// that were refreshed.
-    pub fn refresh_paths<'a>(&mut self, paths: impl IntoIterator<Item = &'a PathBuf>) -> Result<Vec<String>> {
+    pub fn refresh_paths<'a>(
+        &mut self,
+        paths: impl IntoIterator<Item = &'a PathBuf>,
+    ) -> Result<Vec<String>> {
         let mut rels: Vec<String> = paths
             .into_iter()
             .filter_map(|p| rel_of(&self.vault, p))
@@ -316,7 +327,10 @@ impl Index {
              FROM links l JOIN notes n ON n.path = l.src WHERE n.name_key <> l.target_key GROUP BY l.target_key",
         )?;
         let rows = stmt.query_map([], |r| {
-            Ok((r.get::<_, String>(0)?, (r.get::<_, i64>(1)? as usize, r.get(2)?)))
+            Ok((
+                r.get::<_, String>(0)?,
+                (r.get::<_, i64>(1)? as usize, r.get(2)?),
+            ))
         })?;
         Ok(rows.collect::<std::result::Result<_, _>>()?)
     }
@@ -404,7 +418,9 @@ impl Index {
         let mut stmt = self
             .conn
             .prepare("SELECT path, kind FROM notes WHERE name_key = ?1 ORDER BY path")?;
-        let rows = stmt.query_map([key], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
+        let rows = stmt.query_map([key], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+        })?;
         let mut out = Vec::new();
         for r in rows {
             let (p, k) = r?;
@@ -447,7 +463,9 @@ impl Index {
     fn link_keys(&self, path: &str) -> Result<Vec<String>> {
         let Some((name,)) = self
             .conn
-            .query_row("SELECT name_key FROM notes WHERE path = ?1", [path], |r| Ok((r.get::<_, String>(0)?,)))
+            .query_row("SELECT name_key FROM notes WHERE path = ?1", [path], |r| {
+                Ok((r.get::<_, String>(0)?,))
+            })
             .optional()?
         else {
             return Ok(Vec::new());
@@ -532,7 +550,13 @@ impl Index {
                 .prepare("SELECT MIN(tag), COUNT(*) FROM tags GROUP BY tag_key")?;
             for r in stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))? {
                 let (tag, n) = r?;
-                by_key.insert(names::key(&tag), TagInfo { tag, count: n as usize });
+                by_key.insert(
+                    names::key(&tag),
+                    TagInfo {
+                        tag,
+                        count: n as usize,
+                    },
+                );
             }
         }
         let mut stmt = self
@@ -545,7 +569,11 @@ impl Index {
                 .or_insert(TagInfo { tag, count: 0 });
         }
         let mut out: Vec<TagInfo> = by_key.into_values().collect();
-        out.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| names::key(&a.tag).cmp(&names::key(&b.tag))));
+        out.sort_by(|a, b| {
+            b.count
+                .cmp(&a.count)
+                .then_with(|| names::key(&a.tag).cmp(&names::key(&b.tag)))
+        });
         Ok(out)
     }
 
@@ -582,7 +610,9 @@ impl Index {
                 date: r.get(0)?,
                 words: r.get::<_, i64>(1)? as usize,
                 checkins: r.get::<_, i64>(2)? as usize,
-                valence: r.get::<_, Option<f64>>(3)?.map(|v| (v * 100.0).round() / 100.0),
+                valence: r
+                    .get::<_, Option<f64>>(3)?
+                    .map(|v| (v * 100.0).round() / 100.0),
             })
         })?;
         Ok(rows.collect::<std::result::Result<_, _>>()?)
@@ -590,7 +620,11 @@ impl Index {
 
     /// Journal days in earlier years on the same month and day as `date`, newest first:
     /// `(path, date, words)`.
-    pub fn same_day_earlier(&self, date: &str, limit: usize) -> Result<Vec<(String, String, usize)>> {
+    pub fn same_day_earlier(
+        &self,
+        date: &str,
+        limit: usize,
+    ) -> Result<Vec<(String, String, usize)>> {
         let mut stmt = self.conn.prepare(
             "SELECT path, name, words FROM notes
              WHERE kind = 'journal' AND substr(name, 5) = substr(?1, 5) AND name < ?1 ORDER BY name DESC LIMIT ?2",
@@ -692,7 +726,11 @@ fn index_file(conn: &Connection, vault: &Path, rel: &str) -> Result<()> {
     }
     if kind == Kind::Journal {
         for (i, m) in p.moods.iter().enumerate() {
-            let keys: String = m.emotions.iter().map(|e| format!("\n{}", names::key(e))).collect();
+            let keys: String = m
+                .emotions
+                .iter()
+                .map(|e| format!("\n{}", names::key(e)))
+                .collect();
             conn.execute(
                 "INSERT INTO moods(src, ord, at, valence, emotions, emotion_keys, factors) VALUES (?1,?2,?3,?4,?5,?6,?7)",
                 params![rel, i as i64, m.at, m.valence, m.emotions.join("\n"), format!("{keys}\n"), m.factors.join("\n")],
@@ -714,23 +752,51 @@ mod tests {
     }
 
     fn sample(v: &Path) {
-        put(v, "people/Alice.md", "---\ntype: person\naliases: [Ali, Al]\nrelationship: friend\n---\nNotes.\n");
+        put(
+            v,
+            "people/Alice.md",
+            "---\ntype: person\naliases: [Ali, Al]\nrelationship: friend\n---\nNotes.\n",
+        );
         put(v, "people/Bob.md", "---\ntype: person\n---\n");
-        put(v, "places/Paris (place).md", "---\ntype: place\ntitle: Paris\naliases: [Paris]\n---\n");
+        put(
+            v,
+            "places/Paris (place).md",
+            "---\ntype: place\ntitle: Paris\naliases: [Paris]\n---\n",
+        );
         put(v, "emotions/sad.md", "---\ntype: emotion\n---\n");
-        put(v, "journal/2026/10/2026-10-27.md", "---\nid: X\n---\nMet [[Alice]] at [[Paris (place)|Paris]] #travel\n");
+        put(
+            v,
+            "journal/2026/10/2026-10-27.md",
+            "---\nid: X\n---\nMet [[Alice]] at [[Paris (place)|Paris]] #travel\n",
+        );
         put(v, "journal/2026/10/2026-10-28.md", "Felt [[sad]]. Ali called, [[Ali]] and [[Bob]]. See [[2026-12-25|Mom's birthday]] #travel #work\n");
-        put(v, "journal/2026/10/notes.md", "[[Alice]] ignored: not a day file");
+        put(
+            v,
+            "journal/2026/10/notes.md",
+            "[[Alice]] ignored: not a day file",
+        );
         put(v, "other/ignored.md", "[[Alice]]");
     }
 
     #[test]
     fn classify_paths() {
-        assert_eq!(classify("people/Alice.md"), Some((Kind::Person, "Alice".into())));
-        assert_eq!(classify("journal/2026/10/2026-10-28.md"), Some((Kind::Journal, "2026-10-28".into())));
+        assert_eq!(
+            classify("people/Alice.md"),
+            Some((Kind::Person, "Alice".into()))
+        );
+        assert_eq!(
+            classify("journal/2026/10/2026-10-28.md"),
+            Some((Kind::Journal, "2026-10-28".into()))
+        );
         for bad in [
-            "journal/2026/10/notes.md", "journal/2026/09/2026-10-28.md", "people/.hidden.md",
-            "people/sub/Alice.md", "people/Alice.txt", "other/x.md", "README.md", "journal/2026-10-28.md",
+            "journal/2026/10/notes.md",
+            "journal/2026/09/2026-10-28.md",
+            "people/.hidden.md",
+            "people/sub/Alice.md",
+            "people/Alice.txt",
+            "other/x.md",
+            "README.md",
+            "journal/2026-10-28.md",
         ] {
             assert_eq!(classify(bad), None, "{bad}");
         }
@@ -753,7 +819,10 @@ mod tests {
         assert_eq!(alice.aliases, vec!["Ali", "Al"]);
 
         let m = idx.mentions("people/Alice.md", 50).unwrap();
-        assert_eq!(m.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(), vec!["2026-10-28", "2026-10-27"]);
+        assert_eq!(
+            m.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(),
+            vec!["2026-10-28", "2026-10-27"]
+        );
         assert!(m[1].context.contains("Met [[Alice]]"));
 
         let paris = idx.summary("places/Paris (place).md").unwrap().unwrap();
@@ -761,8 +830,20 @@ mod tests {
         assert_eq!(paris.mentions, 1);
 
         let tags = idx.tags().unwrap();
-        assert_eq!(tags[0], TagInfo { tag: "travel".into(), count: 2 });
-        assert_eq!(tags[1], TagInfo { tag: "work".into(), count: 1 });
+        assert_eq!(
+            tags[0],
+            TagInfo {
+                tag: "travel".into(),
+                count: 2
+            }
+        );
+        assert_eq!(
+            tags[1],
+            TagInfo {
+                tag: "work".into(),
+                count: 1
+            }
+        );
     }
 
     #[test]
@@ -805,9 +886,17 @@ mod tests {
         let mut idx = Index::open_in_memory().unwrap();
         idx.sync(dir.path()).unwrap();
 
-        put(dir.path(), "journal/2026/10/2026-10-29.md", "New day with [[Bob]] #work\n");
+        put(
+            dir.path(),
+            "journal/2026/10/2026-10-29.md",
+            "New day with [[Bob]] #work\n",
+        );
         fs::remove_file(dir.path().join("people/Bob.md")).unwrap();
-        put(dir.path(), "people/Alice.md", "---\ntype: person\naliases: [Ali]\n---\nShorter.\n");
+        put(
+            dir.path(),
+            "people/Alice.md",
+            "---\ntype: person\naliases: [Ali]\n---\nShorter.\n",
+        );
         idx.refresh(
             dir.path(),
             &[
@@ -836,12 +925,27 @@ mod tests {
         sample(dir.path());
         let mut idx = Index::open_in_memory().unwrap();
         idx.sync(dir.path()).unwrap();
-        let owner = idx.alias_owner(&names::key("ali"), "people/Bob.md").unwrap().unwrap();
+        let owner = idx
+            .alias_owner(&names::key("ali"), "people/Bob.md")
+            .unwrap()
+            .unwrap();
         assert_eq!(owner, ("people/Alice.md".to_string(), "Alice".to_string()));
-        assert!(idx.alias_owner(&names::key("ali"), "people/Alice.md").unwrap().is_none());
-        assert!(idx.same_kind_with_key(Kind::Place, &names::key("paris")).unwrap().is_some());
-        assert!(idx.same_kind_with_key(Kind::Person, &names::key("paris")).unwrap().is_none());
-        assert_eq!(idx.by_name_key(&names::key("ALICE")).unwrap()[0].1, Kind::Person);
+        assert!(idx
+            .alias_owner(&names::key("ali"), "people/Alice.md")
+            .unwrap()
+            .is_none());
+        assert!(idx
+            .same_kind_with_key(Kind::Place, &names::key("paris"))
+            .unwrap()
+            .is_some());
+        assert!(idx
+            .same_kind_with_key(Kind::Person, &names::key("paris"))
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            idx.by_name_key(&names::key("ALICE")).unwrap()[0].1,
+            Kind::Person
+        );
     }
 
     #[test]
@@ -867,14 +971,30 @@ mod tests {
         assert_eq!(
             stats,
             vec![
-                DayStat { date: "2025-10-28".into(), words: 6, checkins: 2, valence: Some(0.15) },
-                DayStat { date: "2026-10-27".into(), words: 6, checkins: 0, valence: None },
+                DayStat {
+                    date: "2025-10-28".into(),
+                    words: 6,
+                    checkins: 2,
+                    valence: Some(0.15)
+                },
+                DayStat {
+                    date: "2026-10-27".into(),
+                    words: 6,
+                    checkins: 0,
+                    valence: None
+                },
             ]
         );
         let earlier = idx.same_day_earlier("2026-10-28", 10).unwrap();
-        assert_eq!(earlier.iter().map(|e| e.1.as_str()).collect::<Vec<_>>(), vec!["2025-10-28", "2024-10-28"]);
+        assert_eq!(
+            earlier.iter().map(|e| e.1.as_str()).collect::<Vec<_>>(),
+            vec!["2025-10-28", "2024-10-28"]
+        );
         assert_eq!(earlier[1].2, 2);
-        assert_eq!(idx.with_emotion("sad").unwrap(), vec!["journal/2025/10/2025-10-28.md"]);
+        assert_eq!(
+            idx.with_emotion("sad").unwrap(),
+            vec!["journal/2025/10/2025-10-28.md"]
+        );
         assert!(idx.with_emotion("sa").unwrap().is_empty());
         assert_eq!(count_words("- [ ] buy milk\n\n# Title — ok"), 4);
     }
