@@ -38,6 +38,8 @@ Notes:
 1. **Lint & test** runs once on Linux (`pnpm lint`, `pnpm test`). It gates the builds.
 2. **Build** runs in parallel for **Windows (x64)** and **macOS (Apple Silicon)** with `tauri-action`, and uploads the installers (`.msi`, `.exe`, `.dmg`) as run artifacts. Intel Macs are not supported.
 
+3. **Release notes** runs only for merges to `main`, and only after the checks and both builds pass. It creates a GitHub **pre-release** tagged `v<version>-build.<run number>` (version from `src-tauri/tauri.conf.json`) with notes generated from the pull requests merged since the previous release. Manual runs from the Actions tab build but do not release. Installers are not attached to the release; they stay as run artifacts. Bump the version in `tauri.conf.json`, `package.json` and `Cargo.toml` together when cutting a real version.
+
 Builds are **unsigned**: Windows shows a SmartScreen warning and macOS needs right-click → Open. Signing needs certificates added as repository secrets.
 
 Rust tests (`cargo test`, `cargo clippy`) are not in CI yet.
