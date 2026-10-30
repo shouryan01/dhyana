@@ -1,0 +1,72 @@
+name: Build
+
+# Runs when a PR is merged into main (a merge is a push to main), or by hand from the Actions tab.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows (x64)
+            os: windows-latest
+            args: ""
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            args: --target aarch64-apple-darwin
+          - name: macOS (Intel)
+            os: macos-latest
+            args: --target x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8 # the lockfile is v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.args }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+      - run: pnpm test
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: ${{ matrix.args }}
+
+      # Installers are attached to the run (Actions tab -> the run -> Artifacts).
+      # Without --target the bundles land in target/release; with it, in target/<triple>/release.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dhyana-${{ github.sha }}-${{ matrix.name }}
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/*/release/bundle/dmg/*.dmg
+          if-no-files-found: error
