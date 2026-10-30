@@ -4,13 +4,18 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
 import { AppStateSchema, DayFileSchema, SaveResultSchema, type Backend } from "./backend";
 import {
+  CheckInSchema,
+  DayStatSchema,
   EntityDetailSchema,
   EntityPatchSchema,
   EntitySummarySchema,
   MentionSchema,
+  OnThisDaySchema,
   RenameResultSchema,
   TagInfoSchema,
   UpcomingEventSchema,
+  VersionContentSchema,
+  VersionSchema,
 } from "./schema";
 
 const ChangedSchema = z.object({ dates: z.array(z.string()) });
@@ -50,6 +55,46 @@ export const tauriBackend: Backend = {
   },
   async onVaultChanged(cb) {
     return listen("vault://changed", (e) => cb(ChangedSchema.parse(e.payload).dates));
+  },
+  async addMood(date, checkin) {
+    return DayFileSchema.parse(
+      await invoke("add_mood", { date, checkin: CheckInSchema.parse(checkin) }),
+    );
+  },
+  async updateMood(date, index, checkin) {
+    return DayFileSchema.parse(
+      await invoke("update_mood", { date, index, checkin: CheckInSchema.parse(checkin) }),
+    );
+  },
+  async deleteMood(date, index) {
+    return DayFileSchema.parse(await invoke("delete_mood", { date, index }));
+  },
+  async moodOffer(date) {
+    return z.boolean().parse(await invoke("mood_offer", { date }));
+  },
+  async markMoodOffered(date, outcome) {
+    await invoke("mark_mood_offered", { date, outcome });
+  },
+  async dayStats(from, to) {
+    return z.array(DayStatSchema).parse(await invoke("day_stats", { from, to }));
+  },
+  async onThisDay(date) {
+    return z.array(OnThisDaySchema).parse(await invoke("on_this_day", { date }));
+  },
+  async noteHistory(path) {
+    return z.array(VersionSchema).parse(await invoke("note_history", { path }));
+  },
+  async noteVersion(path, id) {
+    return VersionContentSchema.parse(await invoke("note_version", { path, id }));
+  },
+  async restoreVersion(path, id) {
+    await invoke("restore_version", { path, id });
+  },
+  async checkpoint(reason) {
+    return z
+      .string()
+      .nullable()
+      .parse(await invoke("checkpoint", { reason }));
   },
   async listEntities() {
     return z.array(EntitySummarySchema).parse(await invoke("list_entities"));

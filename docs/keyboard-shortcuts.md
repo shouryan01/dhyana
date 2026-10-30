@@ -10,6 +10,11 @@
 | Go to date…              | `Mod G` or `G D`                                    |
 | Go to person or place…   | `G P` (also creates one: type a new name)           |
 | Open library             | `G L` (everything created so far, click to edit)    |
+| Open year view           | `G Y` (heatmap of words, entries or mood)           |
+| Add mood check-in        | `M` (opens today if no day is open)                 |
+| Toggle mood panel        | `G M`                                               |
+| Show version history     | `G H`                                               |
+| Save a version now       | palette only                                        |
 | Delete this note…        | palette only (moves it to the Trash / Recycle Bin)  |
 | Save now                 | `Mod S` (notes also save on their own as you type)  |
 | Focus editor             | `I`                                                 |
@@ -35,5 +40,7 @@ Type one of these at the start of a line or after a space. A list opens under th
 | `$`  | A date in plain words ("next friday", "dec 25"). Inserts a link to that day.                                                              |
 
 Click a person, place or emotion chip to open its page; click a date chip to open that day. See [vault format](vault-format.md) for what ends up in the file.
+
+In the mood check-in, use the arrow keys (or <kbd>Home</kbd> / <kbd>End</kbd>) on the slider, <kbd>Enter</kbd> to go to the next step, and <kbd>Esc</kbd> to skip. In the year view, arrow keys move between days and <kbd>Enter</kbd> opens one.
 
 The same list is shown on the shortcuts page (**Settings → Keyboard shortcuts → View all**, or press <kbd>?</kbd>), generated from the app's action registry. Remapping arrives in 0.8.

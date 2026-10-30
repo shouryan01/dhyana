@@ -84,6 +84,20 @@
   color-scheme: dark;
 }
 
+/* Mood: a diverging scale, cool violet (unpleasant) through a neutral grey to warm amber
+   (pleasant). Values in between are mixed in `src/lib/mood.ts`. Dark mode has its own steps:
+   the poles are lighter and the midpoint darker, so all three stand off the dark surface. */
+:root {
+  --mood-neg: oklch(0.55 0.15 295);
+  --mood-mid: oklch(0.78 0.012 80);
+  --mood-pos: oklch(0.7 0.15 68);
+}
+:root[data-theme$="-dark"] {
+  --mood-neg: oklch(0.7 0.13 295);
+  --mood-mid: oklch(0.52 0.012 80);
+  --mood-pos: oklch(0.8 0.14 72);
+}
+
 :root {
   --font-ui: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-serif:
@@ -471,4 +485,83 @@ body {
 }
 .ProseMirror .tag {
   color: var(--primary);
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Mood check-in
+   --------------------------------------------------------------------------------------------- */
+@keyframes mood-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* The shape slowly turns; colour and outline follow the slider. */
+.mood-blob {
+  transform-origin: center;
+  animation: mood-turn 40s linear infinite;
+}
+.mood-blob path {
+  transition:
+    fill 150ms ease-out,
+    d 150ms ease-out;
+}
+/* The valence slider: a thin track painted with the mood scale, a round thumb. */
+.mood-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--mood-neg), var(--mood-mid), var(--mood-pos));
+  outline: none;
+  cursor: pointer;
+}
+.mood-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--popover);
+  border: 2px solid var(--foreground);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 150ms var(--ease-spring);
+}
+.mood-slider:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.mood-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--popover);
+  border: 2px solid var(--foreground);
+}
+.mood-slider:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
+/* Calendar day dots in the day's mood colour (see Calendar.tsx). Mood dots are a touch larger. */
+.mood-dot-n2,
+.mood-dot-n1,
+.mood-dot-0,
+.mood-dot-p1,
+.mood-dot-p2 {
+  --dot-size: 5px;
+}
+.mood-dot-n2 {
+  --dot: var(--mood-neg);
+}
+.mood-dot-n1 {
+  --dot: color-mix(in oklab, var(--mood-neg) 50%, var(--mood-mid));
+}
+.mood-dot-0 {
+  --dot: var(--mood-mid);
+}
+.mood-dot-p1 {
+  --dot: color-mix(in oklab, var(--mood-pos) 50%, var(--mood-mid));
+}
+.mood-dot-p2 {
+  --dot: var(--mood-pos);
 }

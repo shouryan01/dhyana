@@ -285,6 +285,8 @@ impl History {
         let head = head_of(&self.repo);
         if let Some(h) = &head {
             if h.tree_id() == tree {
+                // The head is now a checkpoint too: later autocommits must not fold into it.
+                self.session = None;
                 return Ok(Some(h.id()));
             }
         }
@@ -465,6 +467,15 @@ mod tests {
         put(vault.path(), DAY, "three");
         h.autocommit(day(30)).unwrap();
         assert_eq!(h.log(), vec!["Edit 2026-10-30", "Before AI edit", "Add 2026-10-30"]);
+
+        // A checkpoint of an unchanged vault pins the session's commit in place.
+        put(vault.path(), DAY, "four");
+        h.autocommit(day(30)).unwrap();
+        h.checkpoint("pin").unwrap();
+        put(vault.path(), DAY, "five");
+        h.autocommit(day(30)).unwrap();
+        // "four" folded into the session's commit; "five" got one of its own.
+        assert_eq!(h.log(), vec!["Edit 2026-10-30", "Edit 2026-10-30", "Before AI edit", "Add 2026-10-30"]);
     }
 
     #[test]

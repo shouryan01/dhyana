@@ -22,6 +22,8 @@ type: journal
 date: 2026-10-28 # journal date
 created: 2026-10-28T07:12:00-05:00 # written once
 modified: 2026-10-28T21:40:00-05:00 # last edit made in dhyana
+mood: # check-ins, written by the mood check-in
+  - { at: "07:12", valence: 0.4, emotions: [calm, hopeful], factors: [work] }
 ---
 ```
 
@@ -29,6 +31,22 @@ modified: 2026-10-28T21:40:00-05:00 # last edit made in dhyana
 - `modified` changes only when a save changes the content. Opening a note never rewrites it.
 - Edits made in other apps don't update `modified`; dhyana doesn't rely on it for sync or conflict detection.
 - Files without frontmatter are fine (for example notes created in Obsidian). dhyana adds the keys on the first edit it makes.
+
+### Mood check-ins
+
+Each check-in is one item in the `mood:` list:
+
+| Key        | Value                                                                                                                                                                                                                                                                                                |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `at`       | Local time, `"HH:MM"`.                                                                                                                                                                                                                                                                               |
+| `valence`  | From `-1` (very unpleasant) to `1` (very pleasant), two decimals. The UI names seven equal steps, like Apple Health.                                                                                                                                                                                 |
+| `emotions` | Emotion **filenames** from `emotions/` (so renaming an emotion rewrites them, like links). Optional.                                                                                                                                                                                                 |
+| `factors`  | What's having the biggest impact: `health`, `fitness`, `self-care`, `hobbies`, `identity`, `spirituality`, `community`, `dating`, `family`, `friends`, `partner`, `tasks`, `weather`, `work`, `education`, `current-events`, `travel`, `money`. Optional; other words are kept and shown as written. |
+
+- dhyana writes each new check-in as one line. Editing or deleting one rewrites only that item; the others (including ones written by hand as a block list, keys dhyana doesn't know, and comments) stay as they were.
+- A check-in on its own never creates the day's file. Until you type the first character it is kept in the app's data folder, and it is written into the frontmatter when the note is created. Quitting in between doesn't lose it.
+- The check-in is offered once a day, the first time you open today's note (Settings → Mood). Which days it was offered is remembered per device in the app's data folder.
+- Inline `!sad` chips in the text are separate from check-ins.
 
 ## People, places and emotions
 
@@ -73,6 +91,15 @@ Typing one of these at the start of a line or after a space opens a picker. The 
 ## The index
 
 Backlinks ("mentions"), the tag list and upcoming dates come from a small SQLite index that dhyana builds from your files. It lives in the app's data folder (named after the vault), never inside the vault, and holds nothing the files don't. It is kept up to date as files change, including changes made in other apps. If it ever looks wrong, run **Rebuild index** from the command palette; deleting the index file does the same on the next launch.
+
+## Version history
+
+dhyana keeps a history of your notes with Git, in a repository in the app's data folder (named after the vault), never inside the vault. Your vault gets no `.git` folder, and if it already has one (because you use Git yourself), dhyana never reads or changes it: hidden folders like `.git`, `.obsidian` and `.dhyana` are left out of the history.
+
+- A version is saved when you pause (about a minute and a half without changes) and when you quit, at most one per app session per day: later saves the same day update that version, so the log stays tidy.
+- **Save a version now** (command palette or Settings → History) records one that later saves won't fold into.
+- Each note's history (the clock button beside its title, or `G H`) lists its versions with a read-only diff, either of what that version changed or compared with the note now. **Restore** puts the note back; what was there is saved as a version first, so restoring never loses anything. A restored day that is open in the editor reloads; if you had unsaved typing, you're asked which to keep.
+- Settings → History turns automatic versions off. Files larger than 20 MB are left out.
 
 ## Markdown fidelity
 

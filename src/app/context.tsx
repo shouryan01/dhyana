@@ -65,6 +65,16 @@ export interface AppContextValue {
   focusEditor: { current: (() => void) | null };
   /** Registered by the open day; asks to delete it (after confirmation). Null when no note is open. */
   deleteNote: { current: (() => void) | null };
+  /** Registered by the open day: opens the mood check-in for it. */
+  addCheckIn: { current: (() => void) | null };
+  /** Set when a check-in is asked for with no day open; today's note opens it once it mounts. */
+  checkInRequested: { current: boolean };
+  /** Registered by the open day or note page: shows its version history. */
+  showHistory: { current: (() => void) | null };
+
+  /** The mood panel beside a day (valence over the last weeks). */
+  moodPanelOpen: boolean;
+  toggleMoodPanel(): void;
 }
 
 const Ctx = createContext<AppContextValue | null>(null);
@@ -95,6 +105,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [entitiesVersion, setEntitiesVersion] = useState(0);
   const focusEditor = useRef<(() => void) | null>(null);
   const deleteNote = useRef<(() => void) | null>(null);
+  const addCheckIn = useRef<(() => void) | null>(null);
+  const checkInRequested = useRef(false);
+  const showHistory = useRef<(() => void) | null>(null);
+  const [moodPanelOpen, setMoodPanelOpen] = useState(false);
 
   useEffect(() => {
     backend
@@ -229,6 +243,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       createEntity,
       focusEditor,
       deleteNote,
+      addCheckIn,
+      checkInRequested,
+      showHistory,
+      moodPanelOpen,
+      toggleMoodPanel: () => setMoodPanelOpen((v) => !v),
     }),
     [
       app,
@@ -248,6 +267,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       entitiesVersion,
       refreshEntities,
       createEntity,
+      moodPanelOpen,
     ],
   );
 

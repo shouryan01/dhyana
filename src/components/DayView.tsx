@@ -1,7 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useNavigate } from "@tanstack/react-router";
-import { Trash2 } from "lucide-react";
+import { History, Smile, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
@@ -17,9 +17,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { HistoryDialog } from "@/components/HistoryDialog";
+import { MoodCheckIn, type CheckInRequest } from "@/components/MoodCheckIn";
+import { MoodPanel } from "@/components/MoodPanel";
+import { MoodStrip } from "@/components/MoodStrip";
+import { OnThisDay } from "@/components/OnThisDay";
 import { backend } from "@/lib";
 import type { DayFile } from "@/lib/backend";
 import { formatLong } from "@/lib/dates";
+import { journalPath } from "@/lib/memoryEntities";
+import type { CheckIn } from "@/lib/schema";
 import { trashName } from "@/lib/utils";
 import { editorExtensions, useOpenWikilink } from "@/editor/wiring";
 import { UpcomingPanel } from "@/components/UpcomingPanel";
@@ -29,6 +36,16 @@ import { loadBody, saveBody, type BodyContext } from "@/markdown/roundtrip";
 
 const AUTOSAVE_MS = 700;
 const canon = createCanon(defaultSchema());
+
+const EMPTY_DAY: DayFile = {
+  exists: false,
+  body: "",
+  hash: "",
+  created: null,
+  modified: null,
+  mood: [],
+  pendingMood: [],
+};
 
 /** Loads the day file, then mounts the editor with it (a fresh editor per day = fresh undo history). */
 export function DayView({ date }: { date: string }) {
@@ -59,9 +76,15 @@ interface Disk {
   file: DayFile;
 }
 
+/** The check-in dialog's state: what it's for, and whether it was offered on its own. */
+type CheckInState = (CheckInRequest & { index?: number }) | null;
+
 function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   const app = useApp();
   const [meta, setMeta] = useState({ created: initial.created, modified: initial.modified });
+  const [mood, setMood] = useState({ file: initial.mood, pending: initial.pendingMood });
+  const [checkIn, setCheckIn] = useState<CheckInState>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [external, setExternal] = useState<Disk | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const navigate = useNavigate();
@@ -72,6 +95,8 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   const hash = useRef(initial.hash);
   const saving = useRef<Promise<void>>(Promise.resolve());
   const timer = useRef<number | undefined>(undefined);
+  const hasPending = useRef(initial.pendingMood.length > 0);
+  hasPending.current = mood.pending.length > 0;
   const initialDoc = useRef<PMNode>(null!);
   if (!initialDoc.current) {
     const loaded = loadBody(initial.body, canon);
@@ -128,6 +153,11 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
           setMeta({ created: res.created, modified: res.modified });
           setExternal(null);
           if (created) appRef.current.bumpDays();
+          // Check-ins that were waiting for the file are in it now.
+          if (hasPending.current) {
+            const f = await backend.readDay(date);
+            setMood({ file: f.mood, pending: f.pendingMood });
+          }
         }
       } catch (e) {
         console.error("save failed", e);
@@ -155,6 +185,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     lastBody.current = f.body;
     hash.current = f.hash;
     setMeta({ created: f.created, modified: f.modified });
+    setMood({ file: f.mood, pending: f.pendingMood });
     setExternal(null);
   };
 
@@ -167,6 +198,57 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     else setExternal({ file: f });
   };
 
+  /**
+   * Check-in changes write the frontmatter, so they queue behind any save in flight (and flush
+   * typing first), then adopt the file's new hash so the next save isn't seen as a conflict.
+   */
+  const changeMood = (op: () => Promise<DayFile>): Promise<void> => {
+    window.clearTimeout(timer.current);
+    const run = persist(false).then(async () => {
+      const f = await op();
+      setMood({ file: f.mood, pending: f.pendingMood });
+      if (!f.exists) return;
+      if (f.body !== lastBody.current) {
+        // Someone else changed the text on disk meanwhile; treat it like any external change.
+        if (currentBody() !== lastBody.current) setExternal({ file: f });
+        else applyDisk(f);
+        return;
+      }
+      hash.current = f.hash;
+      setMeta({ created: f.created, modified: f.modified });
+    });
+    saving.current = run.catch(() => {});
+    return run;
+  };
+
+  const closeCheckIn = (outcome: "answered" | "skipped") => {
+    if (checkIn?.auto) void backend.markMoodOffered(date, outcome);
+    setCheckIn(null);
+    window.setTimeout(() => editorRef.current?.commands.focus("end"), 0);
+  };
+
+  const saveCheckIn = (c: CheckIn) => {
+    const index = checkIn?.index;
+    closeCheckIn("answered");
+    changeMood(() =>
+      index === undefined ? backend.addMood(date, c) : backend.updateMood(date, index, c),
+    ).catch((e) =>
+      toast.error(`Couldn't save the check-in: ${e instanceof Error ? e.message : e}`),
+    );
+  };
+
+  const deleteCheckIn = () => {
+    const index = checkIn?.index;
+    setCheckIn(null);
+    if (index === undefined) return;
+    changeMood(() => backend.deleteMood(date, index)).catch((e) =>
+      toast.error(`Couldn't delete the check-in: ${e instanceof Error ? e.message : e}`),
+    );
+  };
+
+  const all = [...mood.file, ...mood.pending];
+  const editCheckIn = (index: number) => setCheckIn({ initial: all[index], index });
+
   const requestDelete = () => {
     if (!hash.current) toast("Nothing to delete: this day has no saved note.");
     else setConfirmDelete(true);
@@ -178,7 +260,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     try {
       await saving.current;
       await backend.deleteDay(date);
-      applyDisk({ exists: false, body: "", hash: "", created: null, modified: null });
+      applyDisk({ ...EMPTY_DAY, pendingMood: mood.pending });
       appRef.current.bumpDays();
       toast.success(`Deleted ${formatLong(date)}`, {
         description: `It's in your ${trashName()} if you need it back.`,
@@ -223,74 +305,152 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     };
   }, [date]);
 
+  // The check-in is offered once, on the first open of today's note (and only if the day has none
+  // yet); the backend remembers that it was offered, so reopening or restarting won't ask again.
+  useEffect(() => {
+    if (date !== app.today) return;
+    if (app.checkInRequested.current) {
+      app.checkInRequested.current = false;
+      setCheckIn({});
+      return;
+    }
+    if (app.replaying || initial.mood.length || initial.pendingMood.length) return;
+    let live = true;
+    backend
+      .moodOffer(date)
+      .then(async (offer) => {
+        if (!offer || !live) return;
+        await backend.markMoodOffered(date, "shown");
+        if (live) setCheckIn({ auto: true });
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
+
   // Focus: editor registers itself for "Focus editor"; today's note takes focus on open.
   useEffect(() => {
     if (!editor) return;
-    const { focusEditor, deleteNote } = app; // stable ref objects, captured so cleanup clears the same ones
+    const { focusEditor, deleteNote, addCheckIn, showHistory } = app; // stable ref objects, captured so cleanup clears the same ones
     focusEditor.current = () => editor.commands.focus("end");
     if (date === app.today && !app.paletteOpen) editor.commands.focus("end");
     deleteNote.current = () => latest.current.requestDelete();
+    addCheckIn.current = () => setCheckIn({});
+    showHistory.current = () => setHistoryOpen(true);
     return () => {
       focusEditor.current = null;
       deleteNote.current = null;
+      addCheckIn.current = null;
+      showHistory.current = null;
     };
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, date]);
 
+  const headerButton =
+    "mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-surface-muted transition-colors duration-100 hover:bg-chrome-hover hover:text-surface-fg";
+
   return (
-    <div
-      className="writing h-full overflow-y-auto"
-      onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}
-    >
-      <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
-        <header className="group mb-8 flex items-start justify-between gap-4 select-none">
-          <div>
-            <h1 className="font-[family-name:var(--font-body)] text-[26px] font-semibold leading-tight text-surface-fg">
-              {formatLong(date)}
-            </h1>
-            <p className="mt-1 text-[12px] text-surface-muted">
-              {date === app.today ? "Today · " : ""}
-              {meta.created
-                ? `Created ${formatTime(meta.created)}`
-                : "Not saved yet — start typing"}
-              {meta.modified && meta.modified !== meta.created
-                ? ` · Edited ${formatTime(meta.modified)}`
-                : ""}
-            </p>
-          </div>
-          {meta.created && (
-            <button
-              aria-label="Delete this note"
-              title="Delete this note"
-              onClick={requestDelete}
-              className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-surface-muted opacity-0 transition-colors duration-100 hover:bg-chrome-hover hover:text-red-500 focus-visible:opacity-100 group-hover:opacity-100"
+    <div className="flex h-full">
+      <div
+        className="writing h-full min-w-0 flex-1 overflow-y-auto"
+        onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}
+      >
+        <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
+          <header className="group mb-6 flex items-start justify-between gap-4 select-none">
+            <div>
+              <h1 className="font-[family-name:var(--font-body)] text-[26px] font-semibold leading-tight text-surface-fg">
+                {formatLong(date)}
+              </h1>
+              <p className="mt-1 text-[12px] text-surface-muted">
+                {date === app.today ? "Today · " : ""}
+                {meta.created
+                  ? `Created ${formatTime(meta.created)}`
+                  : "Not saved yet — start typing"}
+                {meta.modified && meta.modified !== meta.created
+                  ? ` · Edited ${formatTime(meta.modified)}`
+                  : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <button
+                aria-label="Add a mood check-in"
+                title="Add a mood check-in"
+                onClick={() => setCheckIn({})}
+                className={headerButton}
+              >
+                <Smile size={15} />
+              </button>
+              {meta.created && (
+                <button
+                  aria-label="Version history"
+                  title="Version history"
+                  onClick={() => setHistoryOpen(true)}
+                  className={headerButton}
+                >
+                  <History size={15} />
+                </button>
+              )}
+              {meta.created && (
+                <button
+                  aria-label="Delete this note"
+                  title="Delete this note"
+                  onClick={requestDelete}
+                  className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-surface-muted opacity-0 transition-colors duration-100 hover:bg-chrome-hover hover:text-red-500 focus-visible:opacity-100 group-hover:opacity-100"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
+          </header>
+
+          <MoodStrip
+            mood={mood.file}
+            pending={mood.pending}
+            onEdit={editCheckIn}
+            onAdd={() => setCheckIn({})}
+          />
+
+          {date === app.today && <UpcomingPanel today={app.today} />}
+          <OnThisDay date={date} />
+
+          {external && (
+            <div
+              role="alert"
+              className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-popover px-4 py-3 text-foreground select-none"
             >
-              <Trash2 size={15} />
-            </button>
+              <span className="flex-1 text-[13px]">
+                This note changed on disk while you were editing.
+              </span>
+              <Button size="sm" variant="outline" onClick={() => applyDisk(external.file)}>
+                Load disk version
+              </Button>
+              <Button size="sm" onClick={() => void persist(true)}>
+                Keep mine
+              </Button>
+            </div>
           )}
-        </header>
 
-        {date === app.today && <UpcomingPanel today={app.today} />}
-
-        {external && (
-          <div
-            role="alert"
-            className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-popover px-4 py-3 text-foreground select-none"
-          >
-            <span className="flex-1 text-[13px]">
-              This note changed on disk while you were editing.
-            </span>
-            <Button size="sm" variant="outline" onClick={() => applyDisk(external.file)}>
-              Load disk version
-            </Button>
-            <Button size="sm" onClick={() => void persist(true)}>
-              Keep mine
-            </Button>
-          </div>
-        )}
-
-        <EditorContent editor={editor} />
+          <EditorContent editor={editor} />
+        </div>
       </div>
+
+      {app.moodPanelOpen && <MoodPanel date={date} mood={mood.file} pending={mood.pending} />}
+
+      <MoodCheckIn
+        request={checkIn}
+        onSave={saveCheckIn}
+        onDismiss={() => closeCheckIn("skipped")}
+        onDelete={checkIn?.index !== undefined ? deleteCheckIn : undefined}
+      />
+
+      <HistoryDialog
+        path={journalPath(date)}
+        title={formatLong(date)}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent className="sm:max-w-[400px]">

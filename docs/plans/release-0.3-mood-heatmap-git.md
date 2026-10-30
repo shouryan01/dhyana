@@ -31,11 +31,26 @@ Remote push/pull, sync.
 
 ## Exit criteria
 
-- [ ] Mood saved → valid YAML → readable elsewhere.
-- [ ] Mood is offered once on the first open of today, never again that day; a second check-in can still be added by hand.
-- [ ] Quit after a check-in but before typing → pending mood is still applied when the note is created.
-- [ ] Heatmap accurate against files on disk.
-- [ ] Restore an old version without data loss; git log is tidy.
+- [x] Mood saved → valid YAML → readable elsewhere. (Each check-in is a one-line flow mapping; Rust tests cover read/write in flow, block and inline forms, CRLF, quoting. Not yet opened in Obsidian itself.)
+- [x] Mood is offered once on the first open of today, never again that day; a second check-in can still be added by hand. (Ledger in app data; checked in a browser run: offered, answered, not offered after reload, second check-in via `M`.)
+- [x] Quit after a check-in but before typing → pending mood is still applied when the note is created. (Pending check-ins are persisted in app data per vault; Rust and TS tests, plus the browser run.)
+- [x] Heatmap accurate against files on disk. (Built from the index, which is derived from the files: word counts and check-ins per day file; `day_stats` tests.)
+- [x] Restore an old version without data loss; git log is tidy. (Restore checkpoints what's there first, then commits the restore; one autocommit per session per day. Rust tests against real repos.)
+
+Not yet clicked through in the desktop app (`pnpm tauri dev`): the UI was driven in the browser build against the in-memory backend, and the Rust side by `cargo test`.
+
+## Built, and decisions made
+
+- **Git dir in app data** as a **bare** repository (`<app data>/history/<vault id>.git`). Commits are built from the files on disk (blobs and trees) with no Git index or checkout, so nothing is ever written into the vault and a user's own `.git` (or staged work) is never read or touched. Hidden folders (`.git`, `.dhyana`, `.obsidian`) and files over 20 MB are left out.
+- **Autocommit:** after ~90 s with no file changes (driven by the watcher) and on quit; one commit per app session per day, which later autocommits amend. Settings → History turns it off. Messages are generated ("Edit 2026-10-30, Alice and 2 more", then one `A/M/D path` line per file).
+- **Checkpoint API:** `History::checkpoint(reason)` / the `checkpoint` command, never amended by autocommits. "Save a version now" uses it; 0.6 AI edits will.
+- **Restoring an open note:** restore = checkpoint of the current files, write the old version, commit "Restore …". The open editor sees it through the watcher like any external change: it reloads, or shows the "changed on disk" choice if there was unsaved typing (which the history dialog flushes first anyway).
+- **Mood scale:** valence -1 … 1 with Apple Health's seven labels; emotions stored by filename; factors stored as lowercase ids (`self-care`, `current-events`). Renaming an emotion rewrites check-ins in files and pending ones (master §4a, closing the 0.2 note).
+- **Mood colours:** a diverging violet ↔ neutral grey ↔ amber scale with separate dark-mode steps (`--mood-*` in `index.css`). In the mood heatmap, days with an entry but no check-in are outlined rather than given another grey.
+- **Heatmap:** words (quartiles of the year's written days), entries, or mood (daily average), with streaks and totals; sidebar "Year" and `G Y`.
+- **Mood graph:** a side panel (`G M`) with the day's check-ins and the last 30 days' daily averages; real analytics stay in 0.4.
+- **On this day** shows on every day's note when earlier years have an entry on that date.
+- Index schema bumped to 2 (word counts, a `moods` table); old indexes rebuild themselves on launch.
 
 ## Reference study
 
