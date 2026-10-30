@@ -40,7 +40,7 @@ export function Shell() {
   const lights = trafficLightInset();
 
   return (
-    <TooltipProvider delayDuration={500} skipDelayDuration={200}>
+    <TooltipProvider delay={500}>
       <div className="flex h-full">
         <aside
           className={cn(
@@ -226,16 +226,18 @@ export function IconButton({
 }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={label}
-          onClick={onClick}
-          className="size-7 text-muted-foreground hover:scale-110 hover:bg-chrome-hover hover:text-foreground active:scale-90"
-        >
-          {children}
-        </Button>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={label}
+            onClick={onClick}
+            className="size-7 text-muted-foreground hover:scale-110 hover:bg-chrome-hover hover:text-foreground active:scale-90"
+          />
+        }
+      >
+        {children}
       </TooltipTrigger>
       <TooltipContent side="bottom" className="flex items-center gap-2">
         {label}

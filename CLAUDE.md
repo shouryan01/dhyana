@@ -21,6 +21,7 @@ Tauri 2 (Rust core), Vite + React + TypeScript, Tailwind, shadcn/ui, TanStack Ro
 - UI should feel like Linear (master principle 9): instant, keyboard-first, every action in the command palette via the shortcut registry.
 - Delete is "move to the OS trash", never a hard delete. Dev-only features sit behind `IS_DEV` (`src/lib/devSettings.ts`).
 - Spell the name dhyāna (macron) in UI text; identifiers and paths stay ASCII.
+- UI components come from the shadcn CLI on Base UI (`pnpm dlx shadcn@latest add <name>`); see `docs/development.md` before editing `src/components/ui/`.
 - Docs: root `README.md` stays short; detail goes in separate `docs/*.md` pages (master §10).
 
 ## More docs

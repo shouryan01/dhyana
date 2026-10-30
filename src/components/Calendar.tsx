@@ -52,17 +52,18 @@ export function Calendar({ selected, onSelect }: Props) {
       modifiers={{ hasEntry: withEntries }}
       modifiersClassNames={{
         hasEntry:
-          "after:pointer-events-none after:absolute after:bottom-[3px] after:left-1/2 after:size-[3px] after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground after:content-[''] data-[selected=true]:after:bg-primary-foreground",
+          "after:pointer-events-none after:absolute after:z-20 after:bottom-[3px] after:left-1/2 after:size-[3px] after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground after:content-[''] data-[selected=true]:after:bg-primary-foreground",
       }}
       className="w-full select-none bg-transparent p-0 px-1 [--cell-size:--spacing(7)]"
+      // These replace (not merge with) the component's defaults, so structural classes are repeated.
       classNames={{
         root: "w-full",
         month: "flex w-full flex-col gap-1",
-        month_caption: "h-6 justify-start px-1",
-        caption_label: "text-[13px] font-medium",
-        nav: "right-0 left-auto top-0 w-auto justify-end",
-        weekday: "text-[11px]",
-        week: "mt-0.5",
+        month_caption: "flex h-6 w-full items-center justify-start px-1",
+        caption_label: "text-[13px] font-medium select-none",
+        nav: "absolute inset-x-0 top-0 flex w-full items-center justify-end gap-1",
+        weekday: "flex-1 rounded-md text-[11px] font-normal text-muted-foreground select-none",
+        week: "mt-0.5 flex w-full",
         today: "font-semibold text-primary",
       }}
     />

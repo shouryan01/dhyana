@@ -87,8 +87,13 @@ export function SettingsPage() {
             label="Shortcuts"
             hint="Every action and its keys. Press ? anywhere outside the editor."
           >
-            <Button size="sm" variant="outline" asChild>
-              <Link to="/shortcuts">View all</Link>
+            <Button
+              size="sm"
+              variant="outline"
+              nativeButton={false}
+              render={<Link to="/shortcuts" />}
+            >
+              View all
             </Button>
           </Row>
         </Section>
@@ -189,11 +194,10 @@ function Segmented<T extends string>({
 }) {
   return (
     <ToggleGroup
-      type="single"
       variant="outline"
       size="sm"
-      value={value}
-      onValueChange={(v) => v && onChange(v as T)} // clicking the selected item would clear it; ignore that
+      value={[value]}
+      onValueChange={(v) => v[0] && onChange(v[0] as T)} // clicking the selected item would clear it; ignore that
     >
       {options.map((o) => (
         <ToggleGroupItem key={o} value={o} className="px-3 text-[12px]">

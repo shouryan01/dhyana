@@ -171,7 +171,7 @@ body {
 ::selection {
   background: var(--selection);
 }
-:focus-visible {
+:where(:not([data-slot])):focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 1px;
 }

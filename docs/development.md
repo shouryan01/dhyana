@@ -58,6 +58,27 @@ The window is frameless. Windows and Linux use `decorations: false` (set in `tau
 
 Anything new that is a window action needs its permission added to `src-tauri/capabilities/default.json`.
 
+## UI components (shadcn on Base UI)
+
+Components in `src/components/ui/` come from the shadcn CLI, configured for **Base UI** (`components.json`, style `base-nova`), not Radix. Add or refresh one with:
+
+```sh
+pnpm dlx shadcn@latest add <name>        # add -o to overwrite an existing file
+```
+
+In use: button, dialog, alert-dialog, toggle-group, tooltip, command (cmdk) and calendar (react-day-picker). `kbd.tsx` is ours.
+
+Things to know:
+
+- **Base UI differs from Radix**: use `render={<Link ... />}` (plus `nativeButton={false}` for non-buttons) instead of `asChild`; `ToggleGroup` takes `value` as an array; `TooltipProvider` takes `delay`.
+- **Theme tokens** are shadcn's semantic names (`bg-primary`, `text-muted-foreground`, `bg-accent`, ...), mapped onto our per-theme variables in `src/styles/index.css`. In shadcn terms `accent` is the subtle hover fill; our brand colour is `primary`.
+- **Local edits to generated files** are re-applied after `add -o`. Check these after refreshing a component:
+  - `ui/button.tsx`: `transition-all` → `transition-spring` (our hover motion; see [design](design.md)).
+  - `ui/command.tsx`: `data-selected:` → `data-[selected=true]:`. cmdk sets `data-selected="false"` on unselected rows, so the bare variant highlights every row.
+  - The CLI may write `import { cn } from "cn"` and add a bogus `cn` package; the import should be `@/lib/utils`.
+- `Calendar` passes `classNames` that **replace** the component's defaults rather than merging, so structural classes (`flex`, `absolute`, ...) are repeated in `src/components/Calendar.tsx`.
+- Our global `:focus-visible` outline skips elements with a `data-slot` attribute, which shadcn components set and style themselves.
+
 ## Conventions
 
 - The UI talks to the core only through `src/lib/backend.ts`. Add a method to the interface, the Tauri implementation and the in-memory one together.
