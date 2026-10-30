@@ -11,8 +11,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Lint and tests are platform-independent, so they run once here and gate both builds.
+  check:
+    name: Lint & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8 # the lockfile is v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+
   build:
     name: ${{ matrix.name }}
+    needs: check
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -47,9 +68,6 @@ jobs:
           key: ${{ matrix.args }}
 
       - run: pnpm install --frozen-lockfile
-
-      - run: pnpm lint
-      - run: pnpm test
 
       - uses: tauri-apps/tauri-action@v0
         env:
