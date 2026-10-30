@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { BulletList, OrderedList, TaskItem, TaskList } from "@tiptap/extension-list";
 import CodeBlock from "@tiptap/extension-code-block";
 import Link from "@tiptap/extension-link";
-import { baseTarget, resolveTarget } from "@/lib/entityDirectory";
+import { baseTarget, onDirectoryChange, resolveTarget } from "@/lib/entityDirectory";
 
 /**
  * Extra node attributes remember how a list/fence was written in the source so that
@@ -90,6 +90,35 @@ export const Wikilink = Node.create({
       }),
       label ?? hit?.display ?? baseTarget(target),
     ];
+  },
+  // In the editor each chip repaints itself when the vault's entities change (a rename, a new alias).
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement("span");
+      let current = node;
+      const paint = () => {
+        const target = String(current.attrs.target);
+        const label = current.attrs.label ? String(current.attrs.label) : null;
+        const hit = resolveTarget(target);
+        dom.className = "wikilink";
+        dom.setAttribute("data-wikilink", "");
+        dom.setAttribute("data-target", target);
+        dom.setAttribute("data-kind", hit?.kind ?? "unresolved");
+        dom.textContent = label ?? hit?.display ?? baseTarget(target);
+      };
+      paint();
+      const off = onDirectoryChange(paint);
+      return {
+        dom,
+        update(next) {
+          if (next.type !== current.type) return false;
+          current = next;
+          paint();
+          return true;
+        },
+        destroy: off,
+      };
+    };
   },
 });
 

@@ -103,7 +103,7 @@ Inline syntax (triggers fire only at line start or after whitespace):
 - `@Alice` → `[[Alice]]` (resolved by alias to `people/Alice.md`)
 - `!sad` → `[[sad]]` resolving to an `emotion`-typed note (rendered as a chip)
 - `#tag` → `#tag`; custom tags get a tag registry. `#` is for **topics and themes** (`#work`, `#gratitude`, `#dream`), things that aren't a specific person, place, or feeling, so it stays distinct from the entity triggers. Anything that deserves its own page or fields (books, projects, habits) becomes a user-defined type in 0.9, not a new symbol.
-- Places have no trigger yet: see §9.
+- Places share `@` with people (decided in 0.2, see §9); the picker shows a type icon beside each match.
 - `$date` → `[[2026-12-25|Mom's birthday]]`, a wikilink to that date's day note (which may not exist yet). The index derives upcoming events from these links; no duplicate frontmatter list.
 
 AI-derived data lives in `<!-- dhyana:ai:start --> ... <!-- dhyana:ai:end -->` blocks, with `source: ai` in YAML where applicable.
@@ -176,7 +176,7 @@ For a solo greenfield project, stay with Claude Code plan mode plus these markdo
 - Licenses of reference repos before code reuse.
 - Light/dark: paper theme dark variant ("sepia night")?
 - App name/identity: icon, splash art.
-- **Place trigger:** `@ ! # $` cover people, emotions, topics, dates, but not places, although `place` is a built-in type. Recommended: places share `@` with people (picker shows the type icon per §4a). Alternative: a dedicated symbol. Decide in 0.2.
+- **Place trigger:** decided in 0.2: places share `@` with people, and the picker shows the type icon per §4a. No new symbol.
 
 ## 10. Documentation structure
 

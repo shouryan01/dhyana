@@ -15,6 +15,13 @@ export interface Resolved {
 
 let byName = new Map<string, Resolved>();
 let byAlias = new Map<string, Resolved>();
+const listeners = new Set<() => void>();
+
+/** Called whenever the directory is replaced, so open chips can repaint. Returns an unsubscribe. */
+export function onDirectoryChange(cb: () => void): () => void {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
 
 export function setDirectory(entities: EntitySummary[]): void {
   const names = new Map<string, Resolved>();
@@ -26,6 +33,7 @@ export function setDirectory(entities: EntitySummary[]): void {
   }
   byName = names;
   byAlias = aliases;
+  listeners.forEach((cb) => cb());
 }
 
 /** Strips a `#heading` / `^block` suffix from a link target. */

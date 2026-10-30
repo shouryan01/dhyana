@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
+import { backend } from "@/lib";
 import { parseTheme, themeOf, type ThemeFamily } from "@/lib/backend";
 import { addDays, formatShort, isISODate } from "@/lib/dates";
 import { IS_DEV } from "@/lib/devSettings";
@@ -64,6 +65,14 @@ export function useActions(): Action[] {
         run: () => app.openPalette("goto-date"),
       },
       {
+        id: "entity",
+        label: "Go to person or place…",
+        group: "Navigate",
+        shortcut: "g p",
+        keywords: "people places contacts open entity new create",
+        run: () => app.openPalette("entity"),
+      },
+      {
         id: "delete",
         label: "Delete this note…",
         group: "Journal",
@@ -102,6 +111,18 @@ export function useActions(): Action[] {
         shortcut: "?",
         keywords: "help keys",
         run: () => navigate({ to: "/shortcuts" }),
+      },
+      {
+        id: "reindex",
+        label: "Rebuild index",
+        group: "App",
+        keywords: "repair refresh backlinks search people places",
+        run: () =>
+          void backend
+            .rebuildIndex()
+            .then(() => app.refreshEntities())
+            .then(() => toast.success("Index rebuilt from your files"))
+            .catch((e) => toast.error(`Couldn't rebuild the index: ${e}`)),
       },
       {
         id: "mode",
@@ -162,6 +183,8 @@ export function useHotkeys(actions: Action[]) {
       if (e.isComposing) return;
       const inText = isTextTarget(e.target);
       if (e.key === "Escape" && inText && (e.target as HTMLElement).isContentEditable) {
+        // An open @ ! # $ popup gets the first Esc (it closes itself); the next one leaves the editor.
+        if (document.querySelector("[data-suggest-popup]")) return;
         (e.target as HTMLElement).blur(); // Esc leaves the editor so single-key shortcuts work
         return;
       }

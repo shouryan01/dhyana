@@ -416,3 +416,36 @@ body {
 .ProseMirror .ProseMirror-selectednode {
   outline: 2px solid var(--primary);
 }
+
+/* Entity links: people and places read as accent text, emotions and dates as small chips. */
+.ProseMirror .wikilink {
+  cursor: pointer;
+  border-radius: 5px;
+  padding: 0.02em 0.28em;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  transition: background-color 100ms ease-out;
+}
+.ProseMirror .wikilink:hover {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.ProseMirror .wikilink[data-kind="emotion"] {
+  border-radius: 999px;
+  padding: 0.02em 0.6em;
+  font-size: 0.88em;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+.ProseMirror .wikilink[data-kind="date"] {
+  color: var(--surface-fg);
+  background: var(--code-bg);
+  font-size: 0.9em;
+}
+.ProseMirror .wikilink[data-kind="unresolved"] {
+  color: var(--surface-muted);
+  background: none;
+  text-decoration: underline dashed;
+  text-underline-offset: 3px;
+}
+.ProseMirror .tag {
+  color: var(--primary);
+}

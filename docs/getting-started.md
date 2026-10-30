@@ -19,10 +19,10 @@ On first launch the onboarding flow asks where your vault lives (default: `Docum
 ## Test and check
 
 ```sh
-pnpm test                         # Vitest: markdown round-trip corpus, shortcuts, dates
+pnpm test                         # Vitest: markdown round-trip corpus, shortcuts, dates, entities, triggers
 pnpm lint                         # Oxlint + tsgo + Oxfmt check
 pnpm format                       # Oxfmt: fix formatting
-cd src-tauri && cargo test        # Rust: frontmatter, atomic saves, conflicts, watcher mapping
+cd src-tauri && cargo test        # Rust: frontmatter, atomic saves, conflicts, index, entities, rename
 cd src-tauri && cargo clippy --all-targets
 ```
 
@@ -41,7 +41,8 @@ Merging to `main` builds Windows and Apple Silicon installers in CI; see [develo
 | `src/`                 | React UI (shell, calendar, palette, editor, onboarding, settings)              |
 | `src/markdown/`        | The lossless markdown engine (parse, serialize, splice) and its fixture corpus |
 | `src/lib/shortcuts.ts` | The shortcut registry and key dispatcher                                       |
-| `src-tauri/src/`       | Rust core: vault I/O, frontmatter, settings, file watcher                      |
+| `src-tauri/src/`       | Rust core: vault I/O, frontmatter, entities, SQLite index, settings, watcher   |
+| `src/editor/`          | The `@ ! # $` quick-command pickers                                            |
 | `docs/plans/`          | Roadmap and per-release plans                                                  |
 
 App settings (vault path, theme, font, onboarding flag) live in the OS app-data folder, not in your vault.

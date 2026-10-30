@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { CalendarDays, CornerDownLeft } from "lucide-react";
+import { CalendarDays, CornerDownLeft, MapPin, Plus, User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import {
   Command,
@@ -19,6 +20,8 @@ import {
 } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { formatLong, parseDateInput } from "@/lib/dates";
+import { nameKey } from "@/lib/names";
+import type { EntityKind } from "@/lib/schema";
 import type { Action } from "@/lib/shortcuts";
 
 const GROUPS: Action["group"][] = ["Navigate", "Journal", "App"];
@@ -43,6 +46,8 @@ export function CommandPalette({ actions }: { actions: Action[] }) {
         </DialogHeader>
         {app.paletteMode === "goto-date" ? (
           <GotoDate query={query} setQuery={setQuery} />
+        ) : app.paletteMode === "entity" ? (
+          <EntityPicker query={query} setQuery={setQuery} />
         ) : (
           <Command loop>
             <CommandInput value={query} onValueChange={setQuery} placeholder="Type a command…" />
@@ -75,6 +80,77 @@ export function CommandPalette({ actions }: { actions: Action[] }) {
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Jump to a person or place by name or alias, or create one. */
+function EntityPicker({ query, setQuery }: { query: string; setQuery(q: string): void }) {
+  const app = useApp();
+  const navigate = useNavigate();
+  const people = app.entities.filter((e) => e.kind === "person" || e.kind === "place");
+  const q = query.trim();
+  const exact = (kind: EntityKind) =>
+    people.some(
+      (e) =>
+        e.kind === kind && [e.display, e.name, ...e.aliases].some((n) => nameKey(n) === nameKey(q)),
+    );
+
+  const open = (path: string) => {
+    app.closePalette();
+    void navigate({ to: "/entity", search: { path } });
+  };
+  const create = async (kind: EntityKind) => {
+    try {
+      const made = await app.createEntity(kind, q);
+      open(made.path);
+    } catch (e) {
+      toast.error(String(e instanceof Error ? e.message : e));
+    }
+  };
+
+  return (
+    <Command>
+      <CommandInput
+        value={query}
+        onValueChange={setQuery}
+        placeholder="Go to a person or place… or type a new name"
+      />
+      <CommandList className="max-h-[360px] p-1.5">
+        <CommandEmpty>No one by that name</CommandEmpty>
+        {people.map((e) => {
+          const Icon = e.kind === "place" ? MapPin : User;
+          return (
+            <CommandItem
+              key={e.path}
+              value={`${e.display} ${e.aliases.join(" ")} ${e.kind}`}
+              onSelect={() => open(e.path)}
+            >
+              <Icon className="text-muted-foreground" />
+              <span className="flex-1 truncate">{e.display}</span>
+              {e.mentions > 0 && (
+                <span className="text-[11px] text-muted-foreground">{e.mentions}×</span>
+              )}
+            </CommandItem>
+          );
+        })}
+        {q &&
+          (["person", "place"] as const)
+            .filter((kind) => !exact(kind))
+            .map((kind) => (
+              <CommandItem
+                key={`create-${kind}`}
+                forceMount
+                value={`create ${kind} ${q}`}
+                onSelect={() => void create(kind)}
+              >
+                <Plus className="text-muted-foreground" />
+                <span className="flex-1 truncate text-muted-foreground">
+                  Create {kind} “{q}”
+                </span>
+              </CommandItem>
+            ))}
+      </CommandList>
+    </Command>
   );
 }
 

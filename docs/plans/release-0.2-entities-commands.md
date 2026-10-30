@@ -29,10 +29,17 @@ Name-collision rules, comment-preserving YAML editor in Rust, zod/Rust single sc
 
 ## Exit criteria
 
-- [ ] `@Ali` completes to Alice, file contains a wikilink, Alice's page lists the entry.
-- [ ] Renaming Alice updates all links.
-- [ ] Deleting `.dhyana/index.db` and relaunching rebuilds identical results.
-- [ ] Vault still reads sensibly in Obsidian.
+- [x] `@Ali` completes to Alice, file contains a wikilink, Alice's page lists the entry. (Verified in a browser run of the UI against the in-memory backend, and by Rust and TS tests; not yet clicked through in the desktop app.)
+- [x] Renaming Alice updates all links. (Rust and TS tests; also checked in the UI.)
+- [x] Deleting the index and relaunching rebuilds identical results. (The index lives in app data per master §1, not in the vault, so this means its `<vault id>.db` file; there's also a **Rebuild index** command.)
+- [ ] Vault still reads sensibly in Obsidian. (Plain wikilinks, `#tags` and YAML are used throughout, but this needs a manual check in Obsidian itself.)
+
+## Built, and what moved
+
+- `@` also lists places (master §9 decision). Tags can be created from `#` but not yet renamed.
+- Natural-language dates cover days, weeks, months and month-day forms ("dec 25", "in 2 weeks", "next friday"); locale-specific forms and times are not parsed.
+- The check-in emotions stored by 0.3 will need to join the rename rewrite (master §4a); there is nothing to rewrite yet.
+- The synthetic-vault generator spike was not needed to build this and is deferred to 0.4, where search needs a large vault. The Rust tests build small vaults in temp folders.
 
 ## Reference study
 

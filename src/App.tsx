@@ -10,6 +10,7 @@ import {
 import { useEffect } from "react";
 import { AppProvider, useApp } from "@/app/context";
 import { DayView } from "@/components/DayView";
+import { EntityPage } from "@/components/EntityPage";
 import { Onboarding } from "@/components/Onboarding";
 import { SettingsPage } from "@/components/SettingsPage";
 import { ShortcutsPage } from "@/components/ShortcutsPage";
@@ -41,6 +42,15 @@ const dayRoute = createRoute({
   component: DayRoute,
 });
 
+const entityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/entity",
+  validateSearch: (search: Record<string, unknown>) => ({
+    path: typeof search.path === "string" ? search.path : "",
+  }),
+  component: EntityRoute,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
@@ -54,7 +64,13 @@ const shortcutsRoute = createRoute({
 });
 
 const router = createRouter({
-  routeTree: rootRoute.addChildren([indexRoute, dayRoute, settingsRoute, shortcutsRoute]),
+  routeTree: rootRoute.addChildren([
+    indexRoute,
+    dayRoute,
+    entityRoute,
+    settingsRoute,
+    shortcutsRoute,
+  ]),
   history: createHashHistory(),
 });
 
@@ -67,6 +83,11 @@ declare module "@tanstack/react-router" {
 function DayRoute() {
   const { date } = useParams({ from: "/day/$date" });
   return <DayView date={date} />;
+}
+
+function EntityRoute() {
+  const { path } = entityRoute.useSearch();
+  return path ? <EntityPage key={path} path={path} /> : null;
 }
 
 /** Splash until the core is ready; onboarding on first launch (or replay); otherwise the app. */
