@@ -224,12 +224,12 @@ export function Onboarding() {
         <div className="mt-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {idx > 0 && (
-              <Button size="sm" variant="ghost" onClick={back} disabled={busy}>
+              <Button variant="ghost" onClick={back} disabled={busy}>
                 Back
               </Button>
             )}
             {replay ? (
-              <Button size="sm" variant="ghost" onClick={cancel} disabled={busy}>
+              <Button variant="ghost" onClick={cancel} disabled={busy}>
                 Cancel
               </Button>
             ) : (
@@ -245,11 +245,11 @@ export function Onboarding() {
             )}
           </div>
           {step === "done" ? (
-            <Button size="sm" onClick={() => void finish()} disabled={busy}>
+            <Button onClick={() => void finish()} disabled={busy}>
               {switching ? "Switch vault & finish" : replay ? "Finish" : "Start writing"}
             </Button>
           ) : (
-            <Button size="sm" onClick={next} disabled={busy}>
+            <Button onClick={next} disabled={busy}>
               Continue
             </Button>
           )}

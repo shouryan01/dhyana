@@ -73,7 +73,7 @@ export function SettingsPage() {
               >
                 {state.vaultPath}
               </span>
-              <Button size="sm" variant="outline" onClick={() => void changeVault()}>
+              <Button variant="outline" onClick={() => void changeVault()}>
                 Change…
               </Button>
             </span>
@@ -87,12 +87,7 @@ export function SettingsPage() {
             label="Shortcuts"
             hint="Every action and its keys. Press ? anywhere outside the editor."
           >
-            <Button
-              size="sm"
-              variant="outline"
-              nativeButton={false}
-              render={<Link to="/shortcuts" />}
-            >
+            <Button variant="outline" nativeButton={false} render={<Link to="/shortcuts" />}>
               View all
             </Button>
           </Row>
@@ -130,10 +125,10 @@ function DeveloperSection({ onPreviewOnboarding }: { onPreviewOnboarding(): void
       </Row>
       <Row label="Preview now">
         <span className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => previewSplash()}>
+          <Button variant="outline" onClick={() => previewSplash()}>
             Splash
           </Button>
-          <Button size="sm" variant="outline" onClick={onPreviewOnboarding}>
+          <Button variant="outline" onClick={onPreviewOnboarding}>
             Onboarding
           </Button>
         </span>
@@ -194,13 +189,18 @@ function Segmented<T extends string>({
 }) {
   return (
     <ToggleGroup
-      variant="outline"
+      spacing={0}
       size="sm"
+      className="rounded-md border border-border bg-popover p-0.5"
       value={[value]}
       onValueChange={(v) => v[0] && onChange(v[0] as T)} // clicking the selected item would clear it; ignore that
     >
       {options.map((o) => (
-        <ToggleGroupItem key={o} value={o} className="px-3 text-[12px]">
+        <ToggleGroupItem
+          key={o}
+          value={o}
+          className="h-6 min-w-0 rounded-[4px]! px-2.5 text-[12px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground aria-pressed:bg-chrome-active aria-pressed:text-foreground aria-pressed:hover:bg-chrome-active"
+        >
           {labels?.[o] ?? cap(o)}
         </ToggleGroupItem>
       ))}

@@ -73,10 +73,13 @@ Things to know:
 - **Base UI differs from Radix**: use `render={<Link ... />}` (plus `nativeButton={false}` for non-buttons) instead of `asChild`; `ToggleGroup` takes `value` as an array; `TooltipProvider` takes `delay`.
 - **Theme tokens** are shadcn's semantic names (`bg-primary`, `text-muted-foreground`, `bg-accent`, ...), mapped onto our per-theme variables in `src/styles/index.css`. In shadcn terms `accent` is the subtle hover fill; our brand colour is `primary`.
 - **Local edits to generated files** are re-applied after `add -o`. Check these after refreshing a component:
-  - `ui/button.tsx`: `transition-all` → `transition-spring` (our hover motion; see [design](design.md)).
+  - `ui/button.tsx`: `transition-all` → `transition-spring` (our hover motion; see [design](design.md)); text is 13px; the `outline` and `ghost` variants use `bg-popover` / `bg-chrome-hover` and drop the `dark:` overrides, which washed out contrast in the dark themes.
+  - `ui/dialog.tsx`, `ui/alert-dialog.tsx`: backdrop `bg-black/30` (was `/10`) and `ring-border shadow-2xl`, so dialogs stand out from the page in dark themes.
   - `ui/command.tsx`: `data-selected:` → `data-[selected=true]:`. cmdk sets `data-selected="false"` on unselected rows, so the bare variant highlights every row.
   - The CLI may write `import { cn } from "cn"` and add a bogus `cn` package; the import should be `@/lib/utils`.
 - `Calendar` passes `classNames` that **replace** the component's defaults rather than merging, so structural classes (`flex`, `absolute`, ...) are repeated in `src/components/Calendar.tsx`.
+- `--muted`, `--accent` and `--secondary` are translucent tints of the foreground colour (not a fixed fill), so selection and hover states stay visible on any surface, light or dark. `dark:` variants follow the app theme (`@custom-variant` in `index.css`), not the OS setting.
+- Settings uses `ToggleGroup` with `spacing={0}` for the joined segmented look; the selected item is `aria-pressed:bg-chrome-active`.
 - Our global `:focus-visible` outline skips elements with a `data-slot` attribute, which shadcn components set and style themselves.
 
 ## Conventions

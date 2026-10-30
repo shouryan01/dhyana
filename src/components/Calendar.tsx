@@ -54,16 +54,18 @@ export function Calendar({ selected, onSelect }: Props) {
         hasEntry:
           "after:pointer-events-none after:absolute after:z-20 after:bottom-[3px] after:left-1/2 after:size-[3px] after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground after:content-[''] data-[selected=true]:after:bg-primary-foreground",
       }}
-      className="w-full select-none bg-transparent p-0 px-1 [--cell-size:--spacing(7)]"
+      className="w-full select-none bg-transparent p-0 px-1 tabular-nums [--cell-size:--spacing(7)] [&_nav_button]:size-6 [&_nav_button]:text-muted-foreground [&_nav_button]:hover:text-foreground [&_td_button]:mx-auto [&_td_button]:w-7 [&_td_button]:min-w-7 [&_td_button]:text-[12px]"
       // These replace (not merge with) the component's defaults, so structural classes are repeated.
       classNames={{
         root: "w-full",
-        month: "flex w-full flex-col gap-1",
+        month: "flex w-full flex-col gap-1.5",
         month_caption: "flex h-6 w-full items-center justify-start px-1",
         caption_label: "text-[13px] font-medium select-none",
-        nav: "absolute inset-x-0 top-0 flex w-full items-center justify-end gap-1",
-        weekday: "flex-1 rounded-md text-[11px] font-normal text-muted-foreground select-none",
+        nav: "absolute inset-x-0 top-0 flex h-6 w-full items-center justify-end pr-1",
+        weekday:
+          "flex-1 rounded-md pt-1 pb-0.5 text-[11px] font-normal text-muted-foreground select-none",
         week: "mt-0.5 flex w-full",
+        day: "group/day relative h-7 w-full p-0 text-center select-none",
         today: "font-semibold text-primary",
       }}
     />

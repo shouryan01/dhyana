@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* shadcn's `dark:` follows the app theme, not the OS setting. */
+@custom-variant dark (&:where([data-theme$="-dark"], [data-theme$="-dark"] *));
+
 /* ---------------------------------------------------------------------------------------------
    Design tokens. Four themes, each a family + a mode:
      dhyana-light (default), dhyana-dark   the warm paper look and its warm "sepia night" twin
@@ -108,10 +111,10 @@
   --card: var(--popover);
   --card-foreground: var(--foreground);
   --popover-foreground: var(--foreground);
-  --secondary: var(--chrome-hover);
+  --secondary: color-mix(in srgb, var(--foreground) 8%, transparent);
   --secondary-foreground: var(--foreground);
-  --muted: var(--chrome-hover);
-  --accent: var(--chrome-hover);
+  --muted: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --accent: color-mix(in srgb, var(--foreground) 11%, transparent);
   --accent-foreground: var(--foreground);
   --destructive: #dc2626;
   --input: var(--border);
