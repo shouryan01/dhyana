@@ -11,18 +11,21 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::frontmatter::{self, Fields};
+use crate::mood::{self, CheckIn, MoodError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum VaultError {
     #[error("invalid date: {0}")]
     InvalidDate(String),
+    #[error("{0}")]
+    Mood(#[from] MoodError),
     #[error("file is not valid UTF-8: {0}")]
     NotUtf8(String),
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DayFile {
     pub exists: bool,
@@ -30,6 +33,10 @@ pub struct DayFile {
     pub hash: String,
     pub created: Option<String>,
     pub modified: Option<String>,
+    /// Check-ins in the file's frontmatter.
+    pub mood: Vec<CheckIn>,
+    /// Check-ins held in app data until the first text creates the file (filled in by the command).
+    pub pending_mood: Vec<CheckIn>,
 }
 
 #[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
@@ -99,6 +106,8 @@ pub fn read_day(vault: &Path, date: &str) -> Result<DayFile, VaultError> {
             hash: String::new(),
             created: None,
             modified: None,
+            mood: Vec::new(),
+            pending_mood: Vec::new(),
         }),
         Some((text, hash)) => {
             let s = frontmatter::split(&text);
@@ -108,6 +117,8 @@ pub fn read_day(vault: &Path, date: &str) -> Result<DayFile, VaultError> {
                 hash,
                 created: frontmatter::get_value(s.block, "created"),
                 modified: frontmatter::get_value(s.block, "modified"),
+                mood: mood::read(s.block),
+                pending_mood: Vec::new(),
             })
         }
     }
@@ -167,18 +178,8 @@ fn birth_string(path: &Path) -> Option<String> {
     Some(dt.to_rfc3339_opts(SecondsFormat::Secs, false))
 }
 
-/// Save with the real clock.
-pub fn save_day(
-    vault: &Path,
-    date: &str,
-    body: &str,
-    expected_hash: Option<&str>,
-    force: bool,
-) -> Result<SaveResult, VaultError> {
-    save_day_at(vault, date, body, expected_hash, force, &now_string())
-}
-
-/// Save with an explicit "now" (RFC 3339), for deterministic tests.
+/// Save with an explicit "now" (RFC 3339) and nothing pending, for deterministic tests.
+#[cfg(test)]
 pub fn save_day_at(
     vault: &Path,
     date: &str,
@@ -186,6 +187,43 @@ pub fn save_day_at(
     expected_hash: Option<&str>,
     force: bool,
     now: &str,
+) -> Result<SaveResult, VaultError> {
+    save_day_with(vault, date, body, expected_hash, force, now, &[])
+}
+
+/// `modified` set, and the identity keys added if missing (`created` from the file's birth time
+/// when an existing file has none).
+fn stamp(block: &str, eol: &str, path: &Path, d: NaiveDate, has_existing: bool, now: &str) -> String {
+    let created = match frontmatter::get_value(block, "created") {
+        Some(c) => c,
+        None if has_existing => birth_string(path).unwrap_or_else(|| now.to_string()),
+        None => now.to_string(),
+    };
+    let id = ulid::Ulid::generate().to_string();
+    let date_str = d.format("%Y-%m-%d").to_string();
+    frontmatter::update_block(
+        block,
+        eol,
+        &Fields {
+            id: &id,
+            ty: "journal",
+            date: &date_str,
+            created: &created,
+            modified: now,
+        },
+    )
+}
+
+/// Save, also writing `pending` check-ins (held in app data until now) into the frontmatter.
+/// The caller forgets them once this returns `Saved`.
+pub fn save_day_with(
+    vault: &Path,
+    date: &str,
+    body: &str,
+    expected_hash: Option<&str>,
+    force: bool,
+    now: &str,
+    pending: &[CheckIn],
 ) -> Result<SaveResult, VaultError> {
     let d = validate_date(date)?;
     let path = day_path(vault, d);
@@ -246,25 +284,10 @@ pub fn save_day_at(
         }
     };
 
-    let existing_created = frontmatter::get_value(&block, "created");
-    let created = match existing_created {
-        Some(c) => c,
-        None if has_existing => birth_string(&path).unwrap_or_else(|| now.to_string()),
-        None => now.to_string(),
-    };
-    let id = ulid::Ulid::generate().to_string();
-    let date_str = d.format("%Y-%m-%d").to_string();
-    let new_block = frontmatter::update_block(
-        &block,
-        eol,
-        &Fields {
-            id: &id,
-            ty: "journal",
-            date: &date_str,
-            created: &created,
-            modified: now,
-        },
-    );
+    let mut new_block = stamp(&block, eol, &path, d, has_existing, now);
+    if !pending.is_empty() {
+        new_block = mood::edit(&new_block, eol, mood::Op::Merge(pending))?;
+    }
 
     let mut out = String::with_capacity(new_block.len() + body.len() + 4);
     if bom {
@@ -288,6 +311,43 @@ pub fn save_day_at(
         created: frontmatter::get_value(s.block, "created"),
         modified: frontmatter::get_value(s.block, "modified"),
     })
+}
+
+/// Change the `mood:` list of an existing day file (only that key, plus `modified`). `None` if the
+/// day has no file yet: check-ins for it are held in app data instead.
+pub fn edit_day_mood_at(vault: &Path, date: &str, op: mood::Op, now: &str) -> Result<Option<SaveResult>, VaultError> {
+    let d = validate_date(date)?;
+    let path = day_path(vault, d);
+    let Some((text, hash)) = read_raw(&path)? else {
+        return Ok(None);
+    };
+    let s = frontmatter::split(&text);
+    let eol = frontmatter::detect_eol(&text);
+    let edited = mood::edit(s.block, eol, op)?;
+    let result = |out: &str, hash: String, status| {
+        let s = frontmatter::split(out);
+        SaveResult {
+            status,
+            hash,
+            created: frontmatter::get_value(s.block, "created"),
+            modified: frontmatter::get_value(s.block, "modified"),
+        }
+    };
+    if edited == s.block {
+        return Ok(Some(result(&text, hash, SaveStatus::Skipped)));
+    }
+    let block = stamp(&edited, eol, &path, d, true, now);
+    let mut out = String::with_capacity(text.len() + 64);
+    if s.bom {
+        out.push('\u{feff}');
+    }
+    out.push_str(&block);
+    if !block.ends_with('\n') && !s.body.is_empty() {
+        out.push_str(eol);
+    }
+    out.push_str(s.body);
+    StagedWrite::stage(&path, out.as_bytes())?.commit()?;
+    Ok(Some(result(&out, hash_bytes(out.as_bytes()), SaveStatus::Saved)))
 }
 
 /// Remove a day's file with `remove` (the app passes "move to the OS trash"; tests pass a plain
@@ -606,5 +666,50 @@ mod tests {
         fs::write(&p, [0xff, 0xfe, 0x00, 0x41]).unwrap();
         assert!(save_day_at(dir.path(), "2026-10-28", "x", None, false, NOW).is_err());
         assert_eq!(fs::read(&p).unwrap(), vec![0xff, 0xfe, 0x00, 0x41]);
+    }
+
+    fn checkin(at: &str, v: f64) -> CheckIn {
+        CheckIn { at: at.into(), valence: v, emotions: vec!["calm".into()], factors: Vec::new() }
+    }
+
+    #[test]
+    fn pending_mood_is_written_by_the_first_text_only() {
+        let dir = tempdir().unwrap();
+        let pending = [checkin("07:12", 0.4)];
+        // Whitespace alone still creates nothing, pending or not.
+        let r = save_day_with(dir.path(), "2026-10-28", " \n", None, false, NOW, &pending).unwrap();
+        assert_eq!(r.status, SaveStatus::Skipped);
+        assert!(!dir.path().join("journal").exists());
+
+        let r = save_day_with(dir.path(), "2026-10-28", "Hi\n", None, false, NOW, &pending).unwrap();
+        assert_eq!(r.status, SaveStatus::Saved);
+        let text = fs::read_to_string(day_path(dir.path(), validate_date("2026-10-28").unwrap())).unwrap();
+        assert!(text.contains(&format!("modified: {NOW}\nmood:\n  - {{ at: \"07:12\", valence: 0.4, emotions: [calm] }}\n---\nHi\n")));
+        let day = read_day(dir.path(), "2026-10-28").unwrap();
+        assert_eq!(day.mood, pending.to_vec());
+        // Saving again with the same pending list (a crash before it was forgotten) adds no duplicate.
+        save_day_with(dir.path(), "2026-10-28", "Hi again\n", None, false, NOW, &pending).unwrap();
+        assert_eq!(read_day(dir.path(), "2026-10-28").unwrap().mood.len(), 1);
+    }
+
+    #[test]
+    fn mood_edits_touch_only_the_mood_list_and_modified() {
+        let dir = tempdir().unwrap();
+        assert!(edit_day_mood_at(dir.path(), "2026-10-28", mood::Op::Push(checkin("07:00", 0.0)), NOW).unwrap().is_none());
+        let p = write(dir.path(), "2026-10-28", "---\r\n# hi\r\nid: X\r\ncreated: C\r\nmodified: M\r\n---\r\nBody stays\r\n");
+        let r = edit_day_mood_at(dir.path(), "2026-10-28", mood::Op::Push(checkin("07:00", -0.5)), NOW).unwrap().unwrap();
+        assert_eq!(r.status, SaveStatus::Saved);
+        let text = fs::read_to_string(&p).unwrap();
+        assert_eq!(
+            text,
+            format!("---\r\n# hi\r\nid: X\r\ncreated: C\r\nmodified: {NOW}\r\nmood:\r\n  - {{ at: \"07:00\", valence: -0.5, emotions: [calm] }}\r\ntype: journal\r\ndate: 2026-10-28\r\n---\r\nBody stays\r\n")
+        );
+        assert_eq!(r.hash, hash_bytes(text.as_bytes()));
+        // A no-op edit writes nothing.
+        let same = edit_day_mood_at(dir.path(), "2026-10-28", mood::Op::Update(0, checkin("07:00", -0.5)), "LATER").unwrap().unwrap();
+        assert_eq!(same.status, SaveStatus::Skipped);
+        assert_eq!(fs::read_to_string(&p).unwrap(), text);
+        edit_day_mood_at(dir.path(), "2026-10-28", mood::Op::Delete(0), NOW).unwrap();
+        assert!(!fs::read_to_string(&p).unwrap().contains("mood:"));
     }
 }

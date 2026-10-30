@@ -64,7 +64,7 @@ pub fn unquote(token: &str) -> String {
 
 /// Lines of the whole block (delimiters included) and the span `[start, end)` of `key`'s lines:
 /// its own line plus any indented or `- ` continuation lines.
-fn find_key<'a>(block: &'a str, key: &str) -> (Vec<&'a str>, Option<(usize, usize)>) {
+pub(crate) fn find_key<'a>(block: &'a str, key: &str) -> (Vec<&'a str>, Option<(usize, usize)>) {
     let lines: Vec<&str> = block.split_inclusive('\n').collect();
     if lines.len() < 2 {
         return (lines, None);
@@ -87,7 +87,7 @@ fn find_key<'a>(block: &'a str, key: &str) -> (Vec<&'a str>, Option<(usize, usiz
 }
 
 /// Split a `[a, "b, c", d]` flow sequence into unquoted items.
-fn split_flow(inner: &str) -> Vec<String> {
+pub(crate) fn split_flow(inner: &str) -> Vec<String> {
     let mut items = Vec::new();
     let mut cur = String::new();
     let mut quote: Option<char> = None;

@@ -12,6 +12,10 @@ pub struct Settings {
     pub vault_path: Option<String>,
     pub theme: String,
     pub font: String,
+    /// Offer the mood check-in on the first open of today's note.
+    pub ask_mood: bool,
+    /// Record a version of the vault on idle and on quit.
+    pub auto_commit: bool,
 }
 
 impl Default for Settings {
@@ -21,6 +25,8 @@ impl Default for Settings {
             vault_path: None,
             theme: "dhyana-light".into(),
             font: "serif".into(),
+            ask_mood: true,
+            auto_commit: true,
         }
     }
 }
@@ -31,6 +37,8 @@ pub struct SettingsPatch {
     pub onboarding_completed: Option<bool>,
     pub theme: Option<String>,
     pub font: Option<String>,
+    pub ask_mood: Option<bool>,
+    pub auto_commit: Option<bool>,
 }
 
 impl Settings {
@@ -43,6 +51,12 @@ impl Settings {
         }
         if let Some(v) = patch.font {
             self.font = v;
+        }
+        if let Some(v) = patch.ask_mood {
+            self.ask_mood = v;
+        }
+        if let Some(v) = patch.auto_commit {
+            self.auto_commit = v;
         }
     }
 
@@ -94,13 +108,16 @@ mod tests {
         s.apply(SettingsPatch {
             onboarding_completed: Some(true),
             theme: Some("dark".into()),
-            font: None,
+            ask_mood: Some(false),
+            ..SettingsPatch::default()
         });
         s.vault_path = Some(dir.path().display().to_string());
         s.save(&p).unwrap();
         let loaded = Settings::load(&p);
         assert_eq!(loaded, s);
         assert_eq!(loaded.font, "serif");
+        assert!(!loaded.ask_mood);
+        assert!(loaded.auto_commit);
         assert_eq!(loaded.existing_vault().as_deref(), Some(dir.path()));
     }
 
@@ -118,5 +135,6 @@ mod tests {
         let s: Settings = serde_json::from_str(r#"{"onboardingCompleted":true}"#).unwrap();
         assert!(s.onboarding_completed);
         assert_eq!(s.theme, "dhyana-light");
+        assert!(s.ask_mood && s.auto_commit, "settings from 0.2 get the new defaults");
     }
 }

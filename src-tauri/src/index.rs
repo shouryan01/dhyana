@@ -13,12 +13,13 @@ use serde::Serialize;
 
 use crate::frontmatter;
 use crate::links;
+use crate::mood::{self, CheckIn};
 use crate::names::{self, Kind};
 use crate::vault::{date_from_file_name, hash_bytes};
 use crate::yaml;
 
 /// Bump when the tables change; an index with another version is dropped and rebuilt.
-const SCHEMA_VERSION: i32 = 1;
+const SCHEMA_VERSION: i32 = 2;
 
 #[derive(Debug, thiserror::Error)]
 pub enum IndexError {
@@ -105,6 +106,16 @@ pub struct UpcomingEvent {
     pub source_date: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DayStat {
+    pub date: String,
+    pub words: usize,
+    pub checkins: usize,
+    /// Average valence of the day's check-ins.
+    pub valence: Option<f64>,
+}
+
 /// Everything read from one note file that the index stores.
 struct Parsed {
     title: Option<String>,
@@ -113,12 +124,24 @@ struct Parsed {
     aliases: Vec<String>,
     links: Vec<links::WikiLink>,
     tags: Vec<String>,
+    words: usize,
+    moods: Vec<CheckIn>,
+}
+
+/// Words in a note body: whitespace-separated runs with at least one letter or digit, so `-` and
+/// list markers don't count and `[[Alice]]` counts once. Mirrored in `src/lib/words.ts`.
+pub fn count_words(body: &str) -> usize {
+    body.split_whitespace()
+        .filter(|w| w.chars().any(char::is_alphanumeric))
+        .count()
 }
 
 fn parse_note(text: &str) -> Parsed {
     let s = frontmatter::split(text);
     let scan = links::scan(s.body);
     Parsed {
+        words: count_words(s.body),
+        moods: mood::read(s.block),
         title: frontmatter::get_value(s.block, "title").map(|v| yaml::unquote(&v)),
         relationship: frontmatter::get_value(s.block, "relationship"),
         birthday: frontmatter::get_value(s.block, "birthday"),
@@ -231,7 +254,7 @@ impl Index {
         if version != SCHEMA_VERSION {
             conn.execute_batch(
                 "DROP TABLE IF EXISTS notes; DROP TABLE IF EXISTS aliases;
-                 DROP TABLE IF EXISTS links; DROP TABLE IF EXISTS tags;",
+                 DROP TABLE IF EXISTS links; DROP TABLE IF EXISTS tags; DROP TABLE IF EXISTS moods;",
             )?;
             conn.execute_batch(include_str!("index_schema.sql"))?;
             conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
@@ -242,7 +265,7 @@ impl Index {
     /// Throw everything away and re-read the vault.
     pub fn rebuild(&mut self, vault: &Path) -> Result<()> {
         self.conn
-            .execute_batch("DELETE FROM notes; DELETE FROM aliases; DELETE FROM links; DELETE FROM tags;")?;
+            .execute_batch("DELETE FROM notes; DELETE FROM aliases; DELETE FROM links; DELETE FROM tags; DELETE FROM moods;")?;
         self.sync(vault)
     }
 
@@ -547,12 +570,53 @@ impl Index {
         Ok(rows.collect::<std::result::Result<_, _>>()?)
     }
 
+    /// Per-day numbers for journal days from `from` to `to` (inclusive, `YYYY-MM-DD`), oldest first.
+    /// Days without a file are absent.
+    pub fn day_stats(&self, from: &str, to: &str) -> Result<Vec<DayStat>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT n.name, n.words, COUNT(m.ord), AVG(m.valence) FROM notes n LEFT JOIN moods m ON m.src = n.path
+             WHERE n.kind = 'journal' AND n.name >= ?1 AND n.name <= ?2 GROUP BY n.path ORDER BY n.name",
+        )?;
+        let rows = stmt.query_map(params![from, to], |r| {
+            Ok(DayStat {
+                date: r.get(0)?,
+                words: r.get::<_, i64>(1)? as usize,
+                checkins: r.get::<_, i64>(2)? as usize,
+                valence: r.get::<_, Option<f64>>(3)?.map(|v| (v * 100.0).round() / 100.0),
+            })
+        })?;
+        Ok(rows.collect::<std::result::Result<_, _>>()?)
+    }
+
+    /// Journal days in earlier years on the same month and day as `date`, newest first:
+    /// `(path, date, words)`.
+    pub fn same_day_earlier(&self, date: &str, limit: usize) -> Result<Vec<(String, String, usize)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT path, name, words FROM notes
+             WHERE kind = 'journal' AND substr(name, 5) = substr(?1, 5) AND name < ?1 ORDER BY name DESC LIMIT ?2",
+        )?;
+        let rows = stmt.query_map(params![date, limit as i64], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get::<_, i64>(2)? as usize))
+        })?;
+        Ok(rows.collect::<std::result::Result<_, _>>()?)
+    }
+
+    /// Journal days with a check-in that names this emotion (by name key).
+    pub fn with_emotion(&self, key: &str) -> Result<Vec<String>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT DISTINCT src FROM moods WHERE instr(emotion_keys, char(10) || ?1 || char(10)) > 0 ORDER BY src",
+        )?;
+        let rows = stmt.query_map([key], |r| r.get(0))?;
+        Ok(rows.collect::<std::result::Result<_, _>>()?)
+    }
+
     /// Every table, ordered and rendered as text. Two indexes of the same vault dump equal.
     #[cfg(test)]
     pub fn dump(&self) -> Result<String> {
         let mut out = String::new();
         for (label, sql) in [
-            ("notes", "SELECT path||'|'||kind||'|'||name||'|'||IFNULL(title,'')||'|'||IFNULL(relationship,'')||'|'||IFNULL(birthday,'') FROM notes ORDER BY path"),
+            ("notes", "SELECT path||'|'||kind||'|'||name||'|'||IFNULL(title,'')||'|'||IFNULL(relationship,'')||'|'||IFNULL(birthday,'')||'|'||words FROM notes ORDER BY path"),
+            ("moods", "SELECT src||'|'||ord||'|'||at||'|'||valence||'|'||emotions||'|'||factors FROM moods ORDER BY src, ord"),
             ("aliases", "SELECT path||'|'||alias FROM aliases ORDER BY path, rowid"),
             ("links", "SELECT src||'|'||ord||'|'||target||'|'||IFNULL(label,'')||'|'||context FROM links ORDER BY src, ord"),
             ("tags", "SELECT src||'|'||tag FROM tags ORDER BY src, rowid"),
@@ -573,6 +637,7 @@ fn remove_rows(conn: &Connection, path: &str) -> Result<()> {
     conn.execute("DELETE FROM aliases WHERE path = ?1", [path])?;
     conn.execute("DELETE FROM links WHERE src = ?1", [path])?;
     conn.execute("DELETE FROM tags WHERE src = ?1", [path])?;
+    conn.execute("DELETE FROM moods WHERE src = ?1", [path])?;
     Ok(())
 }
 
@@ -591,8 +656,8 @@ fn index_file(conn: &Connection, vault: &Path, rel: &str) -> Result<()> {
     };
     let p = parse_note(&text);
     conn.execute(
-        "INSERT INTO notes(path, kind, name, name_key, title, title_key, relationship, birthday, mtime, size)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+        "INSERT INTO notes(path, kind, name, name_key, title, title_key, relationship, birthday, words, mtime, size)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
         params![
             rel,
             kind.as_str(),
@@ -602,6 +667,7 @@ fn index_file(conn: &Connection, vault: &Path, rel: &str) -> Result<()> {
             p.title.as_deref().map(names::key),
             p.relationship,
             p.birthday,
+            p.words as i64,
             mtime_ns(&meta),
             meta.len() as i64
         ],
@@ -623,6 +689,15 @@ fn index_file(conn: &Connection, vault: &Path, rel: &str) -> Result<()> {
             "INSERT INTO tags(src, tag, tag_key) VALUES (?1,?2,?3)",
             params![rel, tag, names::key(tag)],
         )?;
+    }
+    if kind == Kind::Journal {
+        for (i, m) in p.moods.iter().enumerate() {
+            let keys: String = m.emotions.iter().map(|e| format!("\n{}", names::key(e))).collect();
+            conn.execute(
+                "INSERT INTO moods(src, ord, at, valence, emotions, emotion_keys, factors) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+                params![rel, i as i64, m.at, m.valence, m.emotions.join("\n"), format!("{keys}\n"), m.factors.join("\n")],
+            )?;
+        }
     }
     Ok(())
 }
@@ -777,6 +852,31 @@ mod tests {
         let mut idx = Index::open_in_memory().unwrap();
         idx.sync(dir.path()).unwrap();
         assert!(idx.summary("people/Bad.md").unwrap().is_none());
+    }
+
+    #[test]
+    fn day_stats_words_moods_and_same_day() {
+        let dir = tempdir().unwrap();
+        sample(dir.path());
+        put(dir.path(), "journal/2025/10/2025-10-28.md", "---\nmood:\n  - { at: \"08:00\", valence: 0.5, emotions: [Sad, calm] }\n  - { at: \"20:00\", valence: -0.2 }\n---\nA year ago - [[Alice]] *was* here\n");
+        put(dir.path(), "journal/2024/10/2024-10-28.md", "two words\n");
+        let mut idx = Index::open_in_memory().unwrap();
+        idx.sync(dir.path()).unwrap();
+
+        let stats = idx.day_stats("2025-01-01", "2026-10-27").unwrap();
+        assert_eq!(
+            stats,
+            vec![
+                DayStat { date: "2025-10-28".into(), words: 6, checkins: 2, valence: Some(0.15) },
+                DayStat { date: "2026-10-27".into(), words: 6, checkins: 0, valence: None },
+            ]
+        );
+        let earlier = idx.same_day_earlier("2026-10-28", 10).unwrap();
+        assert_eq!(earlier.iter().map(|e| e.1.as_str()).collect::<Vec<_>>(), vec!["2025-10-28", "2024-10-28"]);
+        assert_eq!(earlier[1].2, 2);
+        assert_eq!(idx.with_emotion("sad").unwrap(), vec!["journal/2025/10/2025-10-28.md"]);
+        assert!(idx.with_emotion("sa").unwrap().is_empty());
+        assert_eq!(count_words("- [ ] buy milk\n\n# Title — ok"), 4);
     }
 
     #[test]

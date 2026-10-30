@@ -1,7 +1,8 @@
 //! Watches the vault and tells the frontend which day files changed.
 
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use notify::RecursiveMode;
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
@@ -18,6 +19,36 @@ pub const ENTITIES_EVENT: &str = "vault://entities";
 #[derive(Serialize, Clone)]
 struct Changed {
     dates: Vec<String>,
+}
+
+/// When the vault's files last changed, so history can wait for a quiet moment to commit.
+pub struct Activity {
+    /// (changed since the last commit, when)
+    state: Mutex<(bool, Instant)>,
+}
+
+impl Default for Activity {
+    fn default() -> Self {
+        Activity { state: Mutex::new((false, Instant::now())) }
+    }
+}
+
+impl Activity {
+    pub fn touch(&self) {
+        if let Ok(mut s) = self.state.lock() {
+            *s = (true, Instant::now());
+        }
+    }
+
+    /// True (once) if something changed and nothing has for `quiet`.
+    pub fn take_if_idle(&self, quiet: Duration) -> bool {
+        let Ok(mut s) = self.state.lock() else { return false };
+        if s.0 && s.1.elapsed() >= quiet {
+            s.0 = false;
+            return true;
+        }
+        false
+    }
 }
 
 /// Keeps the watcher alive; dropping it stops watching.
@@ -46,13 +77,21 @@ pub fn dates_for_paths<'a>(vault: &Path, paths: impl IntoIterator<Item = &'a Pat
     dates
 }
 
-pub fn start(app: AppHandle, vault: PathBuf, shared: SharedIndex) -> Result<VaultWatcher, String> {
+pub fn start(
+    app: AppHandle,
+    vault: PathBuf,
+    shared: SharedIndex,
+    activity: Arc<Activity>,
+) -> Result<VaultWatcher, String> {
     let root = vault.clone();
     let mut debouncer = new_debouncer(
         Duration::from_millis(250),
         move |res: DebounceEventResult| {
             if let Ok(events) = res {
                 let paths: Vec<PathBuf> = events.into_iter().map(|e| e.path).collect();
+                if !paths.is_empty() {
+                    activity.touch();
+                }
                 // Keep the index in step with the files, whoever changed them.
                 let refreshed = match shared.lock() {
                     Ok(mut slot) => slot
@@ -103,6 +142,16 @@ mod tests {
         ] {
             assert_eq!(date_for_path(v, &p), None, "{p:?}");
         }
+    }
+
+    #[test]
+    fn activity_reports_idle_once() {
+        let a = Activity::default();
+        assert!(!a.take_if_idle(Duration::ZERO), "nothing changed yet");
+        a.touch();
+        assert!(!a.take_if_idle(Duration::from_secs(60)), "not quiet long enough");
+        assert!(a.take_if_idle(Duration::ZERO));
+        assert!(!a.take_if_idle(Duration::ZERO), "already taken");
     }
 
     #[test]
