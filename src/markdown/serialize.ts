@@ -108,6 +108,13 @@ function serializeItemBlocks(blocks: PMNode[], spread: boolean): string {
 
 const DELIMS: Record<string, string> = { bold: "**", italic: "*", strike: "~~" };
 
+/** `[[target]]` or `[[target|label]]`: the inline syntax `@`, `!` and `$` produce. */
+export function wikilinkSource(node: PMNode): string {
+  const target = String(node.attrs?.target ?? "");
+  const label = node.attrs?.label ? String(node.attrs.label) : "";
+  return label ? `[[${target}|${label}]]` : `[[${target}]]`;
+}
+
 const markKey = (m: PMMark) => JSON.stringify([m.type, m.attrs ?? null]);
 
 export function serializeInline(nodes: PMNode[]): string {
@@ -147,7 +154,8 @@ export function serializeInline(nodes: PMNode[]): string {
       continue;
     }
 
-    let text = node.text ?? "";
+    const isWiki = node.type === "wikilink";
+    let text = isWiki ? wikilinkSource(node) : (node.text ?? "");
     const marks = node.marks ?? [];
     const isCode = marks.some((m) => m.type === "code");
     const target = marks.filter((m) => m.type !== "code");
@@ -178,7 +186,7 @@ export function serializeInline(nodes: PMNode[]): string {
       }
     }
 
-    out += isCode ? codeSpan(text) : escapeText(text, atLineStart);
+    out += isCode ? codeSpan(text) : isWiki ? text : escapeText(text, atLineStart);
     if (text) atLineStart = text.endsWith("\n");
   }
   closeAll();

@@ -1,8 +1,13 @@
 mod commands;
+mod entities;
 mod frontmatter;
+mod index;
+mod links;
+mod names;
 mod settings;
 mod vault;
 mod watcher;
+mod yaml;
 
 use tauri::Manager;
 
@@ -12,7 +17,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
-            let ctx = commands::AppCtx::new(dir.join("settings.json"));
+            let ctx = commands::AppCtx::new(dir.join("settings.json"), dir.join("index"));
+            ctx.open_index();
             ctx.restart_watcher(app.handle());
             app.manage(ctx);
             Ok(())
@@ -25,7 +31,19 @@ pub fn run() {
             commands::read_day,
             commands::save_day,
             commands::list_days,
+            commands::list_years,
             commands::delete_day,
+            commands::list_entities,
+            commands::list_tags,
+            commands::get_entity,
+            commands::create_entity,
+            commands::update_entity,
+            commands::rename_entity,
+            commands::delete_entity,
+            commands::reset_library,
+            commands::tag_notes,
+            commands::upcoming,
+            commands::rebuild_index,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

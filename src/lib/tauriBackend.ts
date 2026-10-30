@@ -3,6 +3,15 @@ import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
 import { AppStateSchema, DayFileSchema, SaveResultSchema, type Backend } from "./backend";
+import {
+  EntityDetailSchema,
+  EntityPatchSchema,
+  EntitySummarySchema,
+  MentionSchema,
+  RenameResultSchema,
+  TagInfoSchema,
+  UpcomingEventSchema,
+} from "./schema";
 
 const ChangedSchema = z.object({ dates: z.array(z.string()) });
 
@@ -36,7 +45,48 @@ export const tauriBackend: Backend = {
   async listDays(year, month) {
     return z.array(z.string()).parse(await invoke("list_days", { year, month }));
   },
+  async listYears() {
+    return z.array(z.number()).parse(await invoke("list_years"));
+  },
   async onVaultChanged(cb) {
     return listen("vault://changed", (e) => cb(ChangedSchema.parse(e.payload).dates));
+  },
+  async listEntities() {
+    return z.array(EntitySummarySchema).parse(await invoke("list_entities"));
+  },
+  async listTags() {
+    return z.array(TagInfoSchema).parse(await invoke("list_tags"));
+  },
+  async getEntity(path) {
+    return EntityDetailSchema.parse(await invoke("get_entity", { path }));
+  },
+  async createEntity(kind, name) {
+    return EntitySummarySchema.parse(await invoke("create_entity", { kind, name }));
+  },
+  async updateEntity(path, patch) {
+    return EntityDetailSchema.parse(
+      await invoke("update_entity", { path, patch: EntityPatchSchema.parse(patch) }),
+    );
+  },
+  async renameEntity(path, newName) {
+    return RenameResultSchema.parse(await invoke("rename_entity", { path, newName }));
+  },
+  async deleteEntity(path) {
+    await invoke("delete_entity", { path });
+  },
+  async tagNotes(tag) {
+    return z.array(MentionSchema).parse(await invoke("tag_notes", { tag }));
+  },
+  async resetLibrary() {
+    return z.number().parse(await invoke("reset_library"));
+  },
+  async upcoming(from, limit) {
+    return z.array(UpcomingEventSchema).parse(await invoke("upcoming", { from, limit }));
+  },
+  async rebuildIndex() {
+    await invoke("rebuild_index");
+  },
+  async onEntitiesChanged(cb) {
+    return listen("vault://entities", () => cb());
   },
 };

@@ -1,6 +1,5 @@
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
-import Placeholder from "@tiptap/extension-placeholder";
 import { useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -21,8 +20,10 @@ import {
 import { backend } from "@/lib";
 import type { DayFile } from "@/lib/backend";
 import { formatLong } from "@/lib/dates";
+import { trashName } from "@/lib/utils";
+import { editorExtensions, useOpenWikilink } from "@/editor/wiring";
+import { UpcomingPanel } from "@/components/UpcomingPanel";
 import { createCanon, defaultSchema } from "@/markdown/canon";
-import { createExtensions } from "@/markdown/extensions";
 import type { PMNode } from "@/markdown/pm";
 import { loadBody, saveBody, type BodyContext } from "@/markdown/roundtrip";
 
@@ -82,18 +83,32 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   appRef.current = app;
   const editorRef = useRef<Editor | null>(null);
 
+  const openLink = useOpenWikilink();
+
   // Everything below reads refs only, so callbacks captured by the editor never go stale.
   const editor = useEditor({
-    extensions: createExtensions([Placeholder.configure({ placeholder: "Start writing…" })]),
+    extensions: editorExtensions(appRef, "Start writing…"),
     content: initialDoc.current,
-    editorProps: { attributes: { spellcheck: "true", "aria-label": `Journal entry for ${date}` } },
+    editorProps: {
+      attributes: { spellcheck: "true", "aria-label": `Journal entry for ${date}` },
+      handleDOMEvents: {
+        click: (_view, event) => {
+          const chip = (event.target as HTMLElement).closest<HTMLElement>("[data-wikilink]");
+          if (!chip) return false;
+          openLink(chip);
+          return true;
+        },
+      },
+    },
     onUpdate: () => schedule(),
     onBlur: () => void flush(),
   });
   editorRef.current = editor;
 
   const currentBody = (): string | null =>
-    editorRef.current ? saveBody(ctx.current, editorRef.current.getJSON() as PMNode, canon) : null;
+    editorRef.current && !editorRef.current.isDestroyed
+      ? saveBody(ctx.current, editorRef.current.getJSON() as PMNode, canon)
+      : null;
 
   const persist = (force: boolean): Promise<void> => {
     saving.current = saving.current.then(async () => {
@@ -133,7 +148,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
 
   const applyDisk = (f: DayFile) => {
     const ed = editorRef.current;
-    if (!ed) return;
+    if (!ed || ed.isDestroyed) return;
     const loaded = loadBody(f.body, canon);
     ctx.current = loaded.ctx;
     ed.commands.setContent(loaded.doc, { emitUpdate: false });
@@ -144,6 +159,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   };
 
   const checkExternal = async () => {
+    if (!editorRef.current || editorRef.current.isDestroyed) return;
     const f = await backend.readDay(date);
     if (f.hash === hash.current) return; // our own write, or nothing changed
     const dirty = currentBody() !== lastBody.current;
@@ -187,6 +203,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     let off: (() => void) | undefined;
     backend
       .onVaultChanged((dates) => {
@@ -194,8 +211,16 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
         // Wait for any in-flight save to settle, so we never mistake our own write for an external one.
         void saving.current.then(() => latest.current.checkExternal());
       })
-      .then((u) => (off = u));
-    return () => off?.();
+      .then((u) => {
+        // Subscribing is async: if this effect was already cleaned up (StrictMode mounts twice in
+        // dev), drop the listener now, or it would outlive the editor and poke a destroyed one.
+        if (cancelled) u();
+        else off = u;
+      });
+    return () => {
+      cancelled = true;
+      off?.();
+    };
   }, [date]);
 
   // Focus: editor registers itself for "Focus editor"; today's note takes focus on open.
@@ -245,6 +270,8 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
           )}
         </header>
 
+        {date === app.today && <UpcomingPanel today={app.today} />}
+
         {external && (
           <div
             role="alert"
@@ -285,9 +312,6 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     </div>
   );
 }
-
-const trashName = () =>
-  /win/i.test(navigator.platform || navigator.userAgent) ? "Recycle Bin" : "Trash";
 
 function formatTime(iso: string): string {
   const d = new Date(iso);

@@ -19,10 +19,12 @@ import {
   type Theme,
 } from "@/lib/backend";
 import { todayISO } from "@/lib/dates";
+import { setDirectory } from "@/lib/entityDirectory";
+import type { EntityKind, EntitySummary, TagInfo } from "@/lib/schema";
 
-type PaletteMode = "commands" | "goto-date";
+type PaletteMode = "commands" | "goto-date" | "entity";
 
-interface AppContextValue {
+export interface AppContextValue {
   app: AppState | null;
   loadError: string | null;
   updateSettings(patch: SettingsPatch): Promise<void>;
@@ -49,6 +51,15 @@ interface AppContextValue {
   /** Bumped whenever the set of day files may have changed (calendar dots refresh). */
   daysVersion: number;
   bumpDays(): void;
+
+  /** People, places and emotions in the vault, and tags in use. Refreshed when files change. */
+  entities: EntitySummary[];
+  tags: TagInfo[];
+  /** Bumped whenever entities or backlinks may have changed (entity pages refetch on it). */
+  entitiesVersion: number;
+  refreshEntities(): Promise<void>;
+  /** Creates the note, then refreshes the lists so the new name resolves immediately. */
+  createEntity(kind: EntityKind, name: string): Promise<EntitySummary>;
 
   /** The editor registers a focus function here so "Focus editor" works from anywhere. */
   focusEditor: { current: (() => void) | null };
@@ -79,6 +90,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteMode, setPaletteMode] = useState<PaletteMode>("commands");
   const [daysVersion, setDaysVersion] = useState(0);
+  const [entities, setEntities] = useState<EntitySummary[]>([]);
+  const [tags, setTags] = useState<TagInfo[]>([]);
+  const [entitiesVersion, setEntitiesVersion] = useState(0);
   const focusEditor = useRef<(() => void) | null>(null);
   const deleteNote = useRef<(() => void) | null>(null);
 
@@ -102,6 +116,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("focus", check);
     };
   }, []);
+
+  const entitiesRef = useRef<EntitySummary[]>([]);
+  const refreshEntities = useCallback(async () => {
+    try {
+      const [list, tagList] = await Promise.all([backend.listEntities(), backend.listTags()]);
+      setDirectory(list); // before state, so chips rendered right after resolve correctly
+      entitiesRef.current = list;
+      setEntities(list);
+      setTags(tagList);
+    } catch {
+      setDirectory([]); // no vault yet (onboarding)
+      setEntities([]);
+      setTags([]);
+    }
+    setEntitiesVersion((v) => v + 1);
+  }, []);
+
+  const vaultPath = app?.vaultPath ?? null;
+  useEffect(() => {
+    if (!vaultPath) return;
+    void refreshEntities();
+    let cancelled = false;
+    let off: (() => void) | undefined;
+    let timer: number | undefined;
+    backend
+      .onEntitiesChanged(() => {
+        // A burst of file events (a rename touches many notes) becomes one refresh.
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => void refreshEntities(), 120);
+      })
+      .then((u) => {
+        // Subscribing is async; if we were cleaned up meanwhile, unsubscribe straight away.
+        if (cancelled) u();
+        else off = u;
+      });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      off?.();
+    };
+  }, [vaultPath, refreshEntities]);
+
+  const createEntity = useCallback(
+    async (kind: EntityKind, name: string) => {
+      const made = await backend.createEntity(kind, name);
+      // Show it at once (chips resolve, lists update); the full refresh then settles the details.
+      if (kind !== "tag") {
+        const next = [...entitiesRef.current.filter((e) => e.path !== made.path), made];
+        entitiesRef.current = next;
+        setDirectory(next);
+        setEntities(next);
+      }
+      await refreshEntities();
+      return made;
+    },
+    [refreshEntities],
+  );
 
   const updateSettings = useCallback(async (patch: SettingsPatch) => {
     const next = await backend.updateSettings(patch);
@@ -151,6 +222,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closePalette: () => setPaletteOpen(false),
       daysVersion,
       bumpDays: () => setDaysVersion((v) => v + 1),
+      entities,
+      tags,
+      entitiesVersion,
+      refreshEntities,
+      createEntity,
       focusEditor,
       deleteNote,
     }),
@@ -167,6 +243,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       paletteOpen,
       paletteMode,
       daysVersion,
+      entities,
+      tags,
+      entitiesVersion,
+      refreshEntities,
+      createEntity,
     ],
   );
 

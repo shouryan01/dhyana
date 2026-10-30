@@ -3,6 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { BulletList, OrderedList, TaskItem, TaskList } from "@tiptap/extension-list";
 import CodeBlock from "@tiptap/extension-code-block";
 import Link from "@tiptap/extension-link";
+import { baseTarget, onDirectoryChange, resolveTarget } from "@/lib/entityDirectory";
 
 /**
  * Extra node attributes remember how a list/fence was written in the source so that
@@ -47,6 +48,77 @@ const DhyanaCodeBlock = CodeBlock.extend({
 const DhyanaLink = Link.extend({
   addAttributes() {
     return { ...(this.parent?.() ?? {}), title: { default: null } };
+  },
+});
+
+/**
+ * A `[[target]]` / `[[target|label]]` link, as one inline atom. People, places, emotions and
+ * dates all use it; the chip's look comes from what the target resolves to.
+ */
+export const Wikilink = Node.create({
+  name: "wikilink",
+  group: "inline",
+  inline: true,
+  atom: true,
+  selectable: true,
+  addAttributes() {
+    return { target: { default: "", rendered: false }, label: { default: null, rendered: false } };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: "span[data-wikilink]",
+        getAttrs: (el) => ({
+          target: (el as HTMLElement).getAttribute("data-target") ?? "",
+          label: (el as HTMLElement).getAttribute("data-label"),
+        }),
+      },
+    ];
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    const target = String(node.attrs.target);
+    const label = node.attrs.label ? String(node.attrs.label) : null;
+    const hit = resolveTarget(target);
+    return [
+      "span",
+      mergeAttributes(HTMLAttributes, {
+        "data-wikilink": "",
+        "data-target": target,
+        ...(label ? { "data-label": label } : {}),
+        "data-kind": hit?.kind ?? "unresolved",
+        class: "wikilink",
+      }),
+      label ?? hit?.display ?? baseTarget(target),
+    ];
+  },
+  // In the editor each chip repaints itself when the vault's entities change (a rename, a new alias).
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement("span");
+      let current = node;
+      const paint = () => {
+        const target = String(current.attrs.target);
+        const label = current.attrs.label ? String(current.attrs.label) : null;
+        const hit = resolveTarget(target);
+        dom.className = "wikilink";
+        dom.setAttribute("data-wikilink", "");
+        dom.setAttribute("data-target", target);
+        dom.setAttribute("data-kind", hit?.kind ?? "unresolved");
+        dom.textContent = label ?? hit?.display ?? baseTarget(target);
+      };
+      paint();
+      const off = onDirectoryChange(paint);
+      return {
+        dom,
+        update(next) {
+          if (next.type !== current.type) return false;
+          current = next;
+          paint();
+          return true;
+        },
+        destroy: off,
+      };
+    };
   },
 });
 
@@ -131,6 +203,7 @@ export function createExtensions(extra: AnyExtension[] = []): AnyExtension[] {
     DhyanaLink.configure({ openOnClick: false, autolink: false, linkOnPaste: true }),
     RawBlock,
     RawInline,
+    Wikilink,
     ...extra,
   ];
 }

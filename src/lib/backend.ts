@@ -1,4 +1,25 @@
 import { z } from "zod";
+import type {
+  EntityDetail,
+  EntityKind,
+  EntityPatch,
+  EntitySummary,
+  Mention,
+  RenameResult,
+  TagInfo,
+  UpcomingEvent,
+} from "./schema";
+
+export type {
+  EntityDetail,
+  EntityKind,
+  EntityPatch,
+  EntitySummary,
+  Mention,
+  RenameResult,
+  TagInfo,
+  UpcomingEvent,
+} from "./schema";
 
 export const THEMES = ["dhyana-light", "dhyana-dark", "basic-light", "basic-dark"] as const;
 export type Theme = (typeof THEMES)[number];
@@ -76,5 +97,35 @@ export interface Backend {
   /** Moves the day's file to the OS trash. Resolves to whether there was a file to delete. */
   deleteDay(date: string): Promise<boolean>;
   listDays(year: number, month: number): Promise<string[]>;
+  /** Years that have a journal folder, oldest first. */
+  listYears(): Promise<number[]>;
   onVaultChanged(cb: (dates: string[]) => void): Promise<() => void>;
+
+  /** People, places and emotions (not tags), with how often they are mentioned. */
+  listEntities(): Promise<EntitySummary[]>;
+  /** Tags in use plus registered ones, most used first. */
+  listTags(): Promise<TagInfo[]>;
+  /** An entity's properties, notes and backlinks. `path` is the vault-relative path from a summary. */
+  getEntity(path: string): Promise<EntityDetail>;
+  /** Creates the note. Rejects with a readable message if the name is taken or invalid. */
+  createEntity(kind: EntityKind, name: string): Promise<EntitySummary>;
+  updateEntity(path: string, patch: EntityPatch): Promise<EntityDetail>;
+  /** Renames the note and rewrites every link to it across the vault. */
+  renameEntity(path: string, newName: string): Promise<RenameResult>;
+  /** Notes that use `#tag`, newest journal days first, each with the line that mentions it. */
+  tagNotes(tag: string): Promise<Mention[]>;
+  /**
+   * Clears the library back to a fresh vault's: people, places, notes, tag pages and any emotion
+   * outside the starter set go to the OS trash; missing starter emotions come back. Journal days
+   * are untouched. Resolves to how many files were removed.
+   */
+  resetLibrary(): Promise<number>;
+  /** Moves the note to the OS trash. Links to it elsewhere stay and show as unresolved. */
+  deleteEntity(path: string): Promise<void>;
+  /** `$date` events on or after `from` (YYYY-MM-DD), soonest first. */
+  upcoming(from: string, limit?: number): Promise<UpcomingEvent[]>;
+  /** Drops the index and rebuilds it from the files. */
+  rebuildIndex(): Promise<void>;
+  /** Fires when entities, links or tags may have changed (any note file changed). */
+  onEntitiesChanged(cb: () => void): Promise<() => void>;
 }

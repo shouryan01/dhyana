@@ -1,5 +1,13 @@
 import { Link, Outlet, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
-import { Moon, PanelLeft, PenLine, Search, Settings as SettingsIcon, Sun } from "lucide-react";
+import {
+  Library,
+  Moon,
+  PanelLeft,
+  PenLine,
+  Search,
+  Settings as SettingsIcon,
+  Sun,
+} from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { useActions, useHotkeys, useRolloverNotice } from "@/app/actions";
@@ -23,8 +31,10 @@ export function Shell() {
   const params = useParams({ strict: false }) as { date?: string };
   const selected = params.date && isISODate(params.date) ? params.date : app.today;
   const onSettings = useRouterState({
-    select: (s) => /^\/(settings|shortcuts)/.test(s.location.pathname),
+    select: (s) => /^\/(settings|shortcuts|library)/.test(s.location.pathname),
   });
+  const onLibrary = useRouterState({ select: (s) => s.location.pathname.startsWith("/library") });
+  const onDay = useRouterState({ select: (s) => s.location.pathname.startsWith("/day/") });
   const actions = useActions();
   useHotkeys(actions);
   useRolloverNotice();
@@ -90,11 +100,19 @@ export function Shell() {
             <NavLink
               to="/day/$date"
               params={{ date: app.today }}
-              active={selected === app.today && !onSettings}
+              active={onDay && selected === app.today}
               icon={<PenLine size={15} />}
               wiggle="group-hover:-rotate-12"
               label="Today"
               shortcut={shortcutOf("today")}
+            />
+            <NavLink
+              to="/library"
+              active={onLibrary}
+              icon={<Library size={15} />}
+              wiggle="group-hover:-rotate-12"
+              label="Library"
+              shortcut={shortcutOf("library")}
             />
           </nav>
 
@@ -186,7 +204,7 @@ const ROW =
   "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-100";
 
 function NavLink(props: {
-  to: "/day/$date" | "/settings";
+  to: "/day/$date" | "/settings" | "/library";
   params?: { date: string };
   active: boolean;
   icon: React.ReactNode;

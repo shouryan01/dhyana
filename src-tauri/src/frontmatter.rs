@@ -15,7 +15,7 @@ pub struct Split<'a> {
 
 const BOM: char = '\u{feff}';
 
-fn line_content(line: &str) -> &str {
+pub(crate) fn line_content(line: &str) -> &str {
     line.trim_end_matches(['\r', '\n'])
 }
 
@@ -63,7 +63,7 @@ pub fn detect_eol(text: &str) -> &'static str {
 }
 
 /// Lines of the block strictly between the delimiters.
-fn inner_lines(block: &str) -> Vec<&str> {
+pub(crate) fn inner_lines(block: &str) -> Vec<&str> {
     let lines: Vec<&str> = block.split_inclusive('\n').collect();
     if lines.len() < 2 {
         return Vec::new();
@@ -73,7 +73,7 @@ fn inner_lines(block: &str) -> Vec<&str> {
 
 /// Byte offset in `rest` (the text after `key:`) where the value token ends,
 /// i.e. where trailing whitespace/comment/EOL begins.
-fn value_end(rest: &str) -> usize {
+pub(crate) fn value_end(rest: &str) -> usize {
     let content = line_content(rest);
     let start = content.len() - content.trim_start_matches([' ', '\t']).len();
     if let Some(&q) = content.as_bytes().get(start) {

@@ -2,13 +2,14 @@ import { Check, FolderOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/context";
 import { Logo } from "@/components/Logo";
+import { OnboardingTry } from "@/components/OnboardingTry";
 import { Button } from "@/components/ui/button";
 import { backend } from "@/lib";
 import type { Font, Theme } from "@/lib/backend";
 import { shortcutLabel } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["welcome", "vault", "look", "done"] as const;
+const STEPS = ["welcome", "vault", "look", "try", "done"] as const;
 type Step = (typeof STEPS)[number];
 
 const DEFAULT_THEME: Theme = "dhyana-light";
@@ -85,6 +86,8 @@ export function Onboarding() {
   // Enter continues, Esc cancels a replay.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Keys typed into the practice editor (picking a suggestion, closing its list) are its own.
+      if (e.target instanceof HTMLElement && e.target.isContentEditable) return;
       if (e.key === "Escape" && replay) cancel();
       if (e.key === "Enter" && !busy && !(e.target instanceof HTMLButtonElement)) {
         e.preventDefault();
@@ -101,7 +104,7 @@ export function Onboarding() {
 
   return (
     <div className="anim-fade fixed inset-0 z-30 flex flex-col items-center justify-center bg-chrome px-6">
-      <div className="w-full max-w-[460px]">
+      <div className={cn("w-full", step === "try" ? "max-w-[560px]" : "max-w-[460px]")}>
         {step === "welcome" && (
           <div className="group anim-pop mb-6 flex justify-center">
             <Logo size={56} className="logo-mark text-primary" />
@@ -194,6 +197,15 @@ export function Onboarding() {
                 </Choice>
               ))}
             </div>
+          </Panel>
+        )}
+
+        {step === "try" && (
+          <Panel
+            title="Write with four symbols"
+            body="Type a symbol anywhere in a note and a list opens. Try each one in this practice note."
+          >
+            <OnboardingTry />
           </Panel>
         )}
 

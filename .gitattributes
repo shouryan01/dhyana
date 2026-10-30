@@ -1,2 +1,5 @@
 # Round-trip fixtures must keep exact bytes; the CRLF variants are generated in the tests.
 src/markdown/__fixtures__/** text eol=lf
+
+# Keep LF in the working tree on Windows too, so the formatter (LF) agrees with checkouts.
+* text=auto eol=lf
