@@ -3,7 +3,7 @@
 /* ---------------------------------------------------------------------------------------------
    Design tokens. Four themes, each a family + a mode:
      dhyana-light (default), dhyana-dark   the warm paper look and its warm "sepia night" twin
-     default-light, default-dark           neutral greys
+     basic-light, basic-dark               neutral greys
    The whole app, sidebar included, follows the theme. The accent is warm in all four.
    --------------------------------------------------------------------------------------------- */
 :root,
@@ -26,24 +26,24 @@
   color-scheme: light;
 }
 :root[data-theme="dhyana-dark"] {
-  --chrome: #17130f;
-  --chrome-hover: #211b15;
-  --chrome-active: #2a231b;
-  --surface: #1e1914;
-  --surface-fg: #e4d9c6;
-  --surface-muted: #8f8068;
-  --surface-line: #332b21;
-  --fg: #e4d9c6;
-  --muted: #a09079;
-  --border: #2f271e;
+  --chrome: #28231d;
+  --chrome-hover: #342d25;
+  --chrome-active: #4a4034;
+  --surface: #312b24;
+  --surface-fg: #e8dfce;
+  --surface-muted: #9a8b73;
+  --surface-line: #40382d;
+  --fg: #e8dfce;
+  --muted: #ad9d85;
+  --border: #3d352a;
   --accent: #d9a066;
   --accent-fg: #1d1409;
-  --popover: #241e17;
+  --popover: #383128;
   --code-bg: rgba(255, 240, 210, 0.07);
   --selection: rgba(217, 160, 102, 0.28);
   color-scheme: dark;
 }
-:root[data-theme="default-light"] {
+:root[data-theme="basic-light"] {
   --chrome: #f6f6f7;
   --chrome-hover: #ececee;
   --chrome-active: #e4e4e8;
@@ -61,7 +61,7 @@
   --selection: rgba(154, 91, 46, 0.2);
   color-scheme: light;
 }
-:root[data-theme="default-dark"] {
+:root[data-theme="basic-dark"] {
   --chrome: #101012;
   --chrome-hover: #1a1a1e;
   --chrome-active: #232328;
@@ -72,8 +72,8 @@
   --fg: #e6e6ea;
   --muted: #8a8a94;
   --border: #26262b;
-  --accent: #d99a5b;
-  --accent-fg: #1a1208;
+  --accent: #b06a2e;
+  --accent-fg: #fff6ea;
   --popover: #1b1b1f;
   --code-bg: rgba(255, 255, 255, 0.07);
   --selection: rgba(217, 154, 91, 0.28);
@@ -89,6 +89,11 @@
 }
 :root[data-font="sans"] { --font-body: var(--font-sans); }
 :root[data-font="mono"] { --font-body: var(--font-mono); }
+
+@theme {
+  /* A touch of overshoot for hover motion: things settle into place rather than slide. */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
 @theme inline {
   --color-chrome: var(--chrome);
@@ -130,9 +135,30 @@ body {
    --------------------------------------------------------------------------------------------- */
 @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
 @keyframes pop-in { from { opacity: 0; transform: translateY(4px) scale(0.985) } to { opacity: 1; transform: none } }
+@keyframes wiggle {
+  0% { transform: none }
+  25% { transform: rotate(-10deg) scale(1.12) }
+  55% { transform: rotate(7deg) scale(1.12) }
+  80% { transform: rotate(-3deg) scale(1.05) }
+  100% { transform: none }
+}
+/* The logo does a little wiggle when its parent (.group) is hovered. */
+/* Colours ease out plainly; only the transform gets the springy overshoot (overshooting a colour flashes). */
+@utility transition-spring {
+  transition:
+    color 100ms ease-out,
+    background-color 100ms ease-out,
+    border-color 100ms ease-out,
+    filter 100ms ease-out,
+    box-shadow 150ms ease-out,
+    transform 150ms var(--ease-spring);
+}
+.group:hover .logo-mark { animation: wiggle 600ms ease-out; }
 .anim-fade { animation: fade-in 120ms ease-out; }
 .anim-pop { animation: pop-in 130ms cubic-bezier(0.2, 0.8, 0.2, 1); }
-@media (prefers-reduced-motion: reduce) { .anim-fade, .anim-pop { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; }
+}
 
 /* ---------------------------------------------------------------------------------------------
    The writing surface

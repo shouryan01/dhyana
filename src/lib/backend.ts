@@ -1,15 +1,17 @@
 import { z } from "zod";
 
-export const THEMES = ["dhyana-light", "dhyana-dark", "default-light", "default-dark"] as const;
+export const THEMES = ["dhyana-light", "dhyana-dark", "basic-light", "basic-dark"] as const;
 export type Theme = (typeof THEMES)[number];
-export type ThemeFamily = "dhyana" | "default";
+export type ThemeFamily = "dhyana" | "basic";
 export type Mode = "light" | "dark";
 
-/** Settings saved by the first 0.1 builds used paper / light / dark. */
+/** Settings saved by earlier builds: paper / light / dark, then the "default" family (now "basic"). */
 const LEGACY_THEMES: Record<string, Theme> = {
   paper: "dhyana-light",
-  light: "default-light",
-  dark: "default-dark",
+  light: "basic-light",
+  dark: "basic-dark",
+  "default-light": "basic-light",
+  "default-dark": "basic-dark",
 };
 
 export const ThemeSchema = z.preprocess(
@@ -71,6 +73,8 @@ export interface Backend {
     expectedHash: string | null,
     force: boolean,
   ): Promise<SaveResult>;
+  /** Moves the day's file to the OS trash. Resolves to whether there was a file to delete. */
+  deleteDay(date: string): Promise<boolean>;
   listDays(year: number, month: number): Promise<string[]>;
   onVaultChanged(cb: (dates: string[]) => void): Promise<() => void>;
 }

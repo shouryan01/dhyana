@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import { parseTheme, themeOf, type ThemeFamily } from "@/lib/backend";
 import { addDays, formatShort, isISODate } from "@/lib/dates";
+import { IS_DEV } from "@/lib/devSettings";
 import { createDispatcher, isTextTarget, type Action } from "@/lib/shortcuts";
 
 /** The single registry of actions (palette, tooltips, settings reference, and key handler). */
@@ -26,14 +27,16 @@ export function useActions(): Action[] {
       { id: "prev", label: "Previous day", group: "Navigate", shortcut: "mod+[", also: ["["], run: () => go(addDays(current, -1)) },
       { id: "next", label: "Next day", group: "Navigate", shortcut: "mod+]", also: ["]"], run: () => go(addDays(current, 1)) },
       { id: "goto", label: "Go to date…", group: "Navigate", shortcut: "mod+g", also: ["g d"], keywords: "jump calendar", run: () => app.openPalette("goto-date") },
+      { id: "delete", label: "Delete this note…", group: "Journal", keywords: "remove trash page entry", run: () => (app.deleteNote.current ? app.deleteNote.current() : toast("Open a note to delete it")) },
       { id: "focus", label: "Focus editor", group: "Journal", shortcut: "i", keywords: "write type", run: () => app.focusEditor.current?.() },
       { id: "sidebar", label: "Toggle sidebar", group: "App", shortcut: "mod+\\", run: app.toggleSidebar },
       { id: "settings", label: "Open settings", group: "App", shortcut: "mod+,", also: ["g s"], keywords: "preferences", run: () => navigate({ to: "/settings" }) },
-      { id: "shortcuts", label: "Show keyboard shortcuts", group: "App", shortcut: "?", keywords: "help keys", run: () => navigate({ to: "/settings", hash: "shortcuts" }) },
+      { id: "shortcuts", label: "Show keyboard shortcuts", group: "App", shortcut: "?", keywords: "help keys", run: () => navigate({ to: "/shortcuts" }) },
       { id: "mode", label: "Toggle dark / light mode", group: "App", shortcut: "mod+shift+l", keywords: "theme appearance night", run: () => void app.toggleMode() },
-      { id: "theme-dhyana", label: "Theme: Dhyana", group: "App", keywords: "appearance warm paper", run: () => setFamily("dhyana") },
-      { id: "theme-default", label: "Theme: Default", group: "App", keywords: "appearance neutral", run: () => setFamily("default") },
-      { id: "onboarding", label: "Replay onboarding", group: "App", keywords: "welcome setup tour", run: app.replayOnboarding },
+      { id: "theme-dhyana", label: "Theme: Dhyāna", group: "App", keywords: "appearance warm paper", run: () => setFamily("dhyana") },
+      { id: "theme-basic", label: "Theme: Basic", group: "App", keywords: "appearance neutral default", run: () => setFamily("basic") },
+      // Dev builds only; production users don't replay onboarding.
+      ...(IS_DEV ? [{ id: "onboarding", label: "Replay onboarding", group: "App" as const, keywords: "welcome setup tour", run: app.replayOnboarding }] : []),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [app.today, app.app?.theme, app.toggleSidebar, app.toggleMode, app.replayOnboarding, current, navigate],

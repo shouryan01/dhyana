@@ -92,6 +92,12 @@ export function createMemoryBackend(): Backend {
       write(KEY_FILES, files);
       return { status: "saved", hash: hash(body), created: files[date].created, modified: t };
     },
+    async deleteDay(date) {
+      if (!files[date]) return false;
+      delete files[date];
+      write(KEY_FILES, files);
+      return true;
+    },
     async listDays(year, month) {
       const prefix = `${year}-${String(month).padStart(2, "0")}-`;
       return Object.keys(files).filter((d) => d.startsWith(prefix)).sort();

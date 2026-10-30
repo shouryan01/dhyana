@@ -12,11 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "dhyana",
+        "title": "dhyāna",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
-        "minHeight": 560
+        "minHeight": 560,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {

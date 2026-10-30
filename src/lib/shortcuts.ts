@@ -59,7 +59,10 @@ export const isTextTarget = (el: EventTarget | null): boolean => {
   );
 };
 
-/** Pretty-print a shortcut for display: "mod+shift+k" -> "⌘⇧K" on macOS, "Ctrl+Shift+K" elsewhere. */
+/** macOS lists modifiers in Apple's order: Control, Option, Shift, Command. */
+const MAC_MOD_ORDER = ["⌃", "⌥", "⇧", "⌘"];
+
+/** Pretty-print a shortcut for display: "mod+shift+k" -> "⇧⌘K" on macOS, "Ctrl+Shift+K" elsewhere. */
 export function formatShortcut(spec: string, mac = isMac()): string[] {
   if (!isChord(spec)) return spec.split(" ").map((k) => k.toUpperCase());
   const parts = spec.split("+");
@@ -78,8 +81,12 @@ export function formatShortcut(spec: string, mac = isMac()): string[] {
         return m;
     }
   });
+  if (mac) mods.sort((a, b) => MAC_MOD_ORDER.indexOf(a) - MAC_MOD_ORDER.indexOf(b));
   return [...mods, key.length === 1 ? key.toUpperCase() : key];
 }
+
+/** One-line form for tooltips: "⇧⌘K" on macOS (no separators), "Ctrl+Shift+K" elsewhere. */
+export const shortcutLabel = (spec: string, mac = isMac()): string => formatShortcut(spec, mac).join(mac ? "" : "+");
 
 const specsOf = (a: Action): string[] => [a.shortcut, ...(a.also ?? [])].filter((s): s is string => !!s);
 

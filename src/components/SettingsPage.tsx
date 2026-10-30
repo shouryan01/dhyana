@@ -1,29 +1,35 @@
-import { useEffect } from "react";
-import { useActions } from "@/app/actions";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
+import { backend } from "@/lib";
 import { parseTheme, themeOf, type Font, type Mode, type ThemeFamily } from "@/lib/backend";
+import { getDevSettings, IS_DEV, setDevSettings } from "@/lib/devSettings";
+import { previewSplash } from "@/lib/splash";
 import { cn } from "@/lib/utils";
 
-const FAMILIES: ThemeFamily[] = ["dhyana", "default"];
+const FAMILIES: ThemeFamily[] = ["dhyana", "basic"];
 const MODES: Mode[] = ["light", "dark"];
 const FONTS: Font[] = ["serif", "sans", "mono"];
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
-const FAMILY_LABELS: Record<ThemeFamily, string> = { dhyana: "Dhyana", default: "Default" };
+const FAMILY_LABELS: Record<ThemeFamily, string> = { dhyana: "Dhyāna", basic: "Basic" };
 
 export function SettingsPage() {
   const app = useApp();
-  const actions = useActions();
   const state = app.app!;
   const { family, mode } = parseTheme(state.theme);
 
-  // "?" and the palette link here with #shortcuts
-  useEffect(() => {
-    if (window.location.hash.includes("shortcuts")) {
-      document.getElementById("shortcuts")?.scrollIntoView();
+  const changeVault = async () => {
+    try {
+      const picked = await backend.pickFolder();
+      if (!picked || picked === state.vaultPath) return;
+      await app.setVault(picked);
+      toast.success("Vault changed", { description: picked });
+    } catch (e) {
+      toast.error(`Couldn't change the vault: ${e}`);
     }
-  }, []);
+  };
 
   return (
     <div className="h-full overflow-y-auto bg-chrome">
@@ -31,7 +37,7 @@ export function SettingsPage() {
         <h1 className="mb-8 text-[22px] font-semibold tracking-tight">Settings</h1>
 
         <Section title="Appearance">
-          <Row label="Theme" hint="Dhyana is the warm paper look. Default is neutral.">
+          <Row label="Theme" hint="Dhyāna is the warm paper look. Basic is neutral.">
             <Segmented
               options={FAMILIES}
               labels={FAMILY_LABELS}
@@ -48,40 +54,63 @@ export function SettingsPage() {
         </Section>
 
         <Section title="Vault">
-          <Row label="Location" hint="Change it by replaying onboarding. Files are never moved.">
-            <span className="max-w-[300px] truncate font-mono text-[12px]" title={state.vaultPath ?? ""}>
-              {state.vaultPath}
+          <Row label="Location" hint="Switching only changes which folder dhyāna opens. Files are never moved or deleted.">
+            <span className="flex items-center gap-3">
+              <span className="max-w-[240px] truncate font-mono text-[12px]" title={state.vaultPath ?? ""}>
+                {state.vaultPath}
+              </span>
+              <Button onClick={() => void changeVault()}>Change…</Button>
             </span>
           </Row>
         </Section>
 
-        <Section title="Onboarding">
-          <Row label="Replay onboarding" hint="Walk through the welcome flow again. Your vault and notes are untouched.">
-            <Button onClick={app.replayOnboarding}>Replay</Button>
+        {IS_DEV && <DeveloperSection onPreviewOnboarding={app.replayOnboarding} />}
+
+        <Section title="Keyboard shortcuts">
+          <Row label="Shortcuts" hint="Every action and its keys. Press ? anywhere outside the editor.">
+            <Button asChild>
+              <Link to="/shortcuts">View all</Link>
+            </Button>
           </Row>
         </Section>
 
-        <Section title="Keyboard shortcuts" id="shortcuts">
-          {actions.map((a) => (
-            <Row key={a.id} label={a.label}>
-              <span className="flex items-center gap-2">
-                {a.shortcut ? <Kbd shortcut={a.shortcut} /> : <span className="text-[12px] text-muted">palette only</span>}
-                {a.also?.map((s) => (
-                  <span key={s} className="flex items-center gap-2 text-muted">
-                    or <Kbd shortcut={s} />
-                  </span>
-                ))}
-              </span>
-            </Row>
-          ))}
-          <p className="px-1 pt-3 text-[12px] text-muted">
-            Single-key shortcuts (like G T) work outside the editor. Press Esc to leave the editor.
-          </p>
-        </Section>
-
-        <p className="mt-10 text-[12px] text-muted">dhyana 0.1.0</p>
+        <p className="mt-10 text-[12px] text-muted">dhyāna 0.1.0</p>
       </div>
     </div>
+  );
+}
+
+/** Development builds only (`IS_DEV`); never rendered in production. */
+function DeveloperSection({ onPreviewOnboarding }: { onPreviewOnboarding(): void }) {
+  const [dev, setDev] = useState(getDevSettings);
+  const update = (patch: Partial<typeof dev>) => setDev(setDevSettings(patch));
+  const onOff = (v: boolean) => (v ? "on" : "off");
+  const LABELS = { on: "On", off: "Off" };
+  return (
+    <Section title="Developer">
+      <Row label="Always show onboarding" hint="Open the onboarding flow on every launch.">
+        <Segmented
+          options={["off", "on"]}
+          labels={LABELS}
+          value={onOff(dev.alwaysOnboarding)}
+          onChange={(v) => update({ alwaysOnboarding: v === "on" })}
+        />
+      </Row>
+      <Row label="Hold splash screen" hint="Keep the splash up for two seconds on launch.">
+        <Segmented
+          options={["off", "on"]}
+          labels={LABELS}
+          value={onOff(dev.holdSplash)}
+          onChange={(v) => update({ holdSplash: v === "on" })}
+        />
+      </Row>
+      <Row label="Preview now">
+        <span className="flex gap-2">
+          <Button onClick={() => previewSplash()}>Splash</Button>
+          <Button onClick={onPreviewOnboarding}>Onboarding</Button>
+        </span>
+      </Row>
+    </Section>
   );
 }
 

@@ -1,10 +1,14 @@
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
+import { useNavigate } from "@tanstack/react-router";
+import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import { registerFlush } from "@/app/flush";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { backend } from "@/lib";
 import type { DayFile } from "@/lib/backend";
 import { formatLong } from "@/lib/dates";
@@ -49,6 +53,8 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   const app = useApp();
   const [meta, setMeta] = useState({ created: initial.created, modified: initial.modified });
   const [external, setExternal] = useState<Disk | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const navigate = useNavigate();
 
   // Mutable bookkeeping that must not trigger renders.
   const ctx = useRef<BodyContext>(null!);
@@ -136,8 +142,28 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     else setExternal({ file: f });
   };
 
-  const latest = useRef({ flush, checkExternal });
-  latest.current = { flush, checkExternal };
+  const requestDelete = () => {
+    if (!hash.current) toast("Nothing to delete: this day has no saved note.");
+    else setConfirmDelete(true);
+  };
+
+  const doDelete = async () => {
+    setConfirmDelete(false);
+    window.clearTimeout(timer.current); // a pending autosave must not bring the file back
+    try {
+      await saving.current;
+      await backend.deleteDay(date);
+      applyDisk({ exists: false, body: "", hash: "", created: null, modified: null });
+      appRef.current.bumpDays();
+      toast.success(`Deleted ${formatLong(date)}`, { description: `It's in your ${trashName()} if you need it back.` });
+      if (date !== appRef.current.today) void navigate({ to: "/day/$date", params: { date: appRef.current.today } });
+    } catch (e) {
+      toast.error(`Couldn't delete this note: ${e}`);
+    }
+  };
+
+  const latest = useRef({ flush, checkExternal, requestDelete });
+  latest.current = { flush, checkExternal, requestDelete };
 
   // Flush on unmount (navigation) and on quit.
   useEffect(() => {
@@ -165,8 +191,10 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     if (!editor) return;
     app.focusEditor.current = () => editor.commands.focus("end");
     if (date === app.today && !app.paletteOpen) editor.commands.focus("end");
+    app.deleteNote.current = () => latest.current.requestDelete();
     return () => {
       app.focusEditor.current = null;
+      app.deleteNote.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, date]);
@@ -174,15 +202,27 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   return (
     <div className="writing h-full overflow-y-auto" onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}>
       <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
-        <header className="mb-8 select-none">
-          <h1 className="font-[family-name:var(--font-body)] text-[26px] font-semibold leading-tight text-surface-fg">
-            {formatLong(date)}
-          </h1>
-          <p className="mt-1 text-[12px] text-surface-muted">
-            {date === app.today ? "Today · " : ""}
-            {meta.created ? `Created ${formatTime(meta.created)}` : "Not saved yet — start typing"}
-            {meta.modified && meta.modified !== meta.created ? ` · Edited ${formatTime(meta.modified)}` : ""}
-          </p>
+        <header className="group mb-8 flex items-start justify-between gap-4 select-none">
+          <div>
+            <h1 className="font-[family-name:var(--font-body)] text-[26px] font-semibold leading-tight text-surface-fg">
+              {formatLong(date)}
+            </h1>
+            <p className="mt-1 text-[12px] text-surface-muted">
+              {date === app.today ? "Today · " : ""}
+              {meta.created ? `Created ${formatTime(meta.created)}` : "Not saved yet — start typing"}
+              {meta.modified && meta.modified !== meta.created ? ` · Edited ${formatTime(meta.modified)}` : ""}
+            </p>
+          </div>
+          {meta.created && (
+            <button
+              aria-label="Delete this note"
+              title="Delete this note"
+              onClick={requestDelete}
+              className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-surface-muted opacity-0 transition-colors duration-100 hover:bg-chrome-hover hover:text-red-500 focus-visible:opacity-100 group-hover:opacity-100"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
         </header>
 
         {external && (
@@ -199,9 +239,26 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
 
         <EditorContent editor={editor} />
       </div>
+
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent align="center" className="w-[min(400px,calc(100vw-32px))] p-5">
+          <DialogTitle className="text-[15px] font-semibold">Delete this note?</DialogTitle>
+          <p className="mt-2 text-[13px] text-muted">
+            {formatLong(date)} moves to your {trashName()}, so you can still restore it from there.
+          </p>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button onClick={() => setConfirmDelete(false)}>Cancel</Button>
+            <Button variant="primary" onClick={() => void doDelete()}>
+              Move to {trashName()}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+const trashName = () => (/win/i.test(navigator.platform || navigator.userAgent) ? "Recycle Bin" : "Trash");
 
 function formatTime(iso: string): string {
   const d = new Date(iso);

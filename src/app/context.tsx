@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { backend } from "@/lib";
+import { getDevSettings } from "@/lib/devSettings";
 import { parseTheme, themeOf, type AppState, type Font, type SettingsPatch, type Theme } from "@/lib/backend";
 import { todayISO } from "@/lib/dates";
 
@@ -18,7 +19,7 @@ interface AppContextValue {
   app: AppState | null;
   loadError: string | null;
   updateSettings(patch: SettingsPatch): Promise<void>;
-  /** Flip light/dark within the current theme family (Dhyana or Default). */
+  /** Flip light/dark within the current theme family (Dhyana or Basic). */
   toggleMode(): Promise<void>;
   setVault(path: string): Promise<void>;
   /** Live-preview an appearance without persisting it (onboarding). Pass null to revert. */
@@ -44,6 +45,8 @@ interface AppContextValue {
 
   /** The editor registers a focus function here so "Focus editor" works from anywhere. */
   focusEditor: { current: (() => void) | null };
+  /** Registered by the open day; asks to delete it (after confirmation). Null when no note is open. */
+  deleteNote: { current: (() => void) | null };
 }
 
 const Ctx = createContext<AppContextValue | null>(null);
@@ -64,12 +67,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [app, setApp] = useState<AppState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [today, setToday] = useState(todayISO());
-  const [replaying, setReplaying] = useState(false);
+  const [replaying, setReplaying] = useState(() => getDevSettings().alwaysOnboarding);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteMode, setPaletteMode] = useState<PaletteMode>("commands");
   const [daysVersion, setDaysVersion] = useState(0);
   const focusEditor = useRef<(() => void) | null>(null);
+  const deleteNote = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     backend
@@ -141,6 +145,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       daysVersion,
       bumpDays: () => setDaysVersion((v) => v + 1),
       focusEditor,
+      deleteNote,
     }),
     [app, loadError, updateSettings, toggleMode, setVault, previewAppearance, today, replaying, sidebarOpen, paletteOpen, paletteMode, daysVersion],
   );

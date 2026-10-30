@@ -12,8 +12,13 @@ import { AppProvider, useApp } from "@/app/context";
 import { DayView } from "@/components/DayView";
 import { Onboarding } from "@/components/Onboarding";
 import { SettingsPage } from "@/components/SettingsPage";
+import { ShortcutsPage } from "@/components/ShortcutsPage";
 import { Shell } from "@/components/Shell";
 import { isISODate, todayISO } from "@/lib/dates";
+import { getDevSettings } from "@/lib/devSettings";
+import { hideSplash } from "@/lib/splash";
+
+const SPLASH_HOLD_MS = 2000;
 
 const rootRoute = createRootRoute({ component: Gate });
 
@@ -42,8 +47,14 @@ const settingsRoute = createRoute({
   component: SettingsPage,
 });
 
+const shortcutsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/shortcuts",
+  component: ShortcutsPage,
+});
+
 const router = createRouter({
-  routeTree: rootRoute.addChildren([indexRoute, dayRoute, settingsRoute]),
+  routeTree: rootRoute.addChildren([indexRoute, dayRoute, settingsRoute, shortcutsRoute]),
   history: createHashHistory(),
 });
 
@@ -65,15 +76,13 @@ function Gate() {
 
   useEffect(() => {
     if (!ready) return;
-    const splash = document.getElementById("splash");
-    if (!splash) return;
-    splash.style.opacity = "0";
-    const t = window.setTimeout(() => splash.remove(), 160);
+    const hold = getDevSettings().holdSplash ? SPLASH_HOLD_MS : 0;
+    const t = window.setTimeout(hideSplash, hold);
     return () => window.clearTimeout(t);
   }, [ready]);
 
   if (app.loadError) {
-    return <div className="p-10 text-muted">dhyana couldn't start: {app.loadError}</div>;
+    return <div className="p-10 text-muted">dhyāna couldn't start: {app.loadError}</div>;
   }
   if (!app.app) return null;
 

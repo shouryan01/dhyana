@@ -290,6 +290,28 @@ pub fn save_day_at(
     })
 }
 
+/// Remove a day's file with `remove` (the app passes "move to the OS trash"; tests pass a plain
+/// delete), then tidy up the month and year folders if that left them empty. Returns whether
+/// there was a file to remove.
+pub fn delete_day_with(
+    vault: &Path,
+    date: &str,
+    remove: impl FnOnce(&Path) -> std::io::Result<()>,
+) -> Result<bool, VaultError> {
+    let path = day_path(vault, validate_date(date)?);
+    if !path.is_file() {
+        return Ok(false);
+    }
+    remove(&path)?;
+    // `remove_dir` only succeeds on empty directories, so anything else in the folder is safe.
+    for dir in path.ancestors().skip(1).take(2) {
+        if fs::remove_dir(dir).is_err() {
+            break;
+        }
+    }
+    Ok(true)
+}
+
 /// `YYYY-MM-DD` if `name` is a visible `YYYY-MM-DD.md` file name.
 pub fn date_from_file_name(name: &str) -> Option<String> {
     if name.starts_with('.') {
@@ -507,6 +529,25 @@ mod tests {
         StagedWrite::stage(&target, b"new content").unwrap().commit().unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "new content");
         assert!(!dir.path().join(".2026-10-28.md.tmp").exists());
+    }
+
+    #[test]
+    fn delete_day_removes_file_and_empty_folders_only() {
+        let dir = tempdir().unwrap();
+        write(dir.path(), "2026-10-28", "a");
+        write(dir.path(), "2026-10-29", "b");
+        let rm = |p: &Path| fs::remove_file(p);
+
+        assert!(delete_day_with(dir.path(), "2026-10-28", rm).unwrap());
+        assert_eq!(list_days(dir.path(), 2026, 10), vec!["2026-10-29"]);
+        // Already gone: nothing to do, not an error.
+        assert!(!delete_day_with(dir.path(), "2026-10-28", rm).unwrap());
+        // Last file out takes the empty month and year folders with it, but never the vault.
+        assert!(delete_day_with(dir.path(), "2026-10-29", rm).unwrap());
+        assert!(!dir.path().join("journal/2026").exists());
+        assert!(dir.path().join("journal").exists());
+        // Dates are validated, never treated as paths.
+        assert!(delete_day_with(dir.path(), "../../etc/passwd", rm).is_err());
     }
 
     #[test]

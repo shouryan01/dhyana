@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays, isISODate, monthGrid, parseDateInput } from "./dates";
-import { createDispatcher, formatShortcut, matchChord, type Action } from "./shortcuts";
+import { createDispatcher, formatShortcut, matchChord, shortcutLabel, type Action } from "./shortcuts";
 
 const ev = (key: string, o: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }> = {}) => ({
   key,
@@ -30,6 +30,10 @@ describe("shortcuts", () => {
     expect(formatShortcut("mod+shift+t", false)).toEqual(["Ctrl", "Shift", "T"]);
     expect(formatShortcut("mod+k", true)).toEqual(["⌘", "K"]);
     expect(formatShortcut("g t")).toEqual(["G", "T"]);
+    // macOS orders modifiers ⌃⌥⇧⌘ and drops the separators in one-line labels.
+    expect(formatShortcut("mod+shift+t", true)).toEqual(["⇧", "⌘", "T"]);
+    expect(shortcutLabel("mod+shift+t", true)).toBe("⇧⌘T");
+    expect(shortcutLabel("mod+shift+t", false)).toBe("Ctrl+Shift+T");
   });
 
   it("chords fire anywhere; single keys and sequences only outside text fields", () => {

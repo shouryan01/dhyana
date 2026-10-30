@@ -37,6 +37,9 @@ export const tauriBackend: Backend = {
       await invoke("save_day", { date, body, expectedHash, force }),
     );
   },
+  async deleteDay(date) {
+    return z.boolean().parse(await invoke("delete_day", { date }));
+  },
   async listDays(year, month) {
     return z.array(z.string()).parse(await invoke("list_days", { year, month }));
   },

@@ -1,4 +1,6 @@
-# dhyana
+<p align="center"><img src="public/logo-1024.png" width="96" alt="dhyāna logo" /></p>
+
+# dhyāna
 
 A quiet, offline-first journal. Your entries are plain markdown files in a folder you choose; AI is optional and not part of this release.
 

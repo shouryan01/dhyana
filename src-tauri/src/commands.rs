@@ -127,6 +127,15 @@ pub fn save_day(
         .map_err(|e| e.to_string())
 }
 
+/// Moves the day's file to the OS trash (recoverable), not a hard delete.
+#[tauri::command]
+pub fn delete_day(ctx: State<AppCtx>, date: String) -> Result<bool, String> {
+    vault::delete_day_with(&ctx.vault()?, &date, |p| {
+        trash::delete(p).map_err(|e| std::io::Error::other(e.to_string()))
+    })
+    .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn list_days(ctx: State<AppCtx>, year: i32, month: u32) -> Result<Vec<String>, String> {
     Ok(vault::list_days(&ctx.vault()?, year, month))

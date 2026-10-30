@@ -1,19 +1,24 @@
 import { Check, FolderOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/context";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { backend } from "@/lib";
 import type { Font, Theme } from "@/lib/backend";
+import { shortcutLabel } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["welcome", "vault", "look", "done"] as const;
 type Step = (typeof STEPS)[number];
 
+const DEFAULT_THEME: Theme = "dhyana-light";
+const DEFAULT_FONT: Font = "serif";
+
 const THEME_CARDS: { id: Theme; label: string; swatch: string; ink: string }[] = [
-  { id: "dhyana-light", label: "Dhyana light", swatch: "#f6efe2", ink: "#3b3226" },
-  { id: "dhyana-dark", label: "Dhyana dark", swatch: "#1e1914", ink: "#e4d9c6" },
-  { id: "default-light", label: "Default light", swatch: "#ffffff", ink: "#1f1f23" },
-  { id: "default-dark", label: "Default dark", swatch: "#17171a", ink: "#dcdce2" },
+  { id: "dhyana-light", label: "Dhyāna light", swatch: "#f6efe2", ink: "#3b3226" },
+  { id: "dhyana-dark", label: "Dhyāna dark", swatch: "#302a23", ink: "#e8dfce" },
+  { id: "basic-light", label: "Basic light", swatch: "#ffffff", ink: "#1f1f23" },
+  { id: "basic-dark", label: "Basic dark", swatch: "#17171a", ink: "#dcdce2" },
 ];
 
 const FONTS: { id: Font; label: string; family: string }[] = [
@@ -33,8 +38,10 @@ export function Onboarding() {
 
   const [step, setStep] = useState<Step>("welcome");
   const [vault, setVault] = useState<string | null>(current.vaultPath);
-  const [theme, setTheme] = useState<Theme>(current.theme);
-  const [font, setFont] = useState<Font>(current.font);
+  // A first run starts from the defaults whatever is in the settings file; a replay starts from the current choices.
+  const firstRun = !current.onboardingCompleted;
+  const [theme, setTheme] = useState<Theme>(firstRun ? DEFAULT_THEME : current.theme);
+  const [font, setFont] = useState<Font>(firstRun ? DEFAULT_FONT : current.font);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +67,7 @@ export function Onboarding() {
       if (target && target !== current.vaultPath) await app.setVault(target);
       await app.updateSettings({
         onboardingCompleted: true,
-        ...(opts?.defaults ? { theme: "dhyana-light" as const, font: "serif" as const } : { theme, font }),
+        ...(opts?.defaults ? { theme: DEFAULT_THEME, font: DEFAULT_FONT } : { theme, font }),
       });
       app.endReplay();
     } catch (e) {
@@ -93,6 +100,11 @@ export function Onboarding() {
   return (
     <div className="anim-fade fixed inset-0 z-30 flex flex-col items-center justify-center bg-chrome px-6">
       <div className="w-full max-w-[460px]">
+        {step === "welcome" && (
+          <div className="group anim-pop mb-6 flex justify-center">
+            <Logo size={56} className="logo-mark text-accent" />
+          </div>
+        )}
         <div className="mb-8 flex items-center justify-center gap-1.5" aria-label={`Step ${idx + 1} of ${STEPS.length}`}>
           {STEPS.map((s, i) => (
             <span key={s} className={cn("h-1 w-8 rounded-full transition-colors duration-150", i <= idx ? "bg-accent" : "bg-border")} />
@@ -100,7 +112,10 @@ export function Onboarding() {
         </div>
 
         {step === "welcome" && (
-          <Panel title="Welcome to dhyana" body="A quiet place to write. Your journal is plain markdown files in a folder you choose, and everything works offline.">
+          <Panel
+            title="Welcome to dhyāna"
+            body="A quiet place to write. Your journal is plain markdown files in a folder you choose, and everything works offline."
+          >
             <p className="text-muted">One note per day. Opens to today. No account, nothing leaves your machine.</p>
           </Panel>
         )}
@@ -126,7 +141,7 @@ export function Onboarding() {
               {replay && !switching
                 ? "This is your current vault. Keep it, or choose another; your existing files are never moved or deleted."
                 : switching
-                  ? "Switching vaults only changes which folder dhyana opens. Nothing is moved or deleted."
+                  ? "Switching vaults only changes which folder dhyāna opens. Nothing is moved or deleted."
                   : "A new folder is created if it doesn't exist. Syncing it with Drive, iCloud or OneDrive works fine."}
             </p>
           </Panel>
@@ -163,12 +178,11 @@ export function Onboarding() {
           <Panel title="You're set" body="Today's note is ready whenever you are. Nothing is created until you type.">
             <ul className="space-y-1.5 text-muted">
               <li>
-                <b className="text-fg">Ctrl/⌘ K</b> opens the command palette. Every action is in there.
+                <b className="text-fg">{shortcutLabel("mod+k")}</b> opens the command palette. Every action is in there.
               </li>
               <li>
                 <b className="text-fg">Esc</b> leaves the editor, then <b className="text-fg">G T</b> jumps to today.
               </li>
-              <li>Want to capture on your phone? Use Obsidian on the same folder (see docs/mobile.md).</li>
             </ul>
           </Panel>
         )}
@@ -229,12 +243,12 @@ function Choice({ selected, onClick, children }: { selected: boolean; onClick():
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "relative flex flex-col gap-1.5 rounded-lg border bg-popover p-2 text-center text-[12px] transition-colors duration-100",
+        "relative flex flex-col gap-1.5 rounded-lg border bg-popover p-2 text-center text-[12px] transition-spring hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]",
         selected ? "border-accent" : "border-border hover:bg-chrome-hover",
       )}
     >
       {children}
-      {selected && <Check size={12} className="absolute right-1.5 top-1.5 text-accent" />}
+      {selected && <Check size={12} className="anim-pop absolute right-1.5 top-1.5 text-accent" />}
     </button>
   );
 }

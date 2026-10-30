@@ -11,5 +11,5 @@
 - Multimodal quick capture (photos, voice memos, screenshots) à la NoteGen.
 - Mobile (Tauri mobile) or a companion capture app, if Obsidian proves insufficient.
 - Native Google Drive/iCloud API sync.
-- Additional themes, custom fonts. (Dhyana light/dark and Default light/dark shipped in 0.1.)
+- Additional themes, custom fonts. (Dhyana light/dark and Basic light/dark shipped in 0.1.)
 - Source-peek (raw markdown) for tricky constructs — only if absolutely needed; conflicts with "no source mode" preference.
