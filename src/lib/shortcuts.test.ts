@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { addDays, isISODate, monthGrid, parseDateInput } from "./dates";
-import { createDispatcher, formatShortcut, matchChord, shortcutLabel, type Action } from "./shortcuts";
+import {
+  createDispatcher,
+  formatShortcut,
+  matchChord,
+  shortcutLabel,
+  type Action,
+} from "./shortcuts";
 
-const ev = (key: string, o: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }> = {}) => ({
+const ev = (
+  key: string,
+  o: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }> = {},
+) => ({
   key,
   ctrlKey: false,
   metaKey: false,
@@ -11,7 +20,13 @@ const ev = (key: string, o: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey
   ...o,
 });
 
-const act = (id: string, shortcut: string): Action => ({ id, label: id, group: "App", shortcut, run: () => {} });
+const act = (id: string, shortcut: string): Action => ({
+  id,
+  label: id,
+  group: "App",
+  shortcut,
+  run: () => {},
+});
 
 describe("shortcuts", () => {
   it("mod maps to ctrl on Windows and cmd on macOS", () => {
@@ -49,7 +64,10 @@ describe("shortcuts", () => {
 
   it("a sequence expires", () => {
     let t = 0;
-    const d = createDispatcher(() => [act("today", "g t")], () => t);
+    const d = createDispatcher(
+      () => [act("today", "g t")],
+      () => t,
+    );
     d(ev("g"), false);
     t = 2000;
     expect(d(ev("t"), false)).toBeNull();

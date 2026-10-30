@@ -5,37 +5,37 @@ Personal-use app (not distributed), so copying ideas/code from reference project
 
 ## 1. Decisions locked (from planning Q&A)
 
-| Area | Decision |
-|---|---|
-| Foundation | **Greenfield**. Other projects are references only; no fork of Tolaria. |
-| Stack | Tauri 2 (Rust), Vite + React + TypeScript, Tailwind, shadcn/ui, TanStack Router (router only), zod |
-| Editor | **Tiptap (ProseMirror)**, WYSIWYG only, always editable. No preview mode, no source mode. |
-| Storage | **One markdown file per day**: `journal/YYYY/MM/YYYY-MM-DD.md`. One entry per day, no sections. |
-| Entities | People, places, emotions etc. are **real markdown files** with YAML (aliases, relationship...). |
-| Inline syntax | Plain markdown-friendly (wikilinks/`#tags`) so other apps read it sensibly. See §4. |
-| Platforms | Windows + macOS desktop. Keep Rust core portable. |
-| Git | Bundled via `git2-rs`; debounced autocommit; history UI. **Git dir lives in app data, outside the vault** (decided; avoids `.git` corruption in synced folders and a later migration). |
-| Cloud | v1 = **user-chosen synced folder** (Drive/iCloud/OneDrive). Native APIs not planned. |
-| Mood | Valence slider + emotion labels (+ optional factors), **multiple check-ins/day**, in frontmatter. The check-in is **offered automatically once per day**, on the first open of today's note; after that it never reappears on its own. The user can still write in the note as often as they like, and add more check-ins manually (command palette / mood button). |
-| Inline emotions (`!sad`) | Count as data in analytics, separate from check-ins. |
-| Privacy | Nothing leaves the machine unless a cloud provider is explicitly configured. Per-file (per-day) `private: true` excludes it from AI, index-for-AI, and anything derived from it that an AI or MCP client can see. Plain files + the flag is the whole privacy model (no encryption). |
-| AI backends (first AI release) | Local OpenAI-compatible endpoint, BYO cloud API keys, **MCP server** for external agents (Claude etc.). ChatGPT GPT / Gemini Gem deferred. |
-| AI edit modes | **Review-before-apply** and **review-after-apply** (user toggle). Git checkpoint before any AI edit. |
-| Retrieval | Staged: SQLite FTS5 + metadata filters → local embeddings (sqlite-vec) hybrid → rerank only if needed. |
-| Embeddings | Local in-app model (small ONNX/candle model), offline. |
-| AI-written content | Lives in a **clearly marked, regenerable block**, user-approved. Never mixed with user text; AI classifications labeled as AI-derived in data. |
-| Dictation v1 | Rely on OS dictation (Win+H / macOS), add a hint. Whisper later. |
-| Analytics | Consistency, mood correlations, people & topics, writing style. |
-| Workflow | Claude Code plan mode + these markdown plans. See §8. |
-| Journal day | Plain local calendar day, midnight to midnight, system timezone. No custom day boundary. |
-| Index location | SQLite index and vectors live in app data keyed by vault id, never inside the vault. `.dhyana/` in the vault holds only settings and chat sessions. |
-| Language | English only (FTS tokenizer, lexicons, embedding model). |
-| Mood alone | A mood check-in never creates the day file. It is held pending and written into frontmatter when the note is created by the first text. |
-| Inline triggers | `@ ! # $` fire only at line start or after whitespace. |
-| MCP | Separate local process launched by the client; counts as cloud egress (same consent + request log); read-only and off by default. (Default chosen; revisit in 0.5.) |
-| Mobile | No dhyana mobile app. **Recommended path: Obsidian mobile** (or any markdown editor) pointed at the synced vault folder, with a documented Daily Notes setup (`docs/mobile.md`). Notes made that way may lack frontmatter; dhyana must accept them (see §4). A Tauri mobile / capture app stays in the backlog. |
-| Keyboard & feel | Keyboard-first and Linear-like: command palette and a single shortcut registry from 0.1. See principle 9. |
-| Docs | Short root `README.md`; everything else in `docs/` as separate pages. See §10. |
+| Area                           | Decision                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Foundation                     | **Greenfield**. Other projects are references only; no fork of Tolaria.                                                                                                                                                                                                                                                                                             |
+| Stack                          | Tauri 2 (Rust), Vite + React + TypeScript, Tailwind, shadcn/ui, TanStack Router (router only), zod                                                                                                                                                                                                                                                                  |
+| Editor                         | **Tiptap (ProseMirror)**, WYSIWYG only, always editable. No preview mode, no source mode.                                                                                                                                                                                                                                                                           |
+| Storage                        | **One markdown file per day**: `journal/YYYY/MM/YYYY-MM-DD.md`. One entry per day, no sections.                                                                                                                                                                                                                                                                     |
+| Entities                       | People, places, emotions etc. are **real markdown files** with YAML (aliases, relationship...).                                                                                                                                                                                                                                                                     |
+| Inline syntax                  | Plain markdown-friendly (wikilinks/`#tags`) so other apps read it sensibly. See §4.                                                                                                                                                                                                                                                                                 |
+| Platforms                      | Windows + macOS desktop. Keep Rust core portable.                                                                                                                                                                                                                                                                                                                   |
+| Git                            | Bundled via `git2-rs`; debounced autocommit; history UI. **Git dir lives in app data, outside the vault** (decided; avoids `.git` corruption in synced folders and a later migration).                                                                                                                                                                              |
+| Cloud                          | v1 = **user-chosen synced folder** (Drive/iCloud/OneDrive). Native APIs not planned.                                                                                                                                                                                                                                                                                |
+| Mood                           | Valence slider + emotion labels (+ optional factors), **multiple check-ins/day**, in frontmatter. The check-in is **offered automatically once per day**, on the first open of today's note; after that it never reappears on its own. The user can still write in the note as often as they like, and add more check-ins manually (command palette / mood button). |
+| Inline emotions (`!sad`)       | Count as data in analytics, separate from check-ins.                                                                                                                                                                                                                                                                                                                |
+| Privacy                        | Nothing leaves the machine unless a cloud provider is explicitly configured. Per-file (per-day) `private: true` excludes it from AI, index-for-AI, and anything derived from it that an AI or MCP client can see. Plain files + the flag is the whole privacy model (no encryption).                                                                                |
+| AI backends (first AI release) | Local OpenAI-compatible endpoint, BYO cloud API keys, **MCP server** for external agents (Claude etc.). ChatGPT GPT / Gemini Gem deferred.                                                                                                                                                                                                                          |
+| AI edit modes                  | **Review-before-apply** and **review-after-apply** (user toggle). Git checkpoint before any AI edit.                                                                                                                                                                                                                                                                |
+| Retrieval                      | Staged: SQLite FTS5 + metadata filters → local embeddings (sqlite-vec) hybrid → rerank only if needed.                                                                                                                                                                                                                                                              |
+| Embeddings                     | Local in-app model (small ONNX/candle model), offline.                                                                                                                                                                                                                                                                                                              |
+| AI-written content             | Lives in a **clearly marked, regenerable block**, user-approved. Never mixed with user text; AI classifications labeled as AI-derived in data.                                                                                                                                                                                                                      |
+| Dictation v1                   | Rely on OS dictation (Win+H / macOS), add a hint. Whisper later.                                                                                                                                                                                                                                                                                                    |
+| Analytics                      | Consistency, mood correlations, people & topics, writing style.                                                                                                                                                                                                                                                                                                     |
+| Workflow                       | Claude Code plan mode + these markdown plans. See §8.                                                                                                                                                                                                                                                                                                               |
+| Journal day                    | Plain local calendar day, midnight to midnight, system timezone. No custom day boundary.                                                                                                                                                                                                                                                                            |
+| Index location                 | SQLite index and vectors live in app data keyed by vault id, never inside the vault. `.dhyana/` in the vault holds only settings and chat sessions.                                                                                                                                                                                                                 |
+| Language                       | English only (FTS tokenizer, lexicons, embedding model).                                                                                                                                                                                                                                                                                                            |
+| Mood alone                     | A mood check-in never creates the day file. It is held pending and written into frontmatter when the note is created by the first text.                                                                                                                                                                                                                             |
+| Inline triggers                | `@ ! # $` fire only at line start or after whitespace.                                                                                                                                                                                                                                                                                                              |
+| MCP                            | Separate local process launched by the client; counts as cloud egress (same consent + request log); read-only and off by default. (Default chosen; revisit in 0.5.)                                                                                                                                                                                                 |
+| Mobile                         | No dhyana mobile app. **Recommended path: Obsidian mobile** (or any markdown editor) pointed at the synced vault folder, with a documented Daily Notes setup (`docs/mobile.md`). Notes made that way may lack frontmatter; dhyana must accept them (see §4). A Tauri mobile / capture app stays in the backlog.                                                     |
+| Keyboard & feel                | Keyboard-first and Linear-like: command palette and a single shortcut registry from 0.1. See principle 9.                                                                                                                                                                                                                                                           |
+| Docs                           | Short root `README.md`; everything else in `docs/` as separate pages. See §10.                                                                                                                                                                                                                                                                                      |
 
 ## 2. Principles
 
@@ -81,23 +81,25 @@ Entry frontmatter (all optional; zod-validated):
 
 ```yaml
 ---
-id: 01J...               # stable ULID
+id: 01J... # stable ULID
 type: journal
-date: 2026-10-28         # journal date
+date: 2026-10-28 # journal date
 created: 2026-10-28T07:12:00-05:00
-modified: 2026-10-28T21:40:00-05:00   # last edited
+modified: 2026-10-28T21:40:00-05:00 # last edited
 private: false
-mood:                    # check-ins, multiple/day
-  - { at: "07:12", valence: 0.4, emotions: [calm, hopeful], factors: [sleep] }   # local time
+mood: # check-ins, multiple/day
+  - { at: "07:12", valence: 0.4, emotions: [calm, hopeful], factors: [sleep] } # local time
 ---
 ```
 
 Frontmatter timestamps:
+
 - `created` is written once, when the file is first created. `modified` is updated by dhyana on each save that changes content, never merely on open. Only that one line is edited (surgical, same as all frontmatter edits); a no-op save changes no bytes.
 - Both are ISO 8601 with offset. They are informational: edits made in other apps (e.g. Obsidian on a phone) don't update `modified`, so sync, the index, and conflict detection must not rely on it (file mtime/content hash do that job).
 - Files without frontmatter are valid. `date` falls back to the filename; dhyana adds `id`/`created`/`modified` surgically on the first edit it makes to such a file.
 
 Inline syntax (triggers fire only at line start or after whitespace):
+
 - `@Alice` → `[[Alice]]` (resolved by alias to `people/Alice.md`)
 - `!sad` → `[[sad]]` resolving to an `emotion`-typed note (rendered as a chip)
 - `#tag` → `#tag`; custom tags get a tag registry. `#` is for **topics and themes** (`#work`, `#gratitude`, `#dream`), things that aren't a specific person, place, or feeling, so it stays distinct from the entity triggers. Anything that deserves its own page or fields (books, projects, habits) becomes a user-defined type in 0.9, not a new symbol.
@@ -134,18 +136,18 @@ Rust core
 
 ## 6. Release map
 
-| Release | Theme | Plan file |
-|---|---|---|
-| 0.1 | Writing core: shell, splash, onboarding (replayable), settings, today-first, editor, calendar, command palette + shortcuts, paper theme, README/docs skeleton | `release-0.1-writing-core.md` |
-| 0.2 | Entities & quick commands (`@ ! # $`), types, index, backlinks | `release-0.2-entities-commands.md` |
-| 0.3 | Mood check-in, year heatmap, Git history/autogit | `release-0.3-mood-heatmap-git.md` |
-| 0.4 | Search & analytics | `release-0.4-search-analytics.md` |
-| 0.5 | AI foundation: providers, privacy, chat sidebar, MCP server | `release-0.5-ai-foundation.md` |
-| 0.6 | AI editing: selection menu, surgical edits, accept/reject, multi-session | `release-0.6-ai-editing.md` |
-| 0.7 | Retrieval & companion: vectors, proactive prompts, person summaries | `release-0.7-retrieval-companion.md` |
-| 0.8 | Sync hardening, dictation, polish | `release-0.8-sync-dictation-polish.md` |
-| 0.9 | User-defined types & typed relations | `release-0.9-types-relations.md` |
-| Later | Demo journals (Dwight Schrute), Whisper, cloud dictation, GPT/Gem plugins, reranker | `backlog.md` |
+| Release | Theme                                                                                                                                                         | Plan file                              |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 0.1     | Writing core: shell, splash, onboarding (replayable), settings, today-first, editor, calendar, command palette + shortcuts, paper theme, README/docs skeleton | `release-0.1-writing-core.md`          |
+| 0.2     | Entities & quick commands (`@ ! # $`), types, index, backlinks                                                                                                | `release-0.2-entities-commands.md`     |
+| 0.3     | Mood check-in, year heatmap, Git history/autogit                                                                                                              | `release-0.3-mood-heatmap-git.md`      |
+| 0.4     | Search & analytics                                                                                                                                            | `release-0.4-search-analytics.md`      |
+| 0.5     | AI foundation: providers, privacy, chat sidebar, MCP server                                                                                                   | `release-0.5-ai-foundation.md`         |
+| 0.6     | AI editing: selection menu, surgical edits, accept/reject, multi-session                                                                                      | `release-0.6-ai-editing.md`            |
+| 0.7     | Retrieval & companion: vectors, proactive prompts, person summaries                                                                                           | `release-0.7-retrieval-companion.md`   |
+| 0.8     | Sync hardening, dictation, polish                                                                                                                             | `release-0.8-sync-dictation-polish.md` |
+| 0.9     | User-defined types & typed relations                                                                                                                          | `release-0.9-types-relations.md`       |
+| Later   | Demo journals (Dwight Schrute), Whisper, cloud dictation, GPT/Gem plugins, reranker                                                                           | `backlog.md`                           |
 
 Rule: each release is usable daily on its own. Don't start N+1 until N's exit criteria pass.
 
@@ -188,6 +190,8 @@ docs/
   architecture.md             # diagram (mermaid) + module responsibilities (from §5)
   vault-format.md             # folder layout, frontmatter, inline syntax
   keyboard-shortcuts.md       # generated from the shortcut registry where possible
+  development.md              # toolchain, CI/builds, developer settings, conventions
+  design.md                   # themes, motion, window chrome, logo
   mobile.md                   # Obsidian setup for capturing on a phone
   privacy-and-ai.md           # added with 0.5
   plans/                      # these planning docs

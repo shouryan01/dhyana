@@ -3,6 +3,7 @@
 **Goal:** typing `@ ! # $` creates structured, linked data stored as plain markdown.
 
 ## Scope
+
 - **Rust index service** (SQLite): notes, frontmatter fields, links/backlinks, tags, entities. Rebuildable from files; incremental via watcher. Stored in app data keyed by vault id, not inside the vault. One day file = one entry.
 - **Schema layer:** zod types in TS mirrored by Rust validation. Built-in types: `journal`, `person`, `place`, `emotion`, `tag`. Type definition notes in `types/`. Shared validation for UI and (later) AI.
 - **Quick commands** (Tiptap suggestion extension):
@@ -19,16 +20,20 @@
 - Rename entity → update links across vault.
 
 ## Decisions made
+
 Inline syntax and trigger rules: master §4. One entry per day file. User-defined types and typed relations moved to release 0.9. People keep a plain free-text `relationship` property.
 
 ## Spikes / open
+
 Name-collision rules, comment-preserving YAML editor in Rust, zod/Rust single schema source (master §9). Build a synthetic-vault generator here; later releases need it.
 
 ## Exit criteria
+
 - [ ] `@Ali` completes to Alice, file contains a wikilink, Alice's page lists the entry.
 - [ ] Renaming Alice updates all links.
 - [ ] Deleting `.dhyana/index.db` and relaunching rebuilds identical results.
 - [ ] Vault still reads sensibly in Obsidian.
 
 ## Reference study
+
 Tolaria (types/relations), SoloMD (YAML preservation, typed relations), Glyph (wikilink autocomplete, rename).

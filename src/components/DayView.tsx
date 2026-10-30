@@ -155,8 +155,11 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
       await backend.deleteDay(date);
       applyDisk({ exists: false, body: "", hash: "", created: null, modified: null });
       appRef.current.bumpDays();
-      toast.success(`Deleted ${formatLong(date)}`, { description: `It's in your ${trashName()} if you need it back.` });
-      if (date !== appRef.current.today) void navigate({ to: "/day/$date", params: { date: appRef.current.today } });
+      toast.success(`Deleted ${formatLong(date)}`, {
+        description: `It's in your ${trashName()} if you need it back.`,
+      });
+      if (date !== appRef.current.today)
+        void navigate({ to: "/day/$date", params: { date: appRef.current.today } });
     } catch (e) {
       toast.error(`Couldn't delete this note: ${e}`);
     }
@@ -189,18 +192,22 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   // Focus: editor registers itself for "Focus editor"; today's note takes focus on open.
   useEffect(() => {
     if (!editor) return;
-    app.focusEditor.current = () => editor.commands.focus("end");
+    const { focusEditor, deleteNote } = app; // stable ref objects, captured so cleanup clears the same ones
+    focusEditor.current = () => editor.commands.focus("end");
     if (date === app.today && !app.paletteOpen) editor.commands.focus("end");
-    app.deleteNote.current = () => latest.current.requestDelete();
+    deleteNote.current = () => latest.current.requestDelete();
     return () => {
-      app.focusEditor.current = null;
-      app.deleteNote.current = null;
+      focusEditor.current = null;
+      deleteNote.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, date]);
 
   return (
-    <div className="writing h-full overflow-y-auto" onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}>
+    <div
+      className="writing h-full overflow-y-auto"
+      onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}
+    >
       <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
         <header className="group mb-8 flex items-start justify-between gap-4 select-none">
           <div>
@@ -209,8 +216,12 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
             </h1>
             <p className="mt-1 text-[12px] text-surface-muted">
               {date === app.today ? "Today · " : ""}
-              {meta.created ? `Created ${formatTime(meta.created)}` : "Not saved yet — start typing"}
-              {meta.modified && meta.modified !== meta.created ? ` · Edited ${formatTime(meta.modified)}` : ""}
+              {meta.created
+                ? `Created ${formatTime(meta.created)}`
+                : "Not saved yet — start typing"}
+              {meta.modified && meta.modified !== meta.created
+                ? ` · Edited ${formatTime(meta.modified)}`
+                : ""}
             </p>
           </div>
           {meta.created && (
@@ -226,8 +237,13 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
         </header>
 
         {external && (
-          <div role="alert" className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-popover px-4 py-3 text-fg select-none">
-            <span className="flex-1 text-[13px]">This note changed on disk while you were editing.</span>
+          <div
+            role="alert"
+            className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-popover px-4 py-3 text-fg select-none"
+          >
+            <span className="flex-1 text-[13px]">
+              This note changed on disk while you were editing.
+            </span>
             <Button size="sm" onClick={() => applyDisk(external.file)}>
               Load disk version
             </Button>
@@ -258,11 +274,17 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   );
 }
 
-const trashName = () => (/win/i.test(navigator.platform || navigator.userAgent) ? "Recycle Bin" : "Trash");
+const trashName = () =>
+  /win/i.test(navigator.platform || navigator.userAgent) ? "Recycle Bin" : "Trash";
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   const sameDay = d.toDateString() === new Date().toDateString();
-  return d.toLocaleString(undefined, sameDay ? { hour: "numeric", minute: "2-digit" } : { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return d.toLocaleString(
+    undefined,
+    sameDay
+      ? { hour: "numeric", minute: "2-digit" }
+      : { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
+  );
 }

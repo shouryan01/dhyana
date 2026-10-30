@@ -11,10 +11,10 @@ One entry per day. The journal day is the local calendar day. The file is create
 
 ```yaml
 ---
-id: 01J...                          # stable ULID
+id: 01J... # stable ULID
 type: journal
-date: 2026-10-28                    # journal date
-created: 2026-10-28T07:12:00-05:00  # written once
+date: 2026-10-28 # journal date
+created: 2026-10-28T07:12:00-05:00 # written once
 modified: 2026-10-28T21:40:00-05:00 # last edit made in dhyana
 ---
 ```

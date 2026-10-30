@@ -20,7 +20,9 @@ export function Shell() {
   const navigate = useNavigate();
   const params = useParams({ strict: false }) as { date?: string };
   const selected = params.date && isISODate(params.date) ? params.date : app.today;
-  const onSettings = useRouterState({ select: (s) => /^\/(settings|shortcuts)/.test(s.location.pathname) });
+  const onSettings = useRouterState({
+    select: (s) => /^\/(settings|shortcuts)/.test(s.location.pathname),
+  });
   const actions = useActions();
   useHotkeys(actions);
   useRolloverNotice();
@@ -46,7 +48,11 @@ export function Shell() {
       >
         <div
           data-tauri-drag-region
-          className={cn("flex shrink-0 items-center justify-between pr-1", titlebarHeight(), lights && "pl-[64px]")}
+          className={cn(
+            "flex shrink-0 items-center justify-between pr-1",
+            titlebarHeight(),
+            lights && "pl-[64px]",
+          )}
         >
           <Link
             to="/day/$date"
@@ -57,7 +63,11 @@ export function Shell() {
             <Logo size={17} className="logo-mark text-accent" />
             dhyāna
           </Link>
-          <IconButton label="Toggle sidebar" shortcut={shortcutOf("sidebar")} onClick={app.toggleSidebar}>
+          <IconButton
+            label="Toggle sidebar"
+            shortcut={shortcutOf("sidebar")}
+            onClick={app.toggleSidebar}
+          >
             <PanelLeft size={15} />
           </IconButton>
         </div>
@@ -85,7 +95,10 @@ export function Shell() {
           />
         </nav>
 
-        <Calendar selected={selected} onSelect={(date) => navigate({ to: "/day/$date", params: { date } })} />
+        <Calendar
+          selected={selected}
+          onSelect={(date) => navigate({ to: "/day/$date", params: { date } })}
+        />
 
         <div className="mt-auto flex flex-col gap-0.5">
           <button
@@ -109,10 +122,26 @@ export function Shell() {
         </div>
       </aside>
 
-      <main className={cn("flex min-w-0 flex-1 flex-col overflow-hidden", onSettings ? "bg-chrome" : "bg-surface")}>
-        <div data-tauri-drag-region className={cn("flex shrink-0 items-center", titlebarHeight(), app.sidebarOpen ? "pl-3" : lights ? "pl-[78px]" : "pl-3")}>
+      <main
+        className={cn(
+          "flex min-w-0 flex-1 flex-col overflow-hidden",
+          onSettings ? "bg-chrome" : "bg-surface",
+        )}
+      >
+        <div
+          data-tauri-drag-region
+          className={cn(
+            "flex shrink-0 items-center",
+            titlebarHeight(),
+            app.sidebarOpen ? "pl-3" : lights ? "pl-[78px]" : "pl-3",
+          )}
+        >
           {!app.sidebarOpen && (
-            <IconButton label="Show sidebar" shortcut={shortcutOf("sidebar")} onClick={app.toggleSidebar}>
+            <IconButton
+              label="Show sidebar"
+              shortcut={shortcutOf("sidebar")}
+              onClick={app.toggleSidebar}
+            >
               <PanelLeft size={15} />
             </IconButton>
           )}
@@ -129,7 +158,12 @@ export function Shell() {
         position="bottom-right"
         theme={dark ? "dark" : "light"}
         toastOptions={{
-          style: { background: "var(--popover)", color: "var(--fg)", border: "1px solid var(--border)", fontFamily: "var(--font-ui)" },
+          style: {
+            background: "var(--popover)",
+            color: "var(--fg)",
+            border: "1px solid var(--border)",
+            fontFamily: "var(--font-ui)",
+          },
         }}
       />
     </div>
@@ -137,10 +171,12 @@ export function Shell() {
 }
 
 /** Shortcut hints appear only while the row is hovered or keyboard-focused. */
-const REVEAL = "opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus-visible:opacity-100";
+const REVEAL =
+  "opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus-visible:opacity-100";
 /** Icons beside a label get a springy nudge when the row is hovered. */
 const ICON = "inline-flex transition-transform duration-200 ease-spring group-hover:scale-110";
-const ROW = "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-100";
+const ROW =
+  "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-100";
 
 function NavLink(props: {
   to: "/day/$date" | "/settings";
@@ -158,7 +194,9 @@ function NavLink(props: {
       className={cn(
         ROW,
         "group",
-        props.active ? "bg-chrome-active text-fg" : "text-muted hover:bg-chrome-hover hover:text-fg",
+        props.active
+          ? "bg-chrome-active text-fg"
+          : "text-muted hover:bg-chrome-hover hover:text-fg",
       )}
     >
       <span className={cn(ICON, props.wiggle)}>{props.icon}</span>

@@ -10,7 +10,14 @@ import {
 } from "react";
 import { backend } from "@/lib";
 import { getDevSettings } from "@/lib/devSettings";
-import { parseTheme, themeOf, type AppState, type Font, type SettingsPatch, type Theme } from "@/lib/backend";
+import {
+  parseTheme,
+  themeOf,
+  type AppState,
+  type Font,
+  type SettingsPatch,
+  type Theme,
+} from "@/lib/backend";
 import { todayISO } from "@/lib/dates";
 
 type PaletteMode = "commands" | "goto-date";
@@ -147,7 +154,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       focusEditor,
       deleteNote,
     }),
-    [app, loadError, updateSettings, toggleMode, setVault, previewAppearance, today, replaying, sidebarOpen, paletteOpen, paletteMode, daysVersion],
+    [
+      app,
+      loadError,
+      updateSettings,
+      toggleMode,
+      setVault,
+      previewAppearance,
+      today,
+      replaying,
+      sidebarOpen,
+      paletteOpen,
+      paletteMode,
+      daysVersion,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

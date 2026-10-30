@@ -46,17 +46,31 @@ export function SettingsPage() {
             />
           </Row>
           <Row label="Mode">
-            <Segmented options={MODES} value={mode} onChange={(m) => void app.updateSettings({ theme: themeOf(family, m) })} />
+            <Segmented
+              options={MODES}
+              value={mode}
+              onChange={(m) => void app.updateSettings({ theme: themeOf(family, m) })}
+            />
           </Row>
           <Row label="Writing font">
-            <Segmented options={FONTS} value={state.font} onChange={(font) => void app.updateSettings({ font })} />
+            <Segmented
+              options={FONTS}
+              value={state.font}
+              onChange={(font) => void app.updateSettings({ font })}
+            />
           </Row>
         </Section>
 
         <Section title="Vault">
-          <Row label="Location" hint="Switching only changes which folder dhyāna opens. Files are never moved or deleted.">
+          <Row
+            label="Location"
+            hint="Switching only changes which folder dhyāna opens. Files are never moved or deleted."
+          >
             <span className="flex items-center gap-3">
-              <span className="max-w-[240px] truncate font-mono text-[12px]" title={state.vaultPath ?? ""}>
+              <span
+                className="max-w-[240px] truncate font-mono text-[12px]"
+                title={state.vaultPath ?? ""}
+              >
                 {state.vaultPath}
               </span>
               <Button onClick={() => void changeVault()}>Change…</Button>
@@ -67,7 +81,10 @@ export function SettingsPage() {
         {IS_DEV && <DeveloperSection onPreviewOnboarding={app.replayOnboarding} />}
 
         <Section title="Keyboard shortcuts">
-          <Row label="Shortcuts" hint="Every action and its keys. Press ? anywhere outside the editor.">
+          <Row
+            label="Shortcuts"
+            hint="Every action and its keys. Press ? anywhere outside the editor."
+          >
             <Button asChild>
               <Link to="/shortcuts">View all</Link>
             </Button>
@@ -114,16 +131,34 @@ function DeveloperSection({ onPreviewOnboarding }: { onPreviewOnboarding(): void
   );
 }
 
-function Section({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
+function Section({
+  title,
+  id,
+  children,
+}: {
+  title: string;
+  id?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section id={id} className="mb-9">
-      <h2 className="mb-2 border-b border-border pb-2 text-[12px] font-medium uppercase tracking-wide text-muted">{title}</h2>
+      <h2 className="mb-2 border-b border-border pb-2 text-[12px] font-medium uppercase tracking-wide text-muted">
+        {title}
+      </h2>
       {children}
     </section>
   );
 }
 
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Row({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex min-h-10 items-center justify-between gap-4 py-1.5">
       <div>

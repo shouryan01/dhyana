@@ -52,7 +52,10 @@ export function WindowControls() {
       <ControlButton label="Minimize" onClick={run((w) => w.minimize())}>
         <path d="M0 5.5h10" />
       </ControlButton>
-      <ControlButton label={maximized ? "Restore" : "Maximize"} onClick={run((w) => w.toggleMaximize())}>
+      <ControlButton
+        label={maximized ? "Restore" : "Maximize"}
+        onClick={run((w) => w.toggleMaximize())}
+      >
         {maximized ? (
           <>
             <path d="M2.5 2.5V.5h7v7h-2" />
@@ -90,7 +93,14 @@ function ControlButton({
         danger ? "hover:bg-[#e81123] hover:text-white" : "hover:bg-chrome-hover hover:text-fg",
       )}
     >
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 10 10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+      >
         {children}
       </svg>
     </button>

@@ -1,4 +1,10 @@
-import { AppStateSchema, type AppState, type Backend, type DayFile, type SaveResult } from "./backend";
+import {
+  AppStateSchema,
+  type AppState,
+  type Backend,
+  type DayFile,
+  type SaveResult,
+} from "./backend";
 
 /**
  * In-memory/localStorage stand-in for the Rust core, used when the UI runs in a plain browser
@@ -13,7 +19,7 @@ interface MemFile {
 const KEY_SETTINGS = "dhyana:mem:settings";
 const KEY_FILES = "dhyana:mem:files";
 
-const read = <T,>(key: string, fallback: T): T => {
+const read = <T>(key: string, fallback: T): T => {
   try {
     const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : fallback;
@@ -75,15 +81,27 @@ export function createMemoryBackend(): Backend {
     async readDay(date): Promise<DayFile> {
       const f = files[date];
       if (!f) return { exists: false, body: "", hash: "", created: null, modified: null };
-      return { exists: true, body: f.body, hash: hash(f.body), created: f.created, modified: f.modified };
+      return {
+        exists: true,
+        body: f.body,
+        hash: hash(f.body),
+        created: f.created,
+        modified: f.modified,
+      };
     },
     async saveDay(date, body, expectedHash, force): Promise<SaveResult> {
       const f = files[date];
       const current = f ? hash(f.body) : "";
       if (!force && expectedHash && expectedHash !== current) {
-        return { status: "conflict", hash: current, created: f?.created ?? null, modified: f?.modified ?? null };
+        return {
+          status: "conflict",
+          hash: current,
+          created: f?.created ?? null,
+          modified: f?.modified ?? null,
+        };
       }
-      if (!f && body.trim() === "") return { status: "skipped", hash: "", created: null, modified: null };
+      if (!f && body.trim() === "")
+        return { status: "skipped", hash: "", created: null, modified: null };
       if (f && f.body === body) {
         return { status: "skipped", hash: current, created: f.created, modified: f.modified };
       }
@@ -100,7 +118,9 @@ export function createMemoryBackend(): Backend {
     },
     async listDays(year, month) {
       const prefix = `${year}-${String(month).padStart(2, "0")}-`;
-      return Object.keys(files).filter((d) => d.startsWith(prefix)).sort();
+      return Object.keys(files)
+        .filter((d) => d.startsWith(prefix))
+        .sort();
     },
     async onVaultChanged(cb) {
       listeners.add(cb);

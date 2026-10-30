@@ -199,7 +199,8 @@ function closeDelim(m: PMMark): string {
 
 /** A link whose visible text is its own URL round-trips as a bare URL. */
 function autolinkText(node: PMNode): string | null {
-  if (node.type !== "text" || node.marks?.length !== 1 || node.marks[0].type !== "link") return null;
+  if (node.type !== "text" || node.marks?.length !== 1 || node.marks[0].type !== "link")
+    return null;
   const attrs = node.marks[0].attrs ?? {};
   const href = String(attrs.href ?? "");
   const text = node.text ?? "";

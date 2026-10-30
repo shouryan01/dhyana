@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "oxc"],
+  "categories": { "correctness": "error" },
+  "ignorePatterns": ["dist", "src-tauri", "node_modules", ".claude"],
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    // React Compiler rules: off, as the ref-based save logic in DayView is deliberate and we don't use the compiler.
+    "react/refs": "off",
+    "react/set-state-in-effect": "off"
+  }
+}

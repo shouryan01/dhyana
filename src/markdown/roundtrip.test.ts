@@ -13,7 +13,10 @@ const fixtures = readdirSync(dir)
 const canon = createCanon(defaultSchema());
 const crlf = (s: string) => s.replace(/\n/g, "\r\n");
 
-const textBlock = (text: string): PMNode => ({ type: "paragraph", content: [{ type: "text", text }] });
+const textBlock = (text: string): PMNode => ({
+  type: "paragraph",
+  content: [{ type: "text", text }],
+});
 
 /** Simulates the editor: the doc goes through the schema before saving. */
 const edited = (doc: PMNode, fn: (blocks: PMNode[]) => PMNode[]): PMNode => ({
@@ -23,7 +26,10 @@ const edited = (doc: PMNode, fn: (blocks: PMNode[]) => PMNode[]): PMNode => ({
 
 describe("lossless load -> save", () => {
   for (const { name, text } of fixtures) {
-    for (const [label, src] of [["LF", text], ["CRLF", crlf(text)]] as const) {
+    for (const [label, src] of [
+      ["LF", text],
+      ["CRLF", crlf(text)],
+    ] as const) {
       it(`${name} (${label}) is byte-identical when untouched`, () => {
         const { doc, ctx } = loadBody(src, canon);
         // The editor hands back the doc via the schema; make sure that doesn't disturb matching.
@@ -43,7 +49,9 @@ describe("editing one block", () => {
       b[1] = textBlock("First paragraph, edited.");
       return b;
     });
-    expect(saveBody(ctx, next, canon)).toBe(src.replace("First paragraph.", "First paragraph, edited."));
+    expect(saveBody(ctx, next, canon)).toBe(
+      src.replace("First paragraph.", "First paragraph, edited."),
+    );
   });
 
   it("keeps CRLF line endings for new text", () => {
@@ -117,8 +125,16 @@ describe("parsing is not trivially opaque", () => {
 
   it("obsidian note maps to editable nodes", () => {
     expect(types("obsidian.md")).toEqual([
-      "heading", "paragraph", "taskList", "blockquote", "heading", "bulletList",
-      "orderedList", "paragraph", "horizontalRule", "codeBlock",
+      "heading",
+      "paragraph",
+      "taskList",
+      "blockquote",
+      "heading",
+      "bulletList",
+      "orderedList",
+      "paragraph",
+      "horizontalRule",
+      "codeBlock",
     ]);
   });
 
@@ -131,7 +147,9 @@ describe("parsing is not trivially opaque", () => {
 
   it("inline images/html/footnote refs are opaque inline atoms inside a paragraph", () => {
     const { doc } = loadBody(fixtures.find((f) => f.name === "raw-blocks.md")!.text, canon);
-    const para = doc.content!.find((n) => n.type === "paragraph" && n.content?.some((c) => c.type === "rawInline"));
+    const para = doc.content!.find(
+      (n) => n.type === "paragraph" && n.content?.some((c) => c.type === "rawInline"),
+    );
     expect(para!.content!.filter((c) => c.type === "rawInline").length).toBe(4);
   });
 });

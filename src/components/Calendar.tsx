@@ -26,7 +26,7 @@ export function Calendar({ selected, onSelect }: Props) {
   // Follow the selected day when it moves to another month (prev/next day, go to date).
   useEffect(() => {
     setView({ year: sel.getFullYear(), month: sel.getMonth() + 1 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
   useEffect(() => {
@@ -78,9 +78,7 @@ export function Calendar({ selected, onSelect }: Props) {
               aria-current={date === selected ? "date" : undefined}
               className={cn(
                 "relative mx-auto flex h-7 w-7 items-center justify-center rounded-md text-[12px] tabular-nums transition-colors duration-100",
-                date === selected
-                  ? "bg-accent text-accent-fg"
-                  : "hover:bg-chrome-hover",
+                date === selected ? "bg-accent text-accent-fg" : "hover:bg-chrome-hover",
                 date === today && date !== selected && "font-semibold text-accent",
               )}
             >
@@ -103,7 +101,15 @@ export function Calendar({ selected, onSelect }: Props) {
   );
 }
 
-function NavButton({ label, onClick, children }: { label: string; onClick(): void; children: React.ReactNode }) {
+function NavButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick(): void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       aria-label={label}

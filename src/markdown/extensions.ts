@@ -10,7 +10,10 @@ import Link from "@tiptap/extension-link";
  */
 const hidden = (def: unknown) => ({ default: def, rendered: false });
 
-const listAttrs = (parent: (() => Record<string, unknown>) | undefined, extra: Record<string, unknown> = {}) => ({
+const listAttrs = (
+  parent: (() => Record<string, unknown>) | undefined,
+  extra: Record<string, unknown> = {},
+) => ({
   ...(parent?.() ?? {}),
   marker: hidden("-"),
   spread: hidden(false),

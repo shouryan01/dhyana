@@ -36,7 +36,9 @@ export function CommandPalette({ actions }: { actions: Action[] }) {
               className="h-12 w-full border-b border-border bg-transparent px-4 text-[14px] outline-none placeholder:text-muted"
             />
             <Command.List className="max-h-[360px] overflow-y-auto p-1.5">
-              <Command.Empty className="px-3 py-6 text-center text-muted">No matching commands</Command.Empty>
+              <Command.Empty className="px-3 py-6 text-center text-muted">
+                No matching commands
+              </Command.Empty>
               {GROUPS.map((group) => {
                 const items = actions.filter((a) => a.group === group);
                 if (!items.length) return null;

@@ -2,7 +2,8 @@
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-export const toISODate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export const toISODate = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 export const isISODate = (s: string): boolean => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
@@ -87,11 +88,13 @@ export function parseDateInput(input: string, base: string = todayISO()): string
   if (rel) return addDays(base, (rel[1] === "-" ? -1 : 1) * Number(rel[2]));
   const wk = /^(next|last|this)?\s*([a-z]+)$/.exec(s);
   if (wk) {
-    const target = WEEKDAYS.findIndex((w) => w === wk[2] || (wk[2].length >= 3 && w.startsWith(wk[2])));
+    const target = WEEKDAYS.findIndex(
+      (w) => w === wk[2] || (wk[2].length >= 3 && w.startsWith(wk[2])),
+    );
     if (target >= 0) {
       const cur = parseISODate(base).getDay();
-      if (wk[1] === "last") return addDays(base, -(((cur - target + 7) % 7) || 7));
-      return addDays(base, ((target - cur + 7) % 7) || (wk[1] === "next" ? 7 : 0));
+      if (wk[1] === "last") return addDays(base, -((cur - target + 7) % 7 || 7));
+      return addDays(base, (target - cur + 7) % 7 || (wk[1] === "next" ? 7 : 0));
     }
   }
   return null;
