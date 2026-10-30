@@ -135,6 +135,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!vaultPath) return;
     void refreshEntities();
+    let cancelled = false;
     let off: (() => void) | undefined;
     let timer: number | undefined;
     backend
@@ -143,8 +144,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         window.clearTimeout(timer);
         timer = window.setTimeout(() => void refreshEntities(), 120);
       })
-      .then((u) => (off = u));
+      .then((u) => {
+        // Subscribing is async; if we were cleaned up meanwhile, unsubscribe straight away.
+        if (cancelled) u();
+        else off = u;
+      });
     return () => {
+      cancelled = true;
       window.clearTimeout(timer);
       off?.();
     };

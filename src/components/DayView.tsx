@@ -131,7 +131,9 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   editorRef.current = editor;
 
   const currentBody = (): string | null =>
-    editorRef.current ? saveBody(ctx.current, editorRef.current.getJSON() as PMNode, canon) : null;
+    editorRef.current && !editorRef.current.isDestroyed
+      ? saveBody(ctx.current, editorRef.current.getJSON() as PMNode, canon)
+      : null;
 
   const persist = (force: boolean): Promise<void> => {
     saving.current = saving.current.then(async () => {
@@ -171,7 +173,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
 
   const applyDisk = (f: DayFile) => {
     const ed = editorRef.current;
-    if (!ed) return;
+    if (!ed || ed.isDestroyed) return;
     const loaded = loadBody(f.body, canon);
     ctx.current = loaded.ctx;
     ed.commands.setContent(loaded.doc, { emitUpdate: false });
@@ -182,6 +184,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   };
 
   const checkExternal = async () => {
+    if (!editorRef.current || editorRef.current.isDestroyed) return;
     const f = await backend.readDay(date);
     if (f.hash === hash.current) return; // our own write, or nothing changed
     const dirty = currentBody() !== lastBody.current;
@@ -225,6 +228,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     let off: (() => void) | undefined;
     backend
       .onVaultChanged((dates) => {
@@ -232,8 +236,16 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
         // Wait for any in-flight save to settle, so we never mistake our own write for an external one.
         void saving.current.then(() => latest.current.checkExternal());
       })
-      .then((u) => (off = u));
-    return () => off?.();
+      .then((u) => {
+        // Subscribing is async: if this effect was already cleaned up (StrictMode mounts twice in
+        // dev), drop the listener now, or it would outlive the editor and poke a destroyed one.
+        if (cancelled) u();
+        else off = u;
+      });
+    return () => {
+      cancelled = true;
+      off?.();
+    };
   }, [date]);
 
   // Focus: editor registers itself for "Focus editor"; today's note takes focus on open.
