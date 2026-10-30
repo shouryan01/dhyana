@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Backend } from "./backend";
 import { diffLines, foldUnchanged } from "./diff";
 import { createMemoryBackend } from "./memoryBackend";
@@ -178,28 +178,41 @@ describe("mood in the in-memory backend", () => {
   });
 
   it("keeps versions of a day and restores one without losing the current text", async () => {
-    await be.saveDay("2026-10-30", "first\n", null, false);
-    await be.saveDay("2026-10-30", "second\n", (await be.readDay("2026-10-30")).hash, false);
+    const announced: number[] = [];
+    await be.onHistoryChanged(() => announced.push(announced.length));
+    vi.useFakeTimers();
+    try {
+      await be.saveDay("2026-10-30", "first\n", null, false);
+      await be.saveDay("2026-10-30", "second\n", (await be.readDay("2026-10-30")).hash, false);
+      const path = "journal/2026/10/2026-10-30.md";
+      let versions = await be.noteHistory(path);
+      expect(versions).toHaveLength(1); // typed without a pause: one version
+      vi.advanceTimersByTime(25_000); // a pause in writing...
+      await be.saveDay("2026-10-30", "third\n", (await be.readDay("2026-10-30")).hash, false);
+      versions = await be.noteHistory(path); // ...and the next edit is a new version, not an amend
+      expect(versions.map((v) => v.message)).toEqual(["Edit 2026-10-30", "Add 2026-10-30"]);
+      vi.advanceTimersByTime(25_000);
+      await be.saveDay("2026-10-30", "fourth\n", (await be.readDay("2026-10-30")).hash, false);
+      expect(await be.noteHistory(path)).toHaveLength(3);
+      expect(announced.length).toBeGreaterThanOrEqual(3);
+    } finally {
+      vi.useRealTimers();
+    }
     const path = "journal/2026/10/2026-10-30.md";
-    let versions = await be.noteHistory(path);
-    expect(versions).toHaveLength(1); // one autosaved version per session and day
-    await be.checkpoint("Saved by hand");
-    await be.saveDay("2026-10-30", "third\n", (await be.readDay("2026-10-30")).hash, false);
-    versions = await be.noteHistory(path);
-    expect(versions.map((v) => v.message)).toEqual(["Edit 2026-10-30", "Add 2026-10-30"]);
-    const old = await be.noteVersion(path, versions[1].id);
-    expect(old.text).toContain("second");
-    expect(old.current).toContain("third");
+    const versions = await be.noteHistory(path);
+    const oldest = await be.noteVersion(path, versions[versions.length - 1].id);
+    expect(oldest.text).toContain("second");
+    expect(oldest.current).toContain("fourth");
 
     const changed: string[][] = [];
     await be.onVaultChanged((d) => changed.push(d));
-    await be.restoreVersion(path, versions[1].id);
+    await be.restoreVersion(path, versions[versions.length - 1].id);
     expect((await be.readDay("2026-10-30")).body).toBe("second\n");
     expect(changed).toEqual([["2026-10-30"]]);
     const after = await be.noteHistory(path);
     expect(after[0].message).toMatch(/^Restore 2026-10-30/);
     // The text that was replaced is still a version.
     const texts = await Promise.all(after.map((v) => be.noteVersion(path, v.id)));
-    expect(texts.some((c) => c.text?.endsWith("third\n"))).toBe(true);
+    expect(texts.some((c) => c.text?.endsWith("fourth\n"))).toBe(true);
   });
 });

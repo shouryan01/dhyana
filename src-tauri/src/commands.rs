@@ -135,7 +135,7 @@ impl AppCtx {
             // Record the outgoing vault's last changes before switching.
             if let Some(old) = slot.as_mut() {
                 if self.auto_commit() {
-                    let _ = old.autocommit(chrono::Local::now().date_naive());
+                    let _ = old.autocommit();
                 }
             }
             *slot = history;
@@ -171,16 +171,19 @@ impl AppCtx {
         }
     }
 
-    /// Commit the vault if anything changed (idle and quit). Respects the setting.
-    pub fn autocommit(&self) {
+    /// Record a version if anything changed (on a pause, periodically, and on quit). Respects
+    /// the setting. True if a version was recorded.
+    pub fn autocommit(&self) -> bool {
         if !self.auto_commit() {
-            return;
+            return false;
         }
-        if let Ok(mut slot) = self.history.lock() {
-            if let Some(h) = slot.as_mut() {
-                if let Err(e) = h.autocommit(chrono::Local::now().date_naive()) {
-                    eprintln!("dhyana: autocommit failed: {e}");
-                }
+        let Ok(mut slot) = self.history.lock() else { return false };
+        let Some(h) = slot.as_mut() else { return false };
+        match h.autocommit() {
+            Ok(made) => made.is_some(),
+            Err(e) => {
+                eprintln!("dhyana: autocommit failed: {e}");
+                false
             }
         }
     }

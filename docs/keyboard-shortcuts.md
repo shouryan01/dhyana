@@ -13,7 +13,7 @@
 | Open year view           | `G Y` (heatmap of words, entries or mood)           |
 | Add mood check-in        | `M` (opens today if no day is open)                 |
 | Toggle mood panel        | `G M`                                               |
-| Show version history     | `G H`                                               |
+| Show version history     | `G H` (also in the `⋯` menu beside the date)        |
 | Save a version now       | palette only                                        |
 | Delete this note…        | palette only (moves it to the Trash / Recycle Bin)  |
 | Save now                 | `Mod S` (notes also save on their own as you type)  |

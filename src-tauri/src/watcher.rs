@@ -21,30 +21,42 @@ struct Changed {
     dates: Vec<String>,
 }
 
-/// When the vault's files last changed, so history can wait for a quiet moment to commit.
+/// When the vault's files changed since the last version was recorded, so history can commit at
+/// a quiet moment, or at least every so often while someone writes without pausing.
 pub struct Activity {
-    /// (changed since the last commit, when)
-    state: Mutex<(bool, Instant)>,
+    state: Mutex<Pending>,
+}
+
+#[derive(Default)]
+struct Pending {
+    /// The first change not yet recorded.
+    since: Option<Instant>,
+    /// The latest change.
+    last: Option<Instant>,
 }
 
 impl Default for Activity {
     fn default() -> Self {
-        Activity { state: Mutex::new((false, Instant::now())) }
+        Activity { state: Mutex::new(Pending::default()) }
     }
 }
 
 impl Activity {
     pub fn touch(&self) {
         if let Ok(mut s) = self.state.lock() {
-            *s = (true, Instant::now());
+            let now = Instant::now();
+            s.since.get_or_insert(now);
+            s.last = Some(now);
         }
     }
 
-    /// True (once) if something changed and nothing has for `quiet`.
-    pub fn take_if_idle(&self, quiet: Duration) -> bool {
+    /// True (once) if something changed and either nothing has for `quiet`, or the first
+    /// unrecorded change is `max` old.
+    pub fn take_if_due(&self, quiet: Duration, max: Duration) -> bool {
         let Ok(mut s) = self.state.lock() else { return false };
-        if s.0 && s.1.elapsed() >= quiet {
-            s.0 = false;
+        let (Some(since), Some(last)) = (s.since, s.last) else { return false };
+        if last.elapsed() >= quiet || since.elapsed() >= max {
+            *s = Pending::default();
             return true;
         }
         false
@@ -145,13 +157,17 @@ mod tests {
     }
 
     #[test]
-    fn activity_reports_idle_once() {
+    fn activity_is_due_when_quiet_or_when_it_has_waited_too_long() {
+        let hour = Duration::from_secs(3600);
         let a = Activity::default();
-        assert!(!a.take_if_idle(Duration::ZERO), "nothing changed yet");
+        assert!(!a.take_if_due(Duration::ZERO, Duration::ZERO), "nothing changed yet");
         a.touch();
-        assert!(!a.take_if_idle(Duration::from_secs(60)), "not quiet long enough");
-        assert!(a.take_if_idle(Duration::ZERO));
-        assert!(!a.take_if_idle(Duration::ZERO), "already taken");
+        assert!(!a.take_if_due(hour, hour), "neither quiet nor old enough");
+        assert!(a.take_if_due(Duration::ZERO, hour), "quiet long enough");
+        assert!(!a.take_if_due(Duration::ZERO, Duration::ZERO), "already taken");
+        // Still typing (changes keep arriving, so never quiet), but the first one is old enough.
+        a.touch();
+        assert!(a.take_if_due(hour, Duration::ZERO), "waited too long");
     }
 
     #[test]

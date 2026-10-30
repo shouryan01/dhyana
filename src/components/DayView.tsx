@@ -1,12 +1,20 @@
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useNavigate } from "@tanstack/react-router";
-import { History, Smile, Trash2 } from "lucide-react";
+import { Ellipsis, History, Smile, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import { registerFlush } from "@/app/flush";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Kbd } from "@/components/ui/kbd";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +35,7 @@ import type { DayFile } from "@/lib/backend";
 import { formatLong } from "@/lib/dates";
 import { journalPath } from "@/lib/memoryEntities";
 import type { CheckIn } from "@/lib/schema";
-import { trashName } from "@/lib/utils";
+import { cn, trashName } from "@/lib/utils";
 import { editorExtensions, useOpenWikilink } from "@/editor/wiring";
 import { UpcomingPanel } from "@/components/UpcomingPanel";
 import { createCanon, defaultSchema } from "@/markdown/canon";
@@ -377,36 +385,42 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
                     : ""}
                 </p>
               </div>
-              <div className="flex items-center gap-0.5">
-                <button
-                  aria-label="Add a mood check-in"
-                  title="Add a mood check-in"
-                  onClick={() => setCheckIn({})}
-                  className={headerButton}
+              {/* Everything the note offers lives in one menu, which only shows while the header is
+                  hovered or focused (or the menu is open). Each item is also a palette action. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Note actions"
+                  title="Note actions"
+                  className={cn(
+                    headerButton,
+                    "opacity-0 transition-[opacity,background-color,color] group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:bg-chrome-hover data-popup-open:opacity-100",
+                  )}
                 >
-                  <Smile size={15} />
-                </button>
-                {meta.created && (
-                  <button
-                    aria-label="Version history"
-                    title="Version history"
-                    onClick={() => setHistoryOpen(true)}
-                    className={headerButton}
-                  >
-                    <History size={15} />
-                  </button>
-                )}
-                {meta.created && (
-                  <button
-                    aria-label="Delete this note"
-                    title="Delete this note"
-                    onClick={requestDelete}
-                    className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-surface-muted opacity-0 transition-colors duration-100 hover:bg-chrome-hover hover:text-red-500 focus-visible:opacity-100 group-hover:opacity-100"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                )}
-              </div>
+                  <Ellipsis size={16} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuItem className="text-[13px]" onClick={() => setCheckIn({})}>
+                    <Smile /> Add mood check-in
+                    <Kbd shortcut="m" className="ml-auto" />
+                  </DropdownMenuItem>
+                  {meta.created && (
+                    <DropdownMenuItem className="text-[13px]" onClick={() => setHistoryOpen(true)}>
+                      <History /> Version history
+                      <Kbd shortcut="g h" className="ml-auto" />
+                    </DropdownMenuItem>
+                  )}
+                  {meta.created && <DropdownMenuSeparator />}
+                  {meta.created && (
+                    <DropdownMenuItem
+                      className="text-[13px]"
+                      variant="destructive"
+                      onClick={requestDelete}
+                    >
+                      <Trash2 /> Delete this note…
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </header>
 
             <MoodStrip

@@ -143,6 +143,8 @@ export interface Backend {
   noteVersion(path: string, id: string): Promise<VersionContent>;
   /** Puts the note back as it was in that version; the current text is kept as a version first. */
   restoreVersion(path: string, id: string): Promise<void>;
+  /** Fires when a version is recorded (after a pause in writing, or on request). */
+  onHistoryChanged(cb: () => void): Promise<() => void>;
   /** Records a version of the whole vault now. Resolves to its id (null if there is nothing yet). */
   checkpoint(reason: string): Promise<string | null>;
 

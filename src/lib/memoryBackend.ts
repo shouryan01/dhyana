@@ -14,7 +14,7 @@ import { countWords } from "./words";
  * In-memory/localStorage stand-in for the Rust core, used when the UI runs in a plain browser
  * (`pnpm dev`, screenshots, UI tests). Mirrors the save rules of the real backend: a check-in
  * alone never creates a day, pending check-ins are written by the first text, and history keeps
- * one autosaved version per note per session and day (for journal days only).
+ * a version per pause in writing, never squashed (journal days only).
  */
 interface MemFile {
   body: string;
@@ -70,7 +70,8 @@ const hashFile = (f: MemFile) =>
   hashText(f.mood?.length ? `${f.body}\u0000${JSON.stringify(f.mood)}` : f.body);
 
 const now = () => new Date().toISOString();
-const today = () => new Date().toDateString();
+/** Saves closer together than this are one version (the real core waits for a pause). */
+const QUIET_MS = 20_000;
 
 const dateOfPath = (path: string) =>
   /^journal\/\d{4}\/\d{2}\/(\d{4}-\d{2}-\d{2})\.md$/.exec(path)?.[1];
@@ -128,8 +129,7 @@ export function createMemoryBackend(): Backend {
   const files = read<Record<string, MemFile>>(KEY_FILES, {});
   const mood = read<MoodState>(KEY_MOOD, { offered: {}, pending: {} });
   const history = read<Record<string, MemVersion[]>>(KEY_HISTORY, {});
-  // A fresh page load is a new session: nothing stored is folded into any more.
-  for (const list of Object.values(history)) for (const v of list) v.auto = false;
+  const historyListeners = new Set<() => void>();
 
   const listeners = new Set<(dates: string[]) => void>();
   const entityListeners = new Set<() => void>();
@@ -137,14 +137,17 @@ export function createMemoryBackend(): Backend {
   const notifyDays = (dates: string[]) => listeners.forEach((cb) => cb(dates));
   const saveMood = () => write(KEY_MOOD, mood);
 
-  /** Records a day's current state as a version, folding into this session's one for today. */
+  /**
+   * Records a day's current state as a version. The real core records one per pause in writing;
+   * here every save would be one, so saves within `QUIET_MS` of an automatic version replace it.
+   */
   const record = (date: string, message?: string) => {
     if (!settings.autoCommit && !message) return;
     const path = journalPath(date);
     const list = (history[path] ??= []);
     const f = files[date] ? structuredClone(files[date]) : null;
     const last = list[0];
-    const fold = !!last?.auto && !message && new Date(last.time).toDateString() === today();
+    const fold = !!last?.auto && !message && Date.now() - Date.parse(last.time) < QUIET_MS;
     if (last && JSON.stringify(last.file) === JSON.stringify(f)) {
       if (message) last.auto = false; // now a checkpoint: never folded into
       write(KEY_HISTORY, history);
@@ -161,6 +164,7 @@ export function createMemoryBackend(): Backend {
     if (fold) list[0] = version;
     else list.unshift(version);
     write(KEY_HISTORY, history);
+    historyListeners.forEach((cb) => cb());
   };
 
   const store = createEntityStore(
@@ -440,6 +444,10 @@ export function createMemoryBackend(): Backend {
       record(date, `Restore ${date} to the version from ${new Date(v.time).toLocaleString()}`);
       notifyDays([date]);
       notifyEntities();
+    },
+    async onHistoryChanged(cb) {
+      historyListeners.add(cb);
+      return () => historyListeners.delete(cb);
     },
     async checkpoint(reason) {
       let id: string | null = null;

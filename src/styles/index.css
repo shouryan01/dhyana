@@ -490,12 +490,35 @@ body {
 /* ---------------------------------------------------------------------------------------------
    Mood check-in
    --------------------------------------------------------------------------------------------- */
+@keyframes mood-wander-x {
+  from {
+    transform: translateX(-14px);
+  }
+  to {
+    transform: translateX(14px);
+  }
+}
+@keyframes mood-wander-y {
+  from {
+    transform: translateY(-14px);
+  }
+  to {
+    transform: translateY(14px);
+  }
+}
 @keyframes mood-turn {
   to {
     transform: rotate(360deg);
   }
 }
-/* The shape slowly turns; colour and outline follow the slider. */
+/* The shape bounces about its frame on two sweeps that drift in and out of step (the swing is
+   `WANDER` in MoodBlob.tsx), and slowly turns; colour and outline follow the slider. */
+.mood-wander-x {
+  animation: mood-wander-x 4.7s ease-in-out infinite alternate;
+}
+.mood-wander-y {
+  animation: mood-wander-y 6.3s ease-in-out infinite alternate;
+}
 .mood-blob {
   /* Spin about the middle of the 0-based viewBox (see MoodBlob.tsx). */
   transform-box: view-box;

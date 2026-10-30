@@ -83,6 +83,28 @@ export function HistoryDialog({
     };
   }, [open, path, reload]);
 
+  // Versions are recorded while this is open (after each pause in writing): add them live.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    let off: (() => void) | undefined;
+    backend
+      .onHistoryChanged(() => {
+        void backend
+          .noteHistory(path)
+          .then((v) => !cancelled && setVersions(v))
+          .catch(() => {});
+      })
+      .then((u) => {
+        if (cancelled) u();
+        else off = u;
+      });
+    return () => {
+      cancelled = true;
+      off?.();
+    };
+  }, [open, path]);
+
   useEffect(() => {
     if (!selected) {
       setContent(null);
@@ -131,8 +153,8 @@ export function HistoryDialog({
         <DialogHeader className="border-b border-border px-5 py-3.5">
           <DialogTitle className="text-[14px]">History of {title}</DialogTitle>
           <DialogDescription className="text-[12px]">
-            dhyāna saves a version when you pause and when you quit. Versions live in the app's data
-            folder, not in your vault.
+            dhyāna saves a version each time you pause writing, and when you quit. Versions live in
+            the app's data folder, not in your vault.
           </DialogDescription>
         </DialogHeader>
         <div className="flex min-h-0 flex-1">
@@ -142,7 +164,8 @@ export function HistoryDialog({
           >
             {versions === null ? null : versions.length === 0 ? (
               <li className="px-3 py-6 text-center text-[12px] text-muted-foreground">
-                No versions yet. One is saved shortly after you stop typing, and when you quit.
+                No versions yet. One is saved about 20 seconds after you stop typing, and when you
+                quit.
               </li>
             ) : (
               versions.map((v, i) => (

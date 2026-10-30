@@ -90,6 +90,9 @@ export const tauriBackend: Backend = {
   async restoreVersion(path, id) {
     await invoke("restore_version", { path, id });
   },
+  async onHistoryChanged(cb) {
+    return listen("history://changed", () => cb());
+  },
   async checkpoint(reason) {
     return z
       .string()

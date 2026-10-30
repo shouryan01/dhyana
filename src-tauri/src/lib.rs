@@ -13,10 +13,15 @@ mod yaml;
 
 use std::time::Duration;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
-/// History waits for this much quiet after the last file change before it commits.
-const AUTOCOMMIT_IDLE: Duration = Duration::from_secs(90);
+/// A version is recorded once the files have been quiet for this long...
+const AUTOCOMMIT_QUIET: Duration = Duration::from_secs(20);
+/// ...or, while someone keeps writing without a pause, once their first unrecorded change is
+/// this old.
+const AUTOCOMMIT_MAX: Duration = Duration::from_secs(300);
+/// Told to the UI whenever a version is recorded, so an open history list can add it.
+const HISTORY_EVENT: &str = "history://changed";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -29,13 +34,13 @@ pub fn run() {
             ctx.restart_watcher(app.handle());
             app.manage(ctx);
 
-            // Autocommit on idle: the watcher marks activity, this commits once things go quiet.
+            // Autocommit: the watcher marks activity, this records a version when it is due.
             let handle = app.handle().clone();
             std::thread::spawn(move || loop {
-                std::thread::sleep(Duration::from_secs(10));
+                std::thread::sleep(Duration::from_secs(5));
                 let ctx = handle.state::<commands::AppCtx>();
-                if ctx.activity.take_if_idle(AUTOCOMMIT_IDLE) {
-                    ctx.autocommit();
+                if ctx.activity.take_if_due(AUTOCOMMIT_QUIET, AUTOCOMMIT_MAX) && ctx.autocommit() {
+                    let _ = handle.emit(HISTORY_EVENT, ());
                 }
             });
             Ok(())

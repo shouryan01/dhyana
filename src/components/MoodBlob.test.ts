@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blobPath } from "./MoodBlob";
+import { blobPath, WANDER } from "./MoodBlob";
 
 const points = (d: string) =>
   d
@@ -22,6 +22,11 @@ describe("mood shape", () => {
         expect(x).toBeLessThanOrEqual(200);
         expect(y).toBeGreaterThanOrEqual(0);
         expect(y).toBeLessThanOrEqual(200);
+      }
+      // Even at the far corner of its bouncing, no point leaves the frame.
+      for (const [x, y] of pts) {
+        expect(Math.abs(x - 100) + WANDER).toBeLessThanOrEqual(100);
+        expect(Math.abs(y - 100) + WANDER).toBeLessThanOrEqual(100);
       }
     }
   });

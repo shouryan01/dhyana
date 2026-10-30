@@ -5,17 +5,18 @@
 //! is hidden, like `.dhyana/` and `.obsidian/`, so it is not even part of the snapshot). Commits
 //! are built straight from the files on disk (blobs and trees), with no git index or checkout.
 //!
-//! - **Autocommit**: at most one commit per app session per day. Later autocommits in the same
-//!   session and day replace that commit, so the log stays one line per day of writing.
-//! - **Checkpoint**: a commit of the current files that later autocommits never fold into.
-//!   Restores use it (before and after), and AI edits will (0.6).
+//! - **Autocommit**: every time the files have changed and gone quiet (see `lib.rs`), plus on quit,
+//!   the changes become a new version. Nothing is amended or squashed, so a note's history is a
+//!   continuous stream of what it was at each pause.
+//! - **Checkpoint**: a commit of the current files under a reason. Restores use it (before and
+//!   after), and AI edits will (0.6).
 
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
-use chrono::{Local, NaiveDate, SecondsFormat, TimeZone};
+use chrono::{Local, SecondsFormat, TimeZone};
 use git2::{Commit, Delta, Oid, Repository, RepositoryInitOptions, Signature, Sort};
 use serde::Serialize;
 
@@ -70,8 +71,6 @@ pub struct VersionContent {
 pub struct History {
     repo: Repository,
     vault: PathBuf,
-    /// The autocommit this session made, and for which day; replaced by later ones that day.
-    session: Option<(Oid, NaiveDate)>,
     /// Blob ids of files already hashed, by vault-relative path: `(mtime ns, size, blob)`.
     blobs: HashMap<String, (i64, u64, Oid)>,
 }
@@ -100,7 +99,7 @@ fn display_name(rel: &str) -> String {
     file.strip_suffix(".md").unwrap_or(file).to_string()
 }
 
-/// Borrows only the repository, so the session can be updated while a commit is held.
+/// Borrows only the repository, so it can be held while the cached blobs are updated.
 fn head_of(repo: &Repository) -> Option<Commit<'_>> {
     repo.head().ok()?.peel_to_commit().ok()
 }
@@ -174,9 +173,8 @@ impl History {
             opts.bare(true).initial_head("main");
             Repository::init_opts(&path, &opts)?
         };
-        Ok(History { repo, vault: vault.to_path_buf(), session: None, blobs: HashMap::new() })
+        Ok(History { repo, vault: vault.to_path_buf(), blobs: HashMap::new() })
     }
-
 
     fn head(&self) -> Option<Commit<'_>> {
         head_of(&self.repo)
@@ -245,37 +243,20 @@ impl History {
         Ok(oid)
     }
 
-    /// Commit whatever changed, folding into this session's commit for `today` if there is one.
-    /// Returns the new commit, or `None` when there was nothing to record.
-    pub fn autocommit(&mut self, today: NaiveDate) -> Result<Option<Oid>> {
+    /// Record whatever changed since the last version as a new one. Returns the new commit, or
+    /// `None` when there was nothing to record.
+    pub fn autocommit(&mut self) -> Result<Option<Oid>> {
         let tree = self.snapshot()?;
         let head = head_of(&self.repo);
-        let amend = matches!((&self.session, &head), (Some((oid, day)), Some(h)) if *oid == h.id() && *day == today);
         if head.as_ref().map(|h| h.tree_id()) == Some(tree) {
             return Ok(None);
         }
-        let base = if amend { head.as_ref().and_then(|h| h.parent(0).ok()) } else { head };
-        let base_tree = base.as_ref().map(|c| c.tree_id());
-        if base_tree.is_none() && self.repo.find_tree(tree)?.is_empty() {
+        if head.is_none() && self.repo.find_tree(tree)?.is_empty() {
             return Ok(None); // an empty vault: nothing to start history with
         }
-        if amend && base_tree == Some(tree) {
-            // Everything this session changed today was undone: drop the session's commit.
-            match &base {
-                Some(b) => {
-                    self.repo.reference(BRANCH, b.id(), true, "dhyana")?;
-                }
-                None => {
-                    self.repo.find_reference(BRANCH)?.delete()?;
-                }
-            }
-            self.session = None;
-            return Ok(None);
-        }
-        let message = self.message(None, base_tree, tree)?;
-        let oid = self.commit(tree, base.as_ref(), &message)?;
-        self.session = Some((oid, today));
-        Ok(Some(oid))
+        let from = head.as_ref().map(|h| h.tree_id());
+        let message = self.message(None, from, tree)?;
+        Ok(Some(self.commit(tree, head.as_ref(), &message)?))
     }
 
     /// Record the files as they are now under `reason`. Returns the commit holding this state
@@ -285,15 +266,11 @@ impl History {
         let head = head_of(&self.repo);
         if let Some(h) = &head {
             if h.tree_id() == tree {
-                // The head is now a checkpoint too: later autocommits must not fold into it.
-                self.session = None;
                 return Ok(Some(h.id()));
             }
         }
         let message = self.message(Some(reason), head.as_ref().map(|h| h.tree_id()), tree)?;
-        let oid = self.commit(tree, head.as_ref(), &message)?;
-        self.session = None;
-        Ok(Some(oid))
+        Ok(Some(self.commit(tree, head.as_ref(), &message)?))
     }
 
     fn blob_at(&self, c: &Commit, rel: &str) -> Option<Oid> {
@@ -401,9 +378,6 @@ mod tests {
         fs::write(p, text).unwrap();
     }
 
-    fn day(d: u32) -> NaiveDate {
-        NaiveDate::from_ymd_opt(2026, 10, d).unwrap()
-    }
 
     fn setup() -> (TempDir, TempDir, History) {
         let vault = tempdir().unwrap();
@@ -421,7 +395,7 @@ mod tests {
         put(vault.path(), ".git/HEAD", "ref: refs/heads/theirs\n");
         put(vault.path(), ".obsidian/app.json", "{}");
         put(vault.path(), ".dhyana/settings.json", "{}");
-        h.autocommit(day(30)).unwrap().unwrap();
+        h.autocommit().unwrap().unwrap();
         let top: Vec<String> = fs::read_dir(vault.path()).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
         let mut top = top;
         top.sort();
@@ -435,70 +409,54 @@ mod tests {
     }
 
     #[test]
-    fn one_autocommit_per_session_per_day() {
-        let (vault, _app, mut h) = setup();
-        assert!(h.autocommit(day(30)).unwrap().is_none(), "empty vault: no commit");
+    fn every_pause_is_a_new_version_and_nothing_is_squashed() {
+        let (vault, app, mut h) = setup();
+        assert!(h.autocommit().unwrap().is_none(), "empty vault: no commit");
         put(vault.path(), DAY, "one");
-        h.autocommit(day(30)).unwrap().unwrap();
+        h.autocommit().unwrap().unwrap();
         put(vault.path(), DAY, "two");
         put(vault.path(), "people/Alice.md", "---\ntype: person\n---\n");
-        h.autocommit(day(30)).unwrap().unwrap();
-        assert!(h.autocommit(day(30)).unwrap().is_none(), "nothing new");
-        assert_eq!(h.log(), vec!["Add 2026-10-30, Alice"]);
-
-        // A new day starts a new commit, and so does a new session.
+        h.autocommit().unwrap().unwrap();
+        assert!(h.autocommit().unwrap().is_none(), "nothing new");
         put(vault.path(), DAY, "three");
-        h.autocommit(day(31)).unwrap().unwrap();
-        assert_eq!(h.log().len(), 2);
-        let mut next = History::open(vault.path(), _app.path()).unwrap();
+        h.autocommit().unwrap().unwrap();
+        // Same day, same session: still one version per pause.
+        assert_eq!(h.log(), vec!["Edit 2026-10-30", "Edit 2026-10-30, Alice", "Add 2026-10-30"]);
+
+        // The note's own history is that continuous stream, newest first.
+        let vs = h.versions(DAY, 50).unwrap();
+        assert_eq!(vs.len(), 3);
+        let texts: Vec<_> = vs.iter().map(|v| h.content(DAY, &v.id).unwrap().text.unwrap()).collect();
+        assert_eq!(texts, vec!["three", "two", "one"]);
+
+        // A new session carries on from the same log.
+        let mut next = History::open(vault.path(), app.path()).unwrap();
         put(vault.path(), DAY, "four");
-        next.autocommit(day(31)).unwrap().unwrap();
-        assert_eq!(next.log(), vec!["Edit 2026-10-30", "Edit 2026-10-30", "Add 2026-10-30, Alice"]);
+        next.autocommit().unwrap().unwrap();
+        assert_eq!(next.log().len(), 4);
     }
 
     #[test]
-    fn checkpoints_are_never_folded_into() {
+    fn checkpoints_carry_their_reason_and_are_not_repeated() {
         let (vault, _app, mut h) = setup();
         put(vault.path(), DAY, "one");
-        h.autocommit(day(30)).unwrap();
+        h.autocommit().unwrap();
         put(vault.path(), DAY, "two");
         let cp = h.checkpoint("Before AI edit").unwrap().unwrap();
         assert_eq!(h.checkpoint("again").unwrap(), Some(cp), "unchanged: same commit");
         put(vault.path(), DAY, "three");
-        h.autocommit(day(30)).unwrap();
+        h.autocommit().unwrap();
         assert_eq!(h.log(), vec!["Edit 2026-10-30", "Before AI edit", "Add 2026-10-30"]);
-
-        // A checkpoint of an unchanged vault pins the session's commit in place.
-        put(vault.path(), DAY, "four");
-        h.autocommit(day(30)).unwrap();
-        h.checkpoint("pin").unwrap();
-        put(vault.path(), DAY, "five");
-        h.autocommit(day(30)).unwrap();
-        // "four" folded into the session's commit; "five" got one of its own.
-        assert_eq!(h.log(), vec!["Edit 2026-10-30", "Edit 2026-10-30", "Before AI edit", "Add 2026-10-30"]);
     }
-
-    #[test]
-    fn undoing_a_sessions_changes_drops_its_commit() {
-        let (vault, _app, mut h) = setup();
-        put(vault.path(), DAY, "one");
-        h.checkpoint("start").unwrap();
-        put(vault.path(), DAY, "two");
-        h.autocommit(day(30)).unwrap().unwrap();
-        put(vault.path(), DAY, "one");
-        assert!(h.autocommit(day(30)).unwrap().is_none());
-        assert_eq!(h.log(), vec!["start"]);
-    }
-
     #[test]
     fn versions_content_and_restore() {
         let (vault, _app, mut h) = setup();
         put(vault.path(), DAY, "v1\n");
-        h.autocommit(day(28)).unwrap();
+        h.autocommit().unwrap();
         put(vault.path(), "people/Bob.md", "bob");
-        h.autocommit(day(29)).unwrap(); // doesn't touch the day
+        h.autocommit().unwrap(); // doesn't touch the day
         put(vault.path(), DAY, "v2\n");
-        h.autocommit(day(30)).unwrap();
+        h.autocommit().unwrap();
 
         let vs = h.versions(DAY, 50).unwrap();
         assert_eq!(vs.len(), 2);
@@ -525,9 +483,9 @@ mod tests {
         let (vault, _app, mut h) = setup();
         put(vault.path(), "people/Bob.md", "bob");
         put(vault.path(), DAY, "x");
-        h.autocommit(day(29)).unwrap();
+        h.autocommit().unwrap();
         fs::remove_file(vault.path().join("people/Bob.md")).unwrap();
-        h.autocommit(day(30)).unwrap();
+        h.autocommit().unwrap();
         let vs = h.versions("people/Bob.md", 50).unwrap();
         assert_eq!(vs.iter().map(|v| v.deleted).collect::<Vec<_>>(), vec![true, false]);
         assert_eq!(vs[0].message, "Remove Bob");

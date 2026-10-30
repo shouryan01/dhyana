@@ -10,6 +10,11 @@ const R = 62;
  */
 const SIZE = 200;
 const CENTER = SIZE / 2;
+/**
+ * How far the shape wanders from the middle in each direction. Kept small enough that the widest
+ * shape (the spiky one, about 73 from its centre) plus this still fits inside the box.
+ */
+export const WANDER = 14;
 
 /**
  * The outline for a valence: a spiky star when unpleasant, a circle at neutral, a soft flower
@@ -37,8 +42,13 @@ export function MoodBlob({ valence, size = 150 }: { valence: number; size?: numb
   const d = useMemo(() => blobPath(valence), [valence]);
   return (
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={size} height={size} aria-hidden="true">
-      <g className="mood-blob">
-        <path d={d} style={{ fill: moodColor(valence) }} />
+      {/* It bounces about inside the frame (two slow, out-of-step sweeps) while it turns. */}
+      <g className="mood-wander-x">
+        <g className="mood-wander-y">
+          <g className="mood-blob">
+            <path d={d} style={{ fill: moodColor(valence) }} />
+          </g>
+        </g>
       </g>
     </svg>
   );

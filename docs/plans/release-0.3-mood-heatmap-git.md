@@ -35,19 +35,20 @@ Remote push/pull, sync.
 - [x] Mood is offered once on the first open of today, never again that day; a second check-in can still be added by hand. (Ledger in app data; checked in a browser run: offered, answered, not offered after reload, second check-in via `M`.)
 - [x] Quit after a check-in but before typing → pending mood is still applied when the note is created. (Pending check-ins are persisted in app data per vault; Rust and TS tests, plus the browser run.)
 - [x] Heatmap accurate against files on disk. (Built from the index, which is derived from the files: word counts and check-ins per day file; `day_stats` tests.)
-- [x] Restore an old version without data loss; git log is tidy. (Restore checkpoints what's there first, then commits the restore; one autocommit per session per day. Rust tests against real repos.)
+- [x] Restore an old version without data loss; git log is tidy. (Restore checkpoints what's there first, then commits the restore; a version per pause, with generated messages. Rust tests against real repos.)
 
 Not yet clicked through in the desktop app (`pnpm tauri dev`): the UI was driven in the browser build against the in-memory backend, and the Rust side by `cargo test`.
 
 ## Built, and decisions made
 
 - **Git dir in app data** as a **bare** repository (`<app data>/history/<vault id>.git`). Commits are built from the files on disk (blobs and trees) with no Git index or checkout, so nothing is ever written into the vault and a user's own `.git` (or staged work) is never read or touched. Hidden folders (`.git`, `.dhyana`, `.obsidian`) and files over 20 MB are left out.
-- **Autocommit:** after ~90 s with no file changes (driven by the watcher) and on quit; one commit per app session per day, which later autocommits amend. Settings → History turns it off. Messages are generated ("Edit 2026-10-30, Alice and 2 more", then one `A/M/D path` line per file).
+- **Autocommit:** a version about 20 s after the files stop changing (driven by the watcher), every 5 minutes while writing continues without a pause, and on quit. Nothing is amended or squashed: a note's history is the continuous stream of what it was at each pause, and an open history dialog adds new versions live (`history://changed`). (First built as one commit per session per day; changed because a single entry hid the edits as they were made.) Settings → History turns it off. Messages are generated ("Edit 2026-10-30, Alice and 2 more", then one `A/M/D path` line per file).
 - **Checkpoint API:** `History::checkpoint(reason)` / the `checkpoint` command, never amended by autocommits. "Save a version now" uses it; 0.6 AI edits will.
 - **Restoring an open note:** restore = checkpoint of the current files, write the old version, commit "Restore …". The open editor sees it through the watcher like any external change: it reloads, or shows the "changed on disk" choice if there was unsaved typing (which the history dialog flushes first anyway).
 - **Mood scale:** valence -1 … 1 with Apple Health's seven labels; emotions stored by filename; factors stored as lowercase ids (`self-care`, `current-events`). Renaming an emotion rewrites check-ins in files and pending ones (master §4a, closing the 0.2 note).
 - **Mood colours:** a diverging violet ↔ neutral grey ↔ amber scale with separate dark-mode steps (`--mood-*` in `index.css`). In the mood heatmap, days with an entry but no check-in are outlined rather than given another grey.
 - **Heatmap:** words (quartiles of the year's written days), entries, or mood (daily average), with streaks and totals; sidebar "Year" and `G Y`.
+- **The header is quiet:** the note's actions (add a mood check-in, version history, delete) live in one `⋯` menu beside the date that only appears while the header is hovered or focused; each is also a palette action.
 - **Check-ins under the date are quiet:** a small
   check-ins toggle that appears when the date header is hovered or focused; clicking it opens the chips (edit, add), and the choice is remembered. Saving a check-in shows a brief toast, since the chips are hidden.
 - **Mood graph:** a side panel (`G M`) with the day's check-ins and the last 30 days' daily averages; real analytics stay in 0.4.
