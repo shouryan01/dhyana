@@ -19,7 +19,8 @@ import {
 import { HistoryDialog } from "@/components/HistoryDialog";
 import { MoodCheckIn, type CheckInRequest } from "@/components/MoodCheckIn";
 import { MoodPanel } from "@/components/MoodPanel";
-import { NoteActions } from "@/components/NoteActions";
+import { MoodRow } from "@/components/MoodRow";
+import { NoteMenu } from "@/components/NoteMenu";
 import { OnThisDay } from "@/components/OnThisDay";
 import { backend } from "@/lib";
 import type { DayFile } from "@/lib/backend";
@@ -357,35 +358,36 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
         onClick={(e) => e.target === e.currentTarget && editor?.commands.focus("end")}
       >
         <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
-          <div className="mb-8">
-            <header className="flex items-start justify-between gap-4 select-none">
-              <div>
-                <h1 className="font-[family-name:var(--font-body)] text-[26px] font-semibold leading-tight text-surface-fg">
-                  {formatLong(date)}
-                </h1>
-                <p className="mt-1 text-[12px] text-surface-muted">
-                  {date === app.today ? "Today · " : ""}
-                  {meta.created
-                    ? `Created ${formatTime(meta.created)}`
-                    : "Not saved yet — start typing"}
-                  {meta.modified && meta.modified !== meta.created
-                    ? ` · Edited ${formatTime(meta.modified)}`
-                    : ""}
-                </p>
-              </div>
-            </header>
-
-            {/* The actions and check-ins: a list under the date. Its toggle is always visible. */}
-            <NoteActions
-              mood={mood.file}
-              pending={mood.pending}
-              onEditCheckIn={editCheckIn}
-              onAddCheckIn={() => setCheckIn({})}
+          <header className="mb-8 flex items-start justify-between gap-4 select-none">
+            <div className="min-w-0">
+              <h1 className="font-[family-name:var(--font-body)] text-[26px] font-semibold leading-tight text-surface-fg">
+                {formatLong(date)}
+              </h1>
+              <p className="mt-1 text-[12px] text-surface-muted">
+                {date === app.today ? "Today · " : ""}
+                {meta.created
+                  ? `Created ${formatTime(meta.created)}`
+                  : "Not saved yet — start typing"}
+                {meta.modified && meta.modified !== meta.created
+                  ? ` · Edited ${formatTime(meta.modified)}`
+                  : ""}
+              </p>
+              {/* The day's mood, right under that line. */}
+              <MoodRow
+                mood={mood.file}
+                pending={mood.pending}
+                onEdit={editCheckIn}
+                onAdd={() => setCheckIn({})}
+                shortcut="m"
+              />
+            </div>
+            {/* Top right: version history and delete, in a collapsible whose toggle is always shown. */}
+            <NoteMenu
               onHistory={meta.created ? () => setHistoryOpen(true) : undefined}
               onDelete={meta.created ? requestDelete : undefined}
-              shortcuts={{ checkIn: "m", history: "g h" }}
+              historyShortcut="g h"
             />
-          </div>
+          </header>
 
           {date === app.today && <UpcomingPanel today={app.today} />}
           <OnThisDay date={date} />
