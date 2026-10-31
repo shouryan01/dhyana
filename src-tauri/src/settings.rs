@@ -135,6 +135,9 @@ mod tests {
         let s: Settings = serde_json::from_str(r#"{"onboardingCompleted":true}"#).unwrap();
         assert!(s.onboarding_completed);
         assert_eq!(s.theme, "dhyana-light");
-        assert!(s.ask_mood && s.auto_commit, "settings from 0.2 get the new defaults");
+        assert!(
+            s.ask_mood && s.auto_commit,
+            "settings from 0.2 get the new defaults"
+        );
     }
 }

@@ -85,7 +85,9 @@ fn mtime_ns(meta: &fs::Metadata) -> i64 {
 /// A vault-relative note path (`journal/2026/10/2026-10-30.md`, `people/Alice.md`), checked so it
 /// can't reach outside the vault.
 fn note_path(rel: &str) -> Result<&str> {
-    let normal = Path::new(rel).components().all(|c| matches!(c, Component::Normal(_)));
+    let normal = Path::new(rel)
+        .components()
+        .all(|c| matches!(c, Component::Normal(_)));
     if normal && classify(rel).is_some() {
         Ok(rel)
     } else {
@@ -105,7 +107,11 @@ fn head_of(repo: &Repository) -> Option<Commit<'_>> {
 }
 
 fn summary_of(c: &Commit) -> String {
-    String::from_utf8_lossy(c.message_bytes()).lines().next().unwrap_or_default().to_string()
+    String::from_utf8_lossy(c.message_bytes())
+        .lines()
+        .next()
+        .unwrap_or_default()
+        .to_string()
 }
 
 fn time_of(c: &Commit) -> String {
@@ -124,15 +130,23 @@ fn tree_for(
     dir: &Path,
     prefix: &str,
 ) -> Result<Option<Oid>> {
-    let Ok(rd) = fs::read_dir(dir) else { return Ok(None) };
+    let Ok(rd) = fs::read_dir(dir) else {
+        return Ok(None);
+    };
     let mut tb = repo.treebuilder(None)?;
     for e in rd.flatten() {
-        let Ok(name) = e.file_name().into_string() else { continue };
+        let Ok(name) = e.file_name().into_string() else {
+            continue;
+        };
         let Ok(ft) = e.file_type() else { continue };
         if name.starts_with('.') {
             continue;
         }
-        let rel = if prefix.is_empty() { name.clone() } else { format!("{prefix}/{name}") };
+        let rel = if prefix.is_empty() {
+            name.clone()
+        } else {
+            format!("{prefix}/{name}")
+        };
         if ft.is_dir() {
             if let Some(t) = tree_for(repo, blobs, &e.path(), &rel)? {
                 tb.insert(&name, t, 0o040000)?;
@@ -146,7 +160,9 @@ fn tree_for(
             let oid = match blobs.get(&rel) {
                 Some(&(m, s, oid)) if (m, s) == stamp => oid,
                 _ => {
-                    let Ok(bytes) = fs::read(e.path()) else { continue };
+                    let Ok(bytes) = fs::read(e.path()) else {
+                        continue;
+                    };
                     let oid = repo.blob(&bytes)?;
                     blobs.insert(rel, (stamp.0, stamp.1, oid));
                     oid
@@ -173,7 +189,11 @@ impl History {
             opts.bare(true).initial_head("main");
             Repository::init_opts(&path, &opts)?
         };
-        Ok(History { repo, vault: vault.to_path_buf(), blobs: HashMap::new() })
+        Ok(History {
+            repo,
+            vault: vault.to_path_buf(),
+            blobs: HashMap::new(),
+        })
     }
 
     fn head(&self) -> Option<Commit<'_>> {
@@ -193,12 +213,21 @@ impl History {
     fn changes(&self, from: Option<Oid>, to: Oid) -> Result<Vec<(Delta, String)>> {
         let old = from.map(|t| self.repo.find_tree(t)).transpose()?;
         let new = self.repo.find_tree(to)?;
-        let diff = self.repo.diff_tree_to_tree(old.as_ref(), Some(&new), None)?;
+        let diff = self
+            .repo
+            .diff_tree_to_tree(old.as_ref(), Some(&new), None)?;
         Ok(diff
             .deltas()
             .filter_map(|d| {
-                let file = if d.status() == Delta::Deleted { d.old_file() } else { d.new_file() };
-                Some((d.status(), file.path()?.to_string_lossy().replace('\\', "/")))
+                let file = if d.status() == Delta::Deleted {
+                    d.old_file()
+                } else {
+                    d.new_file()
+                };
+                Some((
+                    d.status(),
+                    file.path()?.to_string_lossy().replace('\\', "/"),
+                ))
             })
             .collect())
     }
@@ -238,7 +267,9 @@ impl History {
         let sig = Signature::now("dhyana", "dhyana@localhost")?;
         let tree = self.repo.find_tree(tree)?;
         let parents: Vec<&Commit> = parent.into_iter().collect();
-        let oid = self.repo.commit(None, &sig, &sig, message, &tree, &parents)?;
+        let oid = self
+            .repo
+            .commit(None, &sig, &sig, message, &tree, &parents)?;
         self.repo.reference(BRANCH, oid, true, "dhyana")?;
         Ok(oid)
     }
@@ -278,7 +309,9 @@ impl History {
     }
 
     fn text_at(&self, c: &Commit, rel: &str) -> Result<Option<String>> {
-        let Some(oid) = self.blob_at(c, rel) else { return Ok(None) };
+        let Some(oid) = self.blob_at(c, rel) else {
+            return Ok(None);
+        };
         let blob = self.repo.find_blob(oid)?;
         Ok(Some(String::from_utf8_lossy(blob.content()).into_owned()))
     }
@@ -334,7 +367,9 @@ impl History {
         let rel = note_path(rel)?;
         let (bytes, when) = {
             let c = self.repo.find_commit(Oid::from_str(id)?)?;
-            let oid = self.blob_at(&c, rel).ok_or_else(|| HistoryError::NoContent(rel.to_string()))?;
+            let oid = self
+                .blob_at(&c, rel)
+                .ok_or_else(|| HistoryError::NoContent(rel.to_string()))?;
             let when = Local
                 .timestamp_opt(c.time().seconds(), 0)
                 .single()
@@ -356,7 +391,9 @@ impl History {
     /// First lines of the main-line log, newest first (for tests and debugging).
     #[cfg(test)]
     fn log(&self) -> Vec<String> {
-        let Ok(mut walk) = self.repo.revwalk() else { return Vec::new() };
+        let Ok(mut walk) = self.repo.revwalk() else {
+            return Vec::new();
+        };
         if walk.push_head().is_err() {
             return Vec::new();
         }
@@ -378,7 +415,6 @@ mod tests {
         fs::write(p, text).unwrap();
     }
 
-
     fn setup() -> (TempDir, TempDir, History) {
         let vault = tempdir().unwrap();
         let app = tempdir().unwrap();
@@ -396,16 +432,31 @@ mod tests {
         put(vault.path(), ".obsidian/app.json", "{}");
         put(vault.path(), ".dhyana/settings.json", "{}");
         h.autocommit().unwrap().unwrap();
-        let top: Vec<String> = fs::read_dir(vault.path()).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        let top: Vec<String> = fs::read_dir(vault.path())
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
         let mut top = top;
         top.sort();
         assert_eq!(top, vec![".dhyana", ".git", ".obsidian", "journal"]);
-        assert_eq!(fs::read_to_string(vault.path().join(".git/HEAD")).unwrap(), "ref: refs/heads/theirs\n");
+        assert_eq!(
+            fs::read_to_string(vault.path().join(".git/HEAD")).unwrap(),
+            "ref: refs/heads/theirs\n"
+        );
         let head = h.head().unwrap();
         let tree = head.tree().unwrap();
-        assert!(tree.get_name(".obsidian").is_none() && tree.get_name(".git").is_none() && tree.get_name(".dhyana").is_none());
+        assert!(
+            tree.get_name(".obsidian").is_none()
+                && tree.get_name(".git").is_none()
+                && tree.get_name(".dhyana").is_none()
+        );
         assert!(tree.get_path(Path::new(DAY)).is_ok());
-        assert!(app.path().join(format!("{}.git", vault_id(vault.path()))).join("HEAD").is_file());
+        assert!(app
+            .path()
+            .join(format!("{}.git", vault_id(vault.path())))
+            .join("HEAD")
+            .is_file());
     }
 
     #[test]
@@ -421,12 +472,22 @@ mod tests {
         put(vault.path(), DAY, "three");
         h.autocommit().unwrap().unwrap();
         // Same day, same session: still one version per pause.
-        assert_eq!(h.log(), vec!["Edit 2026-10-30", "Edit 2026-10-30, Alice", "Add 2026-10-30"]);
+        assert_eq!(
+            h.log(),
+            vec![
+                "Edit 2026-10-30",
+                "Edit 2026-10-30, Alice",
+                "Add 2026-10-30"
+            ]
+        );
 
         // The note's own history is that continuous stream, newest first.
         let vs = h.versions(DAY, 50).unwrap();
         assert_eq!(vs.len(), 3);
-        let texts: Vec<_> = vs.iter().map(|v| h.content(DAY, &v.id).unwrap().text.unwrap()).collect();
+        let texts: Vec<_> = vs
+            .iter()
+            .map(|v| h.content(DAY, &v.id).unwrap().text.unwrap())
+            .collect();
         assert_eq!(texts, vec!["three", "two", "one"]);
 
         // A new session carries on from the same log.
@@ -443,10 +504,17 @@ mod tests {
         h.autocommit().unwrap();
         put(vault.path(), DAY, "two");
         let cp = h.checkpoint("Before AI edit").unwrap().unwrap();
-        assert_eq!(h.checkpoint("again").unwrap(), Some(cp), "unchanged: same commit");
+        assert_eq!(
+            h.checkpoint("again").unwrap(),
+            Some(cp),
+            "unchanged: same commit"
+        );
         put(vault.path(), DAY, "three");
         h.autocommit().unwrap();
-        assert_eq!(h.log(), vec!["Edit 2026-10-30", "Before AI edit", "Add 2026-10-30"]);
+        assert_eq!(
+            h.log(),
+            vec!["Edit 2026-10-30", "Before AI edit", "Add 2026-10-30"]
+        );
     }
     #[test]
     fn versions_content_and_restore() {
@@ -463,19 +531,31 @@ mod tests {
         assert_eq!(vs[0].message, "Edit 2026-10-30");
         assert!(!vs[0].deleted);
         let newest = h.content(DAY, &vs[0].id).unwrap();
-        assert_eq!((newest.text.as_deref(), newest.previous.as_deref()), (Some("v2\n"), Some("v1\n")));
+        assert_eq!(
+            (newest.text.as_deref(), newest.previous.as_deref()),
+            (Some("v2\n"), Some("v1\n"))
+        );
         let oldest = h.content(DAY, &vs[1].id).unwrap();
-        assert_eq!((oldest.text.as_deref(), oldest.previous), (Some("v1\n"), None));
+        assert_eq!(
+            (oldest.text.as_deref(), oldest.previous),
+            (Some("v1\n"), None)
+        );
 
         put(vault.path(), DAY, "unsaved thoughts\n");
         h.restore(DAY, &vs[1].id).unwrap();
         assert_eq!(fs::read_to_string(vault.path().join(DAY)).unwrap(), "v1\n");
         let log = h.log();
-        assert!(log[0].starts_with("Restore 2026-10-30 to the version from "), "{log:?}");
+        assert!(
+            log[0].starts_with("Restore 2026-10-30 to the version from "),
+            "{log:?}"
+        );
         assert_eq!(log[1], "Before restoring 2026-10-30");
         // Nothing was lost: the text that was on disk is a version of its own.
         let vs = h.versions(DAY, 50).unwrap();
-        assert_eq!(h.content(DAY, &vs[1].id).unwrap().text.as_deref(), Some("unsaved thoughts\n"));
+        assert_eq!(
+            h.content(DAY, &vs[1].id).unwrap().text.as_deref(),
+            Some("unsaved thoughts\n")
+        );
     }
 
     #[test]
@@ -487,12 +567,26 @@ mod tests {
         fs::remove_file(vault.path().join("people/Bob.md")).unwrap();
         h.autocommit().unwrap();
         let vs = h.versions("people/Bob.md", 50).unwrap();
-        assert_eq!(vs.iter().map(|v| v.deleted).collect::<Vec<_>>(), vec![true, false]);
+        assert_eq!(
+            vs.iter().map(|v| v.deleted).collect::<Vec<_>>(),
+            vec![true, false]
+        );
         assert_eq!(vs[0].message, "Remove Bob");
-        assert!(matches!(h.restore("people/Bob.md", &vs[0].id), Err(HistoryError::NoContent(_))));
+        assert!(matches!(
+            h.restore("people/Bob.md", &vs[0].id),
+            Err(HistoryError::NoContent(_))
+        ));
         h.restore("people/Bob.md", &vs[1].id).unwrap();
-        assert_eq!(fs::read_to_string(vault.path().join("people/Bob.md")).unwrap(), "bob");
-        for bad in ["../outside.md", "people/../../x.md", "settings.json", "/etc/passwd"] {
+        assert_eq!(
+            fs::read_to_string(vault.path().join("people/Bob.md")).unwrap(),
+            "bob"
+        );
+        for bad in [
+            "../outside.md",
+            "people/../../x.md",
+            "settings.json",
+            "/etc/passwd",
+        ] {
             assert!(h.versions(bad, 5).is_err(), "{bad}");
             assert!(h.restore(bad, &vs[1].id).is_err(), "{bad}");
         }

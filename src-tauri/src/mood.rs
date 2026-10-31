@@ -61,7 +61,11 @@ fn valid_time(s: &str) -> bool {
 /// `7:05` → `07:05`; anything else that isn't `HH:MM` is rejected.
 fn normal_time(s: &str) -> Option<String> {
     let t = s.trim();
-    let padded = if t.len() == 4 && t.as_bytes().get(1) == Some(&b':') { format!("0{t}") } else { t.to_string() };
+    let padded = if t.len() == 4 && t.as_bytes().get(1) == Some(&b':') {
+        format!("0{t}")
+    } else {
+        t.to_string()
+    };
     valid_time(&padded).then_some(padded)
 }
 
@@ -110,8 +114,17 @@ fn fmt_valence(v: f64) -> String {
 
 /// One check-in as a single-line flow mapping.
 pub fn item_text(c: &CheckIn) -> String {
-    let list = |items: &[String]| items.iter().map(|s| quote(s)).collect::<Vec<_>>().join(", ");
-    let mut parts = vec![format!("at: \"{}\"", c.at), format!("valence: {}", fmt_valence(c.valence))];
+    let list = |items: &[String]| {
+        items
+            .iter()
+            .map(|s| quote(s))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    let mut parts = vec![
+        format!("at: \"{}\"", c.at),
+        format!("valence: {}", fmt_valence(c.valence)),
+    ];
     if !c.emotions.is_empty() {
         parts.push(format!("emotions: [{}]", list(&c.emotions)));
     }
@@ -217,7 +230,10 @@ fn parse_block_item(lines: &[&str]) -> Option<Vec<(String, Val)>> {
     let mut pairs: Vec<(String, Val)> = Vec::new();
     let mut take = |text: &str| {
         let t = text.trim_start();
-        if let Some(item) = t.strip_prefix("- ").or((line_content(t) == "-").then_some("")) {
+        if let Some(item) = t
+            .strip_prefix("- ")
+            .or((line_content(t) == "-").then_some(""))
+        {
             if let Some((_, Val::List(list))) = pairs.last_mut() {
                 let v = unquote(token(item));
                 if !v.is_empty() {
@@ -226,7 +242,14 @@ fn parse_block_item(lines: &[&str]) -> Option<Vec<(String, Val)>> {
             }
         } else if let Some((k, v)) = split_kv(line_content(t)) {
             let v = token(&format!(" {v}")).to_string();
-            pairs.push((k, if v.is_empty() { Val::List(Vec::new()) } else { parse_value(&v) }));
+            pairs.push((
+                k,
+                if v.is_empty() {
+                    Val::List(Vec::new())
+                } else {
+                    parse_value(&v)
+                },
+            ));
         }
     };
     if !head.is_empty() {
@@ -257,7 +280,14 @@ fn checkin_from(pairs: Vec<(String, Val)>) -> Option<CheckIn> {
             _ => {}
         }
     }
-    CheckIn { at: at?, valence: valence?, emotions, factors }.normalized().ok()
+    CheckIn {
+        at: at?,
+        valence: valence?,
+        emotions,
+        factors,
+    }
+    .normalized()
+    .ok()
 }
 
 /// One entry of the list: a check-in we understood (or not), and its exact source lines when it
@@ -280,14 +310,24 @@ struct Scan<'a> {
 
 fn scan(block: &str) -> Scan<'_> {
     let (lines, span) = yaml::find_key(block, "mood");
-    let mut s = Scan { lines, span, inline: false, preamble: String::new(), indent: "  ".into(), slots: Vec::new() };
+    let mut s = Scan {
+        lines,
+        span,
+        inline: false,
+        preamble: String::new(),
+        indent: "  ".into(),
+        slots: Vec::new(),
+    };
     let Some((i, j)) = span else { return s };
     let head = token(&s.lines[i]["mood:".len()..]).to_string();
     if !head.is_empty() {
         s.inline = true;
         if let Some(inner) = head.strip_prefix('[').and_then(|h| h.strip_suffix(']')) {
             for part in split_top(inner) {
-                s.slots.push(Slot { checkin: parse_flow_map(part).and_then(checkin_from), raw: None });
+                s.slots.push(Slot {
+                    checkin: parse_flow_map(part).and_then(checkin_from),
+                    raw: None,
+                });
             }
         }
         return s;
@@ -298,7 +338,10 @@ fn scan(block: &str) -> Scan<'_> {
         return s;
     };
     s.preamble = body[..first].concat();
-    s.indent = body[first].chars().take_while(|c| *c == ' ' || *c == '\t').collect();
+    s.indent = body[first]
+        .chars()
+        .take_while(|c| *c == ' ' || *c == '\t')
+        .collect();
     let mut groups: Vec<Vec<&str>> = Vec::new();
     for l in &body[first..] {
         let lead: String = l.chars().take_while(|c| *c == ' ' || *c == '\t').collect();
@@ -309,14 +352,21 @@ fn scan(block: &str) -> Scan<'_> {
         }
     }
     for g in groups {
-        s.slots.push(Slot { checkin: parse_block_item(&g).and_then(checkin_from), raw: Some(g.concat()) });
+        s.slots.push(Slot {
+            checkin: parse_block_item(&g).and_then(checkin_from),
+            raw: Some(g.concat()),
+        });
     }
     s
 }
 
 /// The check-ins in a frontmatter block, in file order. Items we can't read are skipped.
 pub fn read(block: &str) -> Vec<CheckIn> {
-    scan(block).slots.into_iter().filter_map(|s| s.checkin).collect()
+    scan(block)
+        .slots
+        .into_iter()
+        .filter_map(|s| s.checkin)
+        .collect()
 }
 
 pub enum Op<'a> {
@@ -328,7 +378,10 @@ pub enum Op<'a> {
     Update(usize, CheckIn),
     Delete(usize),
     /// An emotion note was renamed: rewrite its name in every check-in.
-    RenameEmotion { old_key: &'a str, new: &'a str },
+    RenameEmotion {
+        old_key: &'a str,
+        new: &'a str,
+    },
 }
 
 /// Apply `op` to a list held in memory (pending check-ins); same rules as [`edit`].
@@ -366,8 +419,13 @@ pub fn apply(list: &mut Vec<CheckIn>, op: Op) -> Result<(), MoodError> {
 /// an empty list removes the key. A no-op returns the block unchanged.
 pub fn edit(block: &str, eol: &str, op: Op) -> Result<String, MoodError> {
     let mut s = scan(block);
-    let readable: Vec<usize> = (0..s.slots.len()).filter(|&k| s.slots[k].checkin.is_some()).collect();
-    let mut list: Vec<CheckIn> = readable.iter().map(|&k| s.slots[k].checkin.clone().unwrap()).collect();
+    let readable: Vec<usize> = (0..s.slots.len())
+        .filter(|&k| s.slots[k].checkin.is_some())
+        .collect();
+    let mut list: Vec<CheckIn> = readable
+        .iter()
+        .map(|&k| s.slots[k].checkin.clone().unwrap())
+        .collect();
     let before = list.clone();
     let deleted = match &op {
         Op::Delete(i) => Some(*i),
@@ -383,12 +441,18 @@ pub fn edit(block: &str, eol: &str, op: Op) -> Result<String, MoodError> {
     } else {
         for (n, &k) in readable.iter().enumerate() {
             if list[n] != before[n] {
-                s.slots[k] = Slot { checkin: Some(list[n].clone()), raw: None };
+                s.slots[k] = Slot {
+                    checkin: Some(list[n].clone()),
+                    raw: None,
+                };
                 changed = true;
             }
         }
         for c in &list[before.len()..] {
-            s.slots.push(Slot { checkin: Some(c.clone()), raw: None });
+            s.slots.push(Slot {
+                checkin: Some(c.clone()),
+                raw: None,
+            });
             changed = true;
         }
     }
@@ -409,7 +473,11 @@ pub fn edit(block: &str, eol: &str, op: Op) -> Result<String, MoodError> {
         Some((i, j)) => {
             let mut out: String = lines[..i].concat();
             if !value.is_empty() || !s.preamble.is_empty() {
-                out.push_str(if s.inline { "mood:" } else { line_content(lines[i]) });
+                out.push_str(if s.inline {
+                    "mood:"
+                } else {
+                    line_content(lines[i])
+                });
                 out.push_str(eol);
                 out.push_str(&s.preamble);
                 out.push_str(&value);
@@ -420,7 +488,11 @@ pub fn edit(block: &str, eol: &str, op: Op) -> Result<String, MoodError> {
         None if block.is_empty() => format!("---{eol}mood:{eol}{value}---{eol}"),
         None => {
             let close = lines.len() - 1;
-            format!("{}mood:{eol}{value}{}", lines[..close].concat(), lines[close])
+            format!(
+                "{}mood:{eol}{value}{}",
+                lines[..close].concat(),
+                lines[close]
+            )
         }
     })
 }
@@ -445,7 +517,10 @@ const OFFERED_KEEP_DAYS: i64 = 60;
 
 impl MoodStore {
     pub fn open(dir: &Path, vault_id: &str) -> MoodStore {
-        Self::open_at(dir.join(format!("{vault_id}.json")), Local::now().date_naive())
+        Self::open_at(
+            dir.join(format!("{vault_id}.json")),
+            Local::now().date_naive(),
+        )
     }
 
     fn open_at(path: PathBuf, today: NaiveDate) -> MoodStore {
@@ -453,7 +528,9 @@ impl MoodStore {
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default();
-        let cutoff = (today - Duration::days(OFFERED_KEEP_DAYS)).format("%Y-%m-%d").to_string();
+        let cutoff = (today - Duration::days(OFFERED_KEEP_DAYS))
+            .format("%Y-%m-%d")
+            .to_string();
         state.offered.retain(|d, _| *d >= cutoff);
         MoodStore { path, state }
     }
@@ -505,7 +582,9 @@ impl MoodStore {
         if outcome == "shown" && self.state.offered.contains_key(date) {
             return Ok(());
         }
-        self.state.offered.insert(date.to_string(), outcome.to_string());
+        self.state
+            .offered
+            .insert(date.to_string(), outcome.to_string());
         self.save()
     }
 }
@@ -534,13 +613,30 @@ mod tests {
         }
         .normalized()
         .unwrap();
-        assert_eq!(c, CheckIn { at: "07:05".into(), valence: 0.0, emotions: vec!["calm".into(), "hopeful".into()], factors: vec!["work".into()] });
-        assert_eq!(item_text(&c), "{ at: \"07:05\", valence: 0, emotions: [calm, hopeful], factors: [work] }");
+        assert_eq!(
+            c,
+            CheckIn {
+                at: "07:05".into(),
+                valence: 0.0,
+                emotions: vec!["calm".into(), "hopeful".into()],
+                factors: vec!["work".into()]
+            }
+        );
+        assert_eq!(
+            item_text(&c),
+            "{ at: \"07:05\", valence: 0, emotions: [calm, hopeful], factors: [work] }"
+        );
         for bad in ["24:00", "12:60", "noon", "", "1200"] {
             assert!(ci(bad, 0.0, &[]).normalized().is_err(), "{bad}");
         }
-        assert_eq!(ci("10:00", 1.5, &[]).normalized(), Err(MoodError::BadValence));
-        assert_eq!(ci("10:00", f64::NAN, &[]).normalized(), Err(MoodError::BadValence));
+        assert_eq!(
+            ci("10:00", 1.5, &[]).normalized(),
+            Err(MoodError::BadValence)
+        );
+        assert_eq!(
+            ci("10:00", f64::NAN, &[]).normalized(),
+            Err(MoodError::BadValence)
+        );
         assert!(ci("10:00", 0.0, &["a\nb"]).normalized().is_err());
         assert_eq!(fmt_valence(-0.25), "-0.25");
         assert_eq!(fmt_valence(1.0), "1");
@@ -556,7 +652,10 @@ mod tests {
         assert_eq!(got[0].factors, vec!["sleep"]);
         assert_eq!(got[1], ci("09:30", -0.5, &["tired", "worried"]));
         let inline = "---\nmood: [{ at: \"08:00\", valence: 1 }, { at: \"20:00\", valence: -1, emotions: [sad] }]\n---\n";
-        assert_eq!(read(inline), vec![ci("08:00", 1.0, &[]), ci("20:00", -1.0, &["sad"])]);
+        assert_eq!(
+            read(inline),
+            vec![ci("08:00", 1.0, &[]), ci("20:00", -1.0, &["sad"])]
+        );
         assert!(read("---\nid: X\n---\n").is_empty());
         assert!(read("").is_empty());
     }
@@ -567,8 +666,16 @@ mod tests {
         let out = edit(b, "\n", Op::Push(ci("07:12", 0.4, &["calm"]))).unwrap();
         assert_eq!(out, "---\nid: X\nmodified: M\nmood:\n  - { at: \"07:12\", valence: 0.4, emotions: [calm] }\n---\n");
         assert_eq!(read(&out), vec![ci("07:12", 0.4, &["calm"])]);
-        let crlf = edit("---\r\nid: X\r\n---\r\n", "\r\n", Op::Push(ci("07:12", 0.0, &[]))).unwrap();
-        assert_eq!(crlf, "---\r\nid: X\r\nmood:\r\n  - { at: \"07:12\", valence: 0 }\r\n---\r\n");
+        let crlf = edit(
+            "---\r\nid: X\r\n---\r\n",
+            "\r\n",
+            Op::Push(ci("07:12", 0.0, &[])),
+        )
+        .unwrap();
+        assert_eq!(
+            crlf,
+            "---\r\nid: X\r\nmood:\r\n  - { at: \"07:12\", valence: 0 }\r\n---\r\n"
+        );
     }
 
     #[test]
@@ -583,18 +690,27 @@ mod tests {
         let updated = edit(&pushed, "\n", Op::Update(1, ci("09:30", -0.2, &["tired"]))).unwrap();
         assert!(updated.contains("    - { at: \"07:12\", valence: 0.4, extra: keep } # c\n    - { at: \"09:30\", valence: -0.2, emotions: [tired] }\n    - { broken\n"));
         // An update to the same values changes nothing.
-        assert_eq!(edit(&pushed, "\n", Op::Update(0, ci("07:12", 0.4, &[]))).unwrap(), pushed);
+        assert_eq!(
+            edit(&pushed, "\n", Op::Update(0, ci("07:12", 0.4, &[]))).unwrap(),
+            pushed
+        );
         // Delete the first readable one; the unreadable item survives.
         let deleted = edit(&updated, "\n", Op::Delete(0)).unwrap();
         assert!(!deleted.contains("07:12"));
         assert!(deleted.contains("    - { broken\n"));
-        assert!(matches!(edit(b, "\n", Op::Delete(5)), Err(MoodError::NoSuchCheckIn(6))));
+        assert!(matches!(
+            edit(b, "\n", Op::Delete(5)),
+            Err(MoodError::NoSuchCheckIn(6))
+        ));
     }
 
     #[test]
     fn deleting_the_last_item_removes_the_key() {
         let b = "---\nid: X\nmood:\n  - { at: \"07:12\", valence: 0.4 }\nafter: 1\n---\n";
-        assert_eq!(edit(b, "\n", Op::Delete(0)).unwrap(), "---\nid: X\nafter: 1\n---\n");
+        assert_eq!(
+            edit(b, "\n", Op::Delete(0)).unwrap(),
+            "---\nid: X\nafter: 1\n---\n"
+        );
     }
 
     #[test]
@@ -610,9 +726,28 @@ mod tests {
         let pending = vec![ci("07:12", 0.4, &["Sad", "calm"]), ci("09:00", 0.1, &[])];
         let merged = edit(b, "\n", Op::Merge(&pending)).unwrap();
         assert_eq!(read(&merged).len(), 3);
-        let renamed = edit(&merged, "\n", Op::RenameEmotion { old_key: "sad", new: "blue" }).unwrap();
+        let renamed = edit(
+            &merged,
+            "\n",
+            Op::RenameEmotion {
+                old_key: "sad",
+                new: "blue",
+            },
+        )
+        .unwrap();
         assert!(renamed.contains("  - { at: \"07:12\", valence: 0.4, emotions: [blue, calm] }\n  - { at: \"08:00\", valence: 0 }\n"));
-        assert_eq!(edit(&renamed, "\n", Op::RenameEmotion { old_key: "sad", new: "x" }).unwrap(), renamed);
+        assert_eq!(
+            edit(
+                &renamed,
+                "\n",
+                Op::RenameEmotion {
+                    old_key: "sad",
+                    new: "x"
+                }
+            )
+            .unwrap(),
+            renamed
+        );
     }
 
     #[test]
@@ -634,7 +769,8 @@ mod tests {
         let today = NaiveDate::from_ymd_opt(2026, 10, 30).unwrap();
         let mut s = MoodStore::open_at(p.clone(), today);
         assert!(s.pending("2026-10-30").is_empty());
-        s.set_pending("2026-10-30", vec![ci("07:12", 0.4, &[])]).unwrap();
+        s.set_pending("2026-10-30", vec![ci("07:12", 0.4, &[])])
+            .unwrap();
         s.mark_offered("2026-10-30", "shown").unwrap();
         s.mark_offered("2026-10-30", "answered").unwrap();
         s.mark_offered("2026-10-30", "shown").unwrap();
@@ -643,9 +779,15 @@ mod tests {
         let s = MoodStore::open_at(p.clone(), today);
         assert_eq!(s.pending("2026-10-30"), vec![ci("07:12", 0.4, &[])]);
         assert_eq!(s.offered("2026-10-30"), Some("answered"));
-        assert_eq!(s.offered("2026-01-01"), None, "old ledger entries are pruned");
+        assert_eq!(
+            s.offered("2026-01-01"),
+            None,
+            "old ledger entries are pruned"
+        );
         let mut s = s;
         s.set_pending("2026-10-30", Vec::new()).unwrap();
-        assert!(MoodStore::open_at(p, today).pending("2026-10-30").is_empty());
+        assert!(MoodStore::open_at(p, today)
+            .pending("2026-10-30")
+            .is_empty());
     }
 }
