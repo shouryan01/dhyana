@@ -62,6 +62,9 @@ function IconButton({
             onClick={onClick}
             className={cn(
               "size-7 text-surface-muted hover:bg-chrome-hover hover:text-surface-fg",
+              // The ghost variant tints anything that is aria-expanded. The toggle should look the
+              // same open or closed (only hover changes it), so undo that and keep hover winning.
+              "aria-expanded:bg-transparent aria-expanded:text-surface-muted aria-expanded:hover:bg-chrome-hover aria-expanded:hover:text-surface-fg",
               danger && "hover:text-red-500",
             )}
           />
