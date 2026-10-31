@@ -82,6 +82,47 @@ export function useActions(): Action[] {
         run: () => navigate({ to: "/library" }),
       },
       {
+        id: "year",
+        label: "Open year view",
+        group: "Navigate",
+        shortcut: "g y",
+        keywords: "heatmap calendar streak words mood overview stats",
+        run: () =>
+          navigate({ to: "/year", search: { year: Number(current.slice(0, 4)), view: "words" } }),
+      },
+      {
+        id: "mood",
+        label: "Add mood check-in",
+        group: "Journal",
+        shortcut: "m",
+        keywords: "feeling emotion how am i valence log",
+        run: () => {
+          if (app.addCheckIn.current) return app.addCheckIn.current();
+          // No day open: open today's, which picks the request up when it mounts.
+          app.checkInRequested.current = true;
+          void go(app.today);
+        },
+      },
+      {
+        id: "mood-panel",
+        label: "Toggle mood panel",
+        group: "Journal",
+        shortcut: "g m",
+        keywords: "graph chart valence feelings over time",
+        run: app.toggleMoodPanel,
+      },
+      {
+        id: "history",
+        label: "Show version history",
+        group: "Journal",
+        shortcut: "g h",
+        keywords: "versions git restore undo previous diff changes",
+        run: () =>
+          app.showHistory.current
+            ? app.showHistory.current()
+            : toast("Open a note to see its history"),
+      },
+      {
         id: "delete",
         label: "Delete this note…",
         group: "Journal",
@@ -142,6 +183,21 @@ export function useActions(): Action[] {
             .catch((e) => toast.error(`Couldn't rebuild the index: ${e}`)),
       },
       {
+        id: "checkpoint",
+        label: "Save a version now",
+        group: "App",
+        keywords: "history git commit checkpoint snapshot backup",
+        run: () =>
+          void flushAll()
+            .then(() => backend.checkpoint("Saved by hand"))
+            .then((id) =>
+              id
+                ? toast.success("Version saved", { description: "See it in a note's history." })
+                : toast("Nothing to save yet"),
+            )
+            .catch((e) => toast.error(`Couldn't save a version: ${e}`)),
+      },
+      {
         id: "mode",
         label: "Toggle dark / light mode",
         group: "App",
@@ -182,6 +238,7 @@ export function useActions(): Action[] {
       app.app?.theme,
       app.toggleSidebar,
       app.toggleMode,
+      app.toggleMoodPanel,
       app.replayOnboarding,
       current,
       navigate,
@@ -199,13 +256,18 @@ export function useHotkeys(actions: Action[]) {
     const onKey = (e: KeyboardEvent) => {
       if (e.isComposing) return;
       const inText = isTextTarget(e.target);
+      // Inside a dialog (the check-in, history, a confirmation) only chords apply, so a plain
+      // "m" on a focused button doesn't start something else underneath.
+      const inDialog = (e.target as HTMLElement | null)?.closest?.(
+        '[role="dialog"], [role="alertdialog"]',
+      );
       if (e.key === "Escape" && inText && (e.target as HTMLElement).isContentEditable) {
         // An open @ ! # $ popup gets the first Esc (it closes itself); the next one leaves the editor.
         if (document.querySelector("[data-suggest-popup]")) return;
         (e.target as HTMLElement).blur(); // Esc leaves the editor so single-key shortcuts work
         return;
       }
-      const action = dispatcher(e, inText);
+      const action = dispatcher(e, inText || !!inDialog);
       if (action) {
         e.preventDefault();
         e.stopPropagation();

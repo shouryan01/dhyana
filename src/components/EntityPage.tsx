@@ -1,9 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FileText, Hash, MapPin, Smile, User } from "lucide-react";
+import { FileText, Hash, History, MapPin, Smile, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
 import { registerFlush } from "@/app/flush";
+import { HistoryDialog } from "@/components/HistoryDialog";
 import { NoteEditor } from "@/components/NoteEditor";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,6 +52,17 @@ export function EntityPage({ path }: { path: string }) {
   const [fields, setFields] = useState<Fields | null>(null);
   const edited = useRef(false); // the user has typed something not yet saved
   const navigate = useNavigate();
+  const app = useApp();
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    const { showHistory } = app;
+    showHistory.current = () => setHistoryOpen(true);
+    return () => {
+      showHistory.current = null;
+    };
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [path]);
 
   // Load, and reload (backlinks!) whenever the vault's notes change. Typing is never overwritten.
   useEffect(() => {
@@ -160,9 +172,26 @@ export function EntityPage({ path }: { path: string }) {
   return (
     <div className="writing h-full overflow-y-auto">
       <div className="anim-fade mx-auto w-full max-w-[720px] px-8 pb-24 pt-14">
-        <p className="mb-2 flex items-center gap-1.5 text-[12px] text-muted-foreground select-none">
-          {kind !== "emotion" && <Icon size={13} />} {KIND_LABEL[kind] ?? kind}
-        </p>
+        <div className="mb-2 flex items-center justify-between select-none">
+          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            {kind !== "emotion" && <Icon size={13} />} {KIND_LABEL[kind] ?? kind}
+          </p>
+          <button
+            type="button"
+            aria-label="Version history"
+            title="Version history"
+            onClick={() => setHistoryOpen(true)}
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-100 hover:bg-chrome-hover hover:text-foreground"
+          >
+            <History size={15} />
+          </button>
+        </div>
+        <HistoryDialog
+          path={path}
+          title={detail.display}
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+        />
         <input
           aria-label="Name"
           value={fields.name}

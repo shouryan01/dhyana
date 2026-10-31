@@ -84,6 +84,20 @@
   color-scheme: dark;
 }
 
+/* Mood: a diverging scale, cool violet (unpleasant) through a neutral grey to warm amber
+   (pleasant). Values in between are mixed in `src/lib/mood.ts`. Dark mode has its own steps:
+   the poles are lighter and the midpoint darker, so all three stand off the dark surface. */
+:root {
+  --mood-neg: oklch(0.55 0.15 295);
+  --mood-mid: oklch(0.78 0.012 80);
+  --mood-pos: oklch(0.7 0.15 68);
+}
+:root[data-theme$="-dark"] {
+  --mood-neg: oklch(0.7 0.13 295);
+  --mood-mid: oklch(0.52 0.012 80);
+  --mood-pos: oklch(0.8 0.14 72);
+}
+
 :root {
   --font-ui: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-serif:
@@ -471,4 +485,162 @@ body {
 }
 .ProseMirror .tag {
   color: var(--primary);
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Mood check-in
+   --------------------------------------------------------------------------------------------- */
+@keyframes mood-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes mood-breathe {
+  50% {
+    transform: scale(1.035);
+  }
+}
+/* The shape's layers turn slowly against each other and breathe; the outline and colour follow
+   the slider (sprung in MoodBlob.tsx, so no CSS transition on them). */
+.mood-turn,
+.mood-turn-back,
+.mood-breathe {
+  /* The shape is drawn around (0, 0), which with view-box is the reference box's origin. */
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+.mood-turn {
+  animation: mood-turn 60s linear infinite;
+}
+.mood-turn-back {
+  animation: mood-turn 90s linear infinite reverse;
+}
+.mood-breathe {
+  animation: mood-breathe 6s ease-in-out infinite;
+}
+
+/* The check-in's backdrop: a soft wash of the current mood colour behind the shape. */
+.mood-aura {
+  background:
+    radial-gradient(
+      120% 70% at 50% 0%,
+      color-mix(in oklab, var(--tint) 30%, transparent),
+      transparent 70%
+    ),
+    var(--popover);
+}
+:root[data-theme$="-dark"] .mood-aura {
+  background:
+    radial-gradient(
+      120% 70% at 50% 0%,
+      color-mix(in oklab, var(--tint) 22%, transparent),
+      transparent 70%
+    ),
+    var(--popover);
+}
+
+/* Moving between steps: the new one slides in from the side you're heading towards. */
+@keyframes mood-step-next {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+@keyframes mood-step-back {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+}
+.mood-step-next {
+  animation: mood-step-next 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.mood-step-back {
+  animation: mood-step-back 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes mood-word {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+.mood-word {
+  animation: mood-word 160ms ease-out;
+}
+
+/* The valence slider: a rounded track painted with the mood scale, and a thumb that carries the
+   current colour inside a light ring. `--tint` is set on the element. */
+.mood-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--mood-neg), var(--mood-mid), var(--mood-pos));
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  outline: none;
+  cursor: pointer;
+}
+.mood-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--tint);
+  border: 5px solid var(--popover);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--foreground) 10%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.18),
+    0 6px 16px -4px color-mix(in oklab, var(--tint) 70%, transparent);
+  transition: transform 150ms var(--ease-spring);
+}
+.mood-slider:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.mood-slider::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--tint);
+  border: 5px solid var(--popover);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--foreground) 10%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.18);
+}
+.mood-slider:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 5px;
+}
+
+/* A picked emotion or factor takes on the mood colour. */
+.mood-chip[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--tint) 24%, var(--popover));
+  border-color: color-mix(in oklab, var(--tint) 75%, var(--popover));
+}
+
+/* Calendar day dots in the day's mood colour (see Calendar.tsx). Mood dots are a touch larger. */
+.mood-dot-n2,
+.mood-dot-n1,
+.mood-dot-0,
+.mood-dot-p1,
+.mood-dot-p2 {
+  --dot-size: 5px;
+}
+.mood-dot-n2 {
+  --dot: var(--mood-neg);
+}
+.mood-dot-n1 {
+  --dot: color-mix(in oklab, var(--mood-neg) 50%, var(--mood-mid));
+}
+.mood-dot-0 {
+  --dot: var(--mood-mid);
+}
+.mood-dot-p1 {
+  --dot: color-mix(in oklab, var(--mood-pos) 50%, var(--mood-mid));
+}
+.mood-dot-p2 {
+  --dot: var(--mood-pos);
 }

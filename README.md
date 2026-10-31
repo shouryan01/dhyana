@@ -9,6 +9,8 @@ A quiet, offline-first journal. Your entries are plain markdown files in a folde
 - **Opens to today.** One note per day, created only when you start typing.
 - **Plain files.** `journal/2026/10/2026-10-28.md`: readable in Obsidian, VS Code, anywhere.
 - **Lossless.** Your markdown is never reformatted. Only the parts you edit change.
+- **Mood check-ins.** A quick "how are you feeling?" once a day, saved in the note's frontmatter, with a year heatmap of words and mood.
+- **Version history.** Every note's past versions with a diff and one-click restore, kept outside your vault.
 - **Keyboard-first.** Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> for everything.
 
 <p>

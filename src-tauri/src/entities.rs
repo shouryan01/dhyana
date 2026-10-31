@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::frontmatter;
 use crate::index::{EntitySummary, Index, IndexError, Mention};
 use crate::links;
+use crate::mood;
 use crate::names::{self, Kind, NameError};
 use crate::vault::{self, StagedWrite, VaultError};
 use crate::yaml;
@@ -293,6 +294,25 @@ pub fn rename(vault: &Path, idx: &mut Index, rel: &str, new_name: &str) -> Resul
             write_atomic(&path, &assemble(s.bom, s.block, "", &body))?;
             touched.push(src_rel.clone());
             if src_rel != new_rel {
+                updated_notes += 1;
+            }
+        }
+    }
+    // Check-ins store emotions by filename too (master plan §4a), so they follow the rename.
+    if kind == Kind::Emotion && old.name != new_stem {
+        for src in idx.with_emotion(&old_key)? {
+            let path = vault.join(&src);
+            let Ok(text) = fs::read_to_string(&path) else { continue };
+            let s = frontmatter::split(&text);
+            let eol = frontmatter::detect_eol(&text);
+            let block = mood::edit(s.block, eol, mood::Op::RenameEmotion { old_key: &old_key, new: &new_stem })
+                .map_err(VaultError::from)?;
+            if block == s.block {
+                continue;
+            }
+            write_atomic(&path, &assemble(s.bom, &block, eol, s.body))?;
+            if !touched.contains(&src) {
+                touched.push(src);
                 updated_notes += 1;
             }
         }
@@ -738,6 +758,22 @@ To do #work later
         let names: Vec<_> = fs::read_dir(dir.path().join("people")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
         assert!(names.contains(&"ALICE.md".to_string()), "{names:?}");
         assert!(rename(dir.path(), &mut idx, "places/Rome.md", "x").is_ok());
+    }
+
+    #[test]
+    fn renaming_an_emotion_rewrites_check_ins_too() {
+        let (dir, mut idx) = setup();
+        put(dir.path(), "emotions/sad.md", "---\nid: E\ntype: emotion\n---\n");
+        put(dir.path(), "journal/2026/10/2026-10-27.md", "---\nid: J\nmood:\n  - { at: \"07:00\", valence: -0.5, emotions: [Sad, tired] } # rough\n  - { at: \"09:00\", valence: 0 }\n---\nNo inline links.\n");
+        put(dir.path(), "journal/2026/10/2026-10-28.md", "---\nmood:\n  - { at: \"07:00\", valence: 0.2, emotions: [sad] }\n---\nFelt [[sad]].\n");
+        idx.sync(dir.path()).unwrap();
+        let r = rename(dir.path(), &mut idx, "emotions/sad.md", "blue").unwrap();
+        assert_eq!(r.updated_notes, 2);
+        let a = fs::read_to_string(dir.path().join("journal/2026/10/2026-10-27.md")).unwrap();
+        assert_eq!(a, "---\nid: J\nmood:\n  - { at: \"07:00\", valence: -0.5, emotions: [blue, tired] }\n  - { at: \"09:00\", valence: 0 }\n---\nNo inline links.\n");
+        let b = fs::read_to_string(dir.path().join("journal/2026/10/2026-10-28.md")).unwrap();
+        assert_eq!(b, "---\nmood:\n  - { at: \"07:00\", valence: 0.2, emotions: [blue] }\n---\nFelt [[blue]].\n");
+        assert_eq!(idx.with_emotion("blue").unwrap().len(), 2);
     }
 
     #[test]

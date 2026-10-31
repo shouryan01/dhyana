@@ -17,6 +17,7 @@ import { TopicPage } from "@/components/TopicPage";
 import { SettingsPage } from "@/components/SettingsPage";
 import { ShortcutsPage } from "@/components/ShortcutsPage";
 import { Shell } from "@/components/Shell";
+import { isYearView, YearPage } from "@/components/YearPage";
 import { isISODate, todayISO } from "@/lib/dates";
 import { getDevSettings } from "@/lib/devSettings";
 import { hideSplash } from "@/lib/splash";
@@ -74,6 +75,19 @@ const topicRoute = createRoute({
   component: TopicRoute,
 });
 
+const yearRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/year",
+  validateSearch: (search: Record<string, unknown>) => {
+    const y = Number(search.year);
+    return {
+      year: Number.isInteger(y) && y > 0 && y < 10000 ? y : new Date().getFullYear(),
+      view: isYearView(search.view) ? search.view : ("words" as const),
+    };
+  },
+  component: YearRoute,
+});
+
 const libraryRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/library",
@@ -86,6 +100,7 @@ const router = createRouter({
     dayRoute,
     entityRoute,
     libraryRoute,
+    yearRoute,
     topicRoute,
     settingsRoute,
     shortcutsRoute,
@@ -107,6 +122,11 @@ function DayRoute() {
 function TopicRoute() {
   const { tag } = topicRoute.useSearch();
   return tag ? <TopicPage key={tag} tag={tag} /> : null;
+}
+
+function YearRoute() {
+  const { year, view } = yearRoute.useSearch();
+  return <YearPage year={year} view={view} />;
 }
 
 function EntityRoute() {

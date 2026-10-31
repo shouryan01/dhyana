@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
+import { flushAll } from "@/app/flush";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -93,6 +94,22 @@ export function SettingsPage() {
           </Row>
         </Section>
 
+        <Section title="Mood">
+          <Row
+            label="Ask for mood on first open of the day"
+            hint="Offered once, when you first open today's note. Add more any time with M or the mood button."
+          >
+            <Segmented
+              options={["off", "on"]}
+              labels={ON_OFF}
+              value={state.askMood ? "on" : "off"}
+              onChange={(v) => void app.updateSettings({ askMood: v === "on" })}
+            />
+          </Row>
+        </Section>
+
+        <HistorySection />
+
         {IS_DEV && <DeveloperSection onPreviewOnboarding={app.replayOnboarding} />}
 
         <Section title="Keyboard shortcuts">
@@ -111,6 +128,44 @@ export function SettingsPage() {
         <p className="mt-10 text-[12px] text-muted-foreground">dhyāna 0.1.0</p>
       </div>
     </div>
+  );
+}
+
+const ON_OFF = { on: "On", off: "Off" };
+
+/** Version history: autosave on idle and quit, and a way to save one by hand. */
+function HistorySection() {
+  const app = useApp();
+  const state = app.app!;
+  const saveNow = async () => {
+    try {
+      await flushAll();
+      const id = await backend.checkpoint("Saved by hand");
+      if (id) toast.success("Version saved", { description: "See it in a note's history." });
+      else toast("Nothing to save yet");
+    } catch (e) {
+      toast.error(`Couldn't save a version: ${e}`);
+    }
+  };
+  return (
+    <Section title="History">
+      <Row
+        label="Keep version history"
+        hint="Saves a version of your notes when you pause and when you quit. It's kept in the app's data folder, never in your vault."
+      >
+        <Segmented
+          options={["off", "on"]}
+          labels={ON_OFF}
+          value={state.autoCommit ? "on" : "off"}
+          onChange={(v) => void app.updateSettings({ autoCommit: v === "on" })}
+        />
+      </Row>
+      <Row label="Save a version now" hint="Also in the command palette.">
+        <Button variant="outline" onClick={() => void saveNow()}>
+          Save version
+        </Button>
+      </Row>
+    </Section>
   );
 }
 

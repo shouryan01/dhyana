@@ -1,24 +1,35 @@
 import { z } from "zod";
-import type {
-  EntityDetail,
-  EntityKind,
-  EntityPatch,
-  EntitySummary,
-  Mention,
-  RenameResult,
-  TagInfo,
-  UpcomingEvent,
+import {
+  CheckInSchema,
+  type CheckIn,
+  type DayStat,
+  type EntityDetail,
+  type EntityKind,
+  type EntityPatch,
+  type EntitySummary,
+  type Mention,
+  type OnThisDay,
+  type RenameResult,
+  type TagInfo,
+  type UpcomingEvent,
+  type Version,
+  type VersionContent,
 } from "./schema";
 
 export type {
+  CheckIn,
+  DayStat,
   EntityDetail,
   EntityKind,
   EntityPatch,
   EntitySummary,
   Mention,
+  OnThisDay,
   RenameResult,
   TagInfo,
   UpcomingEvent,
+  Version,
+  VersionContent,
 } from "./schema";
 
 export const THEMES = ["dhyana-light", "dhyana-dark", "basic-light", "basic-dark"] as const;
@@ -53,6 +64,8 @@ export const AppStateSchema = z.object({
   vaultPath: z.string().nullable(),
   theme: ThemeSchema.catch("dhyana-light"),
   font: FontSchema.catch("serif"),
+  askMood: z.boolean().catch(true),
+  autoCommit: z.boolean().catch(true),
 });
 export type AppState = z.infer<typeof AppStateSchema>;
 
@@ -62,6 +75,10 @@ export const DayFileSchema = z.object({
   hash: z.string(),
   created: z.string().nullable(),
   modified: z.string().nullable(),
+  /** Check-ins in the file's frontmatter. */
+  mood: z.array(CheckInSchema),
+  /** Check-ins held in app data until the first text creates the file. */
+  pendingMood: z.array(CheckInSchema),
 });
 export type DayFile = z.infer<typeof DayFileSchema>;
 
@@ -77,7 +94,11 @@ export interface SettingsPatch {
   onboardingCompleted?: boolean;
   theme?: Theme;
   font?: Font;
+  askMood?: boolean;
+  autoCommit?: boolean;
 }
+
+export type MoodOffer = "shown" | "answered" | "skipped";
 
 /** Everything the UI needs from the Rust core. Swapped for an in-memory fake outside Tauri. */
 export interface Backend {
@@ -100,6 +121,32 @@ export interface Backend {
   /** Years that have a journal folder, oldest first. */
   listYears(): Promise<number[]>;
   onVaultChanged(cb: (dates: string[]) => void): Promise<() => void>;
+
+  /**
+   * Mood check-ins. With a day file they go into its `mood:` frontmatter; without one they are
+   * held (in app data) until the first text creates the file. `index` counts the file's
+   * check-ins first, then the pending ones. Each resolves to the day as it is now.
+   */
+  addMood(date: string, checkin: CheckIn): Promise<DayFile>;
+  updateMood(date: string, index: number, checkin: CheckIn): Promise<DayFile>;
+  deleteMood(date: string, index: number): Promise<DayFile>;
+  /** Should the check-in be offered for this day (setting on, none yet, not offered before)? */
+  moodOffer(date: string): Promise<boolean>;
+  markMoodOffered(date: string, outcome: MoodOffer): Promise<void>;
+  /** Words and check-ins per journal day, `from` to `to` inclusive; days without a file are absent. */
+  dayStats(from: string, to: string): Promise<DayStat[]>;
+  /** Entries from earlier years on the same month and day, newest first. */
+  onThisDay(date: string): Promise<OnThisDay[]>;
+
+  /** Versions of a note (vault-relative path), newest first. */
+  noteHistory(path: string): Promise<Version[]>;
+  noteVersion(path: string, id: string): Promise<VersionContent>;
+  /** Puts the note back as it was in that version; the current text is kept as a version first. */
+  restoreVersion(path: string, id: string): Promise<void>;
+  /** Fires when a version is recorded (after a pause in writing, or on request). */
+  onHistoryChanged(cb: () => void): Promise<() => void>;
+  /** Records a version of the whole vault now. Resolves to its id (null if there is nothing yet). */
+  checkpoint(reason: string): Promise<string | null>;
 
   /** People, places and emotions (not tags), with how often they are mentioned. */
   listEntities(): Promise<EntitySummary[]>;

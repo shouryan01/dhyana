@@ -35,6 +35,8 @@ export interface DayStore {
   dates(): string[];
   body(date: string): string;
   setBody(date: string, body: string): void;
+  /** An emotion was renamed: rewrite it in check-ins. Returns the days that changed. */
+  renameEmotion?(oldKey: string, next: string): string[];
 }
 
 const DIRS: Record<EntityKind, string> = {
@@ -45,7 +47,9 @@ const DIRS: Record<EntityKind, string> = {
   note: "notes",
 };
 const pathOf = (kind: EntityKind, name: string) => `${DIRS[kind]}/${name}.md`;
-const journalPath = (date: string) => `journal/${date.slice(0, 4)}/${date.slice(5, 7)}/${date}.md`;
+/** A journal day's vault-relative path, as the Rust core names it. */
+export const journalPath = (date: string) =>
+  `journal/${date.slice(0, 4)}/${date.slice(5, 7)}/${date}.md`;
 const display = (e: MemEntity) => e.title ?? e.name;
 const MENTION_LIMIT = 200;
 
@@ -350,14 +354,19 @@ export function createEntityStore(
       delete ents[path];
       ents[newPath] = moved;
 
-      let updatedNotes = 0;
+      const touchedDays = new Set<string>();
       for (const d of days.dates()) {
         const [body, n] = rewriteLinks(days.body(d), oldKey, s.stem);
         if (n) {
           days.setBody(d, body);
-          updatedNotes++;
+          touchedDays.add(d);
         }
       }
+      // Check-ins name emotions by filename too (master plan §4a).
+      if (e.kind === "emotion" && e.name !== s.stem) {
+        for (const d of days.renameEmotion?.(oldKey, s.stem) ?? []) touchedDays.add(d);
+      }
+      let updatedNotes = touchedDays.size;
       for (const [p, other] of rows()) {
         const [notes, n] = rewriteLinks(other.notes, oldKey, s.stem);
         if (!n) continue;

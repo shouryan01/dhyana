@@ -7,6 +7,7 @@ CREATE TABLE notes (
   title_key TEXT,
   relationship TEXT,
   birthday TEXT,
+  words INTEGER NOT NULL DEFAULT 0,
   mtime INTEGER NOT NULL,
   size INTEGER NOT NULL
 );
@@ -38,3 +39,15 @@ CREATE TABLE tags (
   tag_key TEXT NOT NULL
 );
 CREATE INDEX tags_key ON tags(tag_key);
+
+CREATE TABLE moods (
+  src TEXT NOT NULL,
+  ord INTEGER NOT NULL,
+  at TEXT NOT NULL,
+  valence REAL NOT NULL,
+  emotions TEXT NOT NULL,
+  -- emotion name keys, one per line with a line break at each end, for "uses this emotion" lookups
+  emotion_keys TEXT NOT NULL,
+  factors TEXT NOT NULL
+);
+CREATE INDEX moods_src ON moods(src);

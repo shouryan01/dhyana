@@ -121,3 +121,46 @@ export const RenameResultSchema = z.object({
   updatedNotes: z.number(),
 });
 export type RenameResult = z.infer<typeof RenameResultSchema>;
+
+/** One mood check-in, as stored in a day's `mood:` frontmatter list. Mirrors `mood.rs`. */
+export const CheckInSchema = z.object({
+  /** Local time of day. */
+  at: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 07:30"),
+  /** -1 very unpleasant … 1 very pleasant. */
+  valence: z.number().min(-1).max(1),
+  /** Emotion note filenames, so renaming an emotion can rewrite them (master plan §4a). */
+  emotions: z.array(z.string()),
+  factors: z.array(z.string()),
+});
+export type CheckIn = z.infer<typeof CheckInSchema>;
+
+export const DayStatSchema = z.object({
+  date: z.string(),
+  words: z.number(),
+  checkins: z.number(),
+  /** Average valence of the day's check-ins. */
+  valence: z.number().nullable(),
+});
+export type DayStat = z.infer<typeof DayStatSchema>;
+
+export const OnThisDaySchema = z.object({
+  date: z.string(),
+  words: z.number(),
+  excerpt: z.string(),
+});
+export type OnThisDay = z.infer<typeof OnThisDaySchema>;
+
+export const VersionSchema = z.object({
+  id: z.string(),
+  time: z.string(),
+  message: z.string(),
+  deleted: z.boolean(),
+});
+export type Version = z.infer<typeof VersionSchema>;
+
+export const VersionContentSchema = z.object({
+  text: z.string().nullable(),
+  previous: z.string().nullable(),
+  current: z.string().nullable(),
+});
+export type VersionContent = z.infer<typeof VersionContentSchema>;

@@ -1,7 +1,8 @@
 //! Watches the vault and tells the frontend which day files changed.
 
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use notify::RecursiveMode;
 use notify_debouncer_mini::{new_debouncer, DebounceEventResult, Debouncer};
@@ -18,6 +19,48 @@ pub const ENTITIES_EVENT: &str = "vault://entities";
 #[derive(Serialize, Clone)]
 struct Changed {
     dates: Vec<String>,
+}
+
+/// When the vault's files changed since the last version was recorded, so history can commit at
+/// a quiet moment, or at least every so often while someone writes without pausing.
+pub struct Activity {
+    state: Mutex<Pending>,
+}
+
+#[derive(Default)]
+struct Pending {
+    /// The first change not yet recorded.
+    since: Option<Instant>,
+    /// The latest change.
+    last: Option<Instant>,
+}
+
+impl Default for Activity {
+    fn default() -> Self {
+        Activity { state: Mutex::new(Pending::default()) }
+    }
+}
+
+impl Activity {
+    pub fn touch(&self) {
+        if let Ok(mut s) = self.state.lock() {
+            let now = Instant::now();
+            s.since.get_or_insert(now);
+            s.last = Some(now);
+        }
+    }
+
+    /// True (once) if something changed and either nothing has for `quiet`, or the first
+    /// unrecorded change is `max` old.
+    pub fn take_if_due(&self, quiet: Duration, max: Duration) -> bool {
+        let Ok(mut s) = self.state.lock() else { return false };
+        let (Some(since), Some(last)) = (s.since, s.last) else { return false };
+        if last.elapsed() >= quiet || since.elapsed() >= max {
+            *s = Pending::default();
+            return true;
+        }
+        false
+    }
 }
 
 /// Keeps the watcher alive; dropping it stops watching.
@@ -46,13 +89,21 @@ pub fn dates_for_paths<'a>(vault: &Path, paths: impl IntoIterator<Item = &'a Pat
     dates
 }
 
-pub fn start(app: AppHandle, vault: PathBuf, shared: SharedIndex) -> Result<VaultWatcher, String> {
+pub fn start(
+    app: AppHandle,
+    vault: PathBuf,
+    shared: SharedIndex,
+    activity: Arc<Activity>,
+) -> Result<VaultWatcher, String> {
     let root = vault.clone();
     let mut debouncer = new_debouncer(
         Duration::from_millis(250),
         move |res: DebounceEventResult| {
             if let Ok(events) = res {
                 let paths: Vec<PathBuf> = events.into_iter().map(|e| e.path).collect();
+                if !paths.is_empty() {
+                    activity.touch();
+                }
                 // Keep the index in step with the files, whoever changed them.
                 let refreshed = match shared.lock() {
                     Ok(mut slot) => slot
@@ -103,6 +154,20 @@ mod tests {
         ] {
             assert_eq!(date_for_path(v, &p), None, "{p:?}");
         }
+    }
+
+    #[test]
+    fn activity_is_due_when_quiet_or_when_it_has_waited_too_long() {
+        let hour = Duration::from_secs(3600);
+        let a = Activity::default();
+        assert!(!a.take_if_due(Duration::ZERO, Duration::ZERO), "nothing changed yet");
+        a.touch();
+        assert!(!a.take_if_due(hour, hour), "neither quiet nor old enough");
+        assert!(a.take_if_due(Duration::ZERO, hour), "quiet long enough");
+        assert!(!a.take_if_due(Duration::ZERO, Duration::ZERO), "already taken");
+        // Still typing (changes keep arriving, so never quiet), but the first one is old enough.
+        a.touch();
+        assert!(a.take_if_due(hour, Duration::ZERO), "waited too long");
     }
 
     #[test]
