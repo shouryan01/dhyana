@@ -1,6 +1,8 @@
-import { ChevronRight, History, Trash2, type LucideIcon } from "lucide-react";
-import { useId, useState } from "react";
-import { Kbd } from "@/components/ui/kbd";
+import { ChevronLeft, History, Trash2 } from "lucide-react";
+import { type ReactNode, useId, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { shortcutLabel } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -29,44 +31,57 @@ const writeOpen = (open: boolean) => {
   }
 };
 
-function Row({
-  icon: Icon,
+/** An icon-only button that names itself (and its shortcut) in a tooltip on hover or focus. */
+function IconButton({
   label,
   shortcut,
   danger,
+  expanded,
+  controls,
   onClick,
+  children,
 }: {
-  icon: LucideIcon;
   label: string;
   shortcut?: string;
   danger?: boolean;
+  expanded?: boolean;
+  controls?: string;
   onClick(): void;
+  children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "group/row flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-left text-[13px] text-foreground transition-colors duration-100 hover:bg-chrome-hover",
-        danger && "hover:text-red-500",
-      )}
-    >
-      <Icon size={15} aria-hidden="true" className="shrink-0 text-muted-foreground" />
-      <span className="flex-1">{label}</span>
-      {shortcut && (
-        <Kbd
-          shortcut={shortcut}
-          className="opacity-0 transition-opacity duration-100 group-hover/row:opacity-100 group-focus-visible/row:opacity-100"
-        />
-      )}
-    </button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={label}
+            aria-expanded={expanded}
+            aria-controls={controls}
+            onClick={onClick}
+            className={cn(
+              "size-7 text-surface-muted hover:bg-chrome-hover hover:text-surface-fg",
+              danger && "hover:text-red-500",
+            )}
+          />
+        }
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="flex items-center gap-2">
+        {label}
+        {shortcut && <span className="text-[11px] opacity-70">{shortcutLabel(shortcut)}</span>}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
 /**
- * The note's own actions, top right: version history and delete. The toggle is always visible;
- * opening it lists them under it, and they stay until you close it again (the choice is
- * remembered). Both are also in the command palette. Renders nothing for a day with no file yet.
+ * The note's own actions, top right. A chevron toggle is always visible; opening it reveals a
+ * version-history icon and a delete icon beside it, which stay until you close it again (the
+ * choice is remembered). Each names itself on hover, and both are in the command palette.
+ * Renders nothing for a day with no file yet.
  */
 export function NoteMenu({ onHistory, onDelete, historyShortcut }: Props) {
   const [open, setOpen] = useState(readOpen);
@@ -79,35 +94,32 @@ export function NoteMenu({ onHistory, onDelete, historyShortcut }: Props) {
   };
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1 select-none">
-      <button
-        type="button"
-        onClick={toggle}
-        aria-expanded={open}
-        aria-controls={listId}
-        title={open ? "Hide note actions" : "Show note actions"}
-        className="flex h-6 items-center gap-1 rounded-md pr-1.5 pl-2 text-[12px] text-surface-muted transition-colors duration-100 hover:bg-chrome-hover hover:text-surface-fg"
-      >
-        <span>More</span>
-        <ChevronRight
-          size={13}
-          aria-hidden="true"
-          className={cn("transition-transform duration-150", open && "rotate-90")}
-        />
-      </button>
+    <div className="flex shrink-0 items-center gap-0.5 select-none">
       {open && (
-        <div id={listId} className="flex w-[196px] flex-col gap-0.5">
+        <div id={listId} className="flex items-center gap-0.5">
           {onHistory && (
-            <Row
-              icon={History}
-              label="Version history"
-              shortcut={historyShortcut}
-              onClick={onHistory}
-            />
+            <IconButton label="Version history" shortcut={historyShortcut} onClick={onHistory}>
+              <History size={15} />
+            </IconButton>
           )}
-          {onDelete && <Row icon={Trash2} label="Delete this note…" danger onClick={onDelete} />}
+          {onDelete && (
+            <IconButton label="Delete this note" danger onClick={onDelete}>
+              <Trash2 size={15} />
+            </IconButton>
+          )}
         </div>
       )}
+      <IconButton
+        label={open ? "Hide note actions" : "Show note actions"}
+        expanded={open}
+        controls={listId}
+        onClick={toggle}
+      >
+        <ChevronLeft
+          size={15}
+          className={cn("transition-transform duration-150", open && "rotate-180")}
+        />
+      </IconButton>
     </div>
   );
 }

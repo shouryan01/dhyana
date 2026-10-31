@@ -13,7 +13,7 @@
 | Open year view           | `G Y`, or click the year above the calendar         |
 | Add mood check-in        | `M` (opens today if no day is open)                 |
 | Toggle mood panel        | `G M`                                               |
-| Show version history     | `G H` (also under `More`, top right of a note)      |
+| Show version history     | `G H` (also the history button, top right)          |
 | Save a version now       | palette only                                        |
 | Delete this note…        | palette only (moves it to the Trash / Recycle Bin)  |
 | Save now                 | `Mod S` (notes also save on their own as you type)  |

@@ -36,8 +36,8 @@ const writeOpen = (open: boolean) => {
 
 /**
  * The day's mood, under the "Today · Created · Edited" line. With check-ins there is an
- * always-visible toggle (a dot per check-in, and a count); opening it shows the chips, which then
- * stay until you close it. With none there is just an "Add mood check-in" button.
+ * always-visible toggle (a chevron and a dot per check-in, no words); opening it shows the chips,
+ * which then stay until you close it. With none there is just an "Add mood check-in" button.
  */
 export function MoodRow({ mood, pending, onEdit, onAdd, shortcut }: Props) {
   const { entities } = useApp();
@@ -80,7 +80,8 @@ export function MoodRow({ mood, pending, onEdit, onAdd, shortcut }: Props) {
             onClick={toggle}
             aria-expanded={open}
             aria-controls={listId}
-            title={open ? "Hide check-ins" : "Show check-ins"}
+            aria-label={`Mood, ${items.length} ${items.length === 1 ? "entry" : "entries"}`}
+            title={open ? "Hide mood" : "Show mood"}
             className="flex h-6 items-center gap-1.5 rounded-md pr-2 pl-1 text-[12px] text-surface-muted transition-colors duration-100 hover:bg-chrome-hover hover:text-surface-fg"
           >
             <ChevronRight
@@ -96,9 +97,6 @@ export function MoodRow({ mood, pending, onEdit, onAdd, shortcut }: Props) {
                   style={{ background: moodColor(c.valence) }}
                 />
               ))}
-            </span>
-            <span>
-              {items.length} {items.length === 1 ? "check-in" : "check-ins"}
             </span>
           </button>
 
