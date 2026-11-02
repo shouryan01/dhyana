@@ -88,7 +88,7 @@ export function SearchPage({ initial }: { initial: string }) {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-chrome">
+    <div className="h-full overflow-y-auto">
       <div className="anim-fade mx-auto max-w-[680px] px-8 pb-24 pt-14">
         <h1 className="mb-4 text-[22px] font-semibold tracking-tight">Search</h1>
 

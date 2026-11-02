@@ -46,7 +46,7 @@ export function AnalyticsPage() {
   const a = useMemo(() => (days ? analyze(days, app.today) : null), [days, app.today]);
 
   return (
-    <div className="h-full overflow-y-auto bg-chrome">
+    <div className="h-full overflow-y-auto">
       <div className="anim-fade mx-auto max-w-[760px] px-8 pb-24 pt-14">
         <h1 className="mb-1 text-[22px] font-semibold tracking-tight">Insights</h1>
         <p className="mb-8 text-[12px] text-muted-foreground">

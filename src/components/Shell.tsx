@@ -15,6 +15,7 @@ import { Toaster } from "sonner";
 import { useActions, useHotkeys, useRolloverNotice } from "@/app/actions";
 import { useApp } from "@/app/context";
 import { installCloseFlush } from "@/app/flush";
+import { isChromePage } from "@/app/pages";
 import { Calendar } from "@/components/Calendar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Logo } from "@/components/Logo";
@@ -33,8 +34,9 @@ export function Shell() {
   const params = useParams({ strict: false }) as { date?: string };
   const selected = params.date && isISODate(params.date) ? params.date : app.today;
   const onSettings = useRouterState({
-    select: (s) => /^\/(settings|shortcuts|library)/.test(s.location.pathname),
+    select: (s) => /^\/(settings|shortcuts)/.test(s.location.pathname),
   });
+  const chromePage = useRouterState({ select: (s) => isChromePage(s.location.pathname) });
   const onLibrary = useRouterState({ select: (s) => s.location.pathname.startsWith("/library") });
   const onDay = useRouterState({ select: (s) => s.location.pathname.startsWith("/day/") });
   const onSearch = useRouterState({ select: (s) => s.location.pathname.startsWith("/search") });
@@ -170,7 +172,7 @@ export function Shell() {
         <main
           className={cn(
             "flex min-w-0 flex-1 flex-col overflow-hidden",
-            onSettings ? "bg-chrome" : "bg-surface",
+            chromePage ? "bg-chrome" : "bg-surface",
           )}
         >
           <div

@@ -46,7 +46,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-chrome">
+    <div className="h-full overflow-y-auto">
       <div className="anim-fade mx-auto max-w-[620px] px-8 pb-24 pt-14">
         <h1 className="mb-8 text-[22px] font-semibold tracking-tight">Settings</h1>
 
