@@ -1,5 +1,12 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, ChevronRight, MousePointerClick, TriangleAlert } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronRight,
+  MousePointerClick,
+  TriangleAlert,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/app/context";
 import { ChartTip } from "@/components/ChartTip";
@@ -255,6 +262,10 @@ function Ranked({
     extra?: React.ReactNode;
     /** A second line for the hover tooltip, e.g. how the count splits. */
     detail?: string;
+    /** Overrides the tooltip's default "Click to see the entries". */
+    hint?: string;
+    /** This row is the one picked; it stays highlighted with its chevron pointing down. */
+    selected?: boolean;
     onClick?: () => void;
   }[];
   empty: string;
@@ -271,7 +282,7 @@ function Ranked({
               left="45%"
               heading={r.label}
               detail={r.detail}
-              hint={r.onClick ? "Click to see the entries" : undefined}
+              hint={r.hint ?? (r.onClick ? "Click to see the entries" : undefined)}
               className="bottom-full mb-0.5"
             />
           )}
@@ -279,12 +290,16 @@ function Ranked({
             type="button"
             onClick={r.onClick}
             disabled={!r.onClick}
+            aria-pressed={r.selected}
             onMouseEnter={() => setActive(r.key)}
             onFocus={() => setActive(r.key)}
             onBlur={() => setActive(null)}
-            className="group grid w-full grid-cols-[120px_1fr_auto_12px] items-center gap-3 rounded-md px-1.5 py-1 text-left text-[13px] enabled:cursor-pointer enabled:hover:bg-chrome-hover"
+            className={cn(
+              "group grid w-full grid-cols-[120px_1fr_auto_12px] items-center gap-3 rounded-md px-1.5 py-1 text-left text-[13px] enabled:cursor-pointer enabled:hover:bg-chrome-hover",
+              r.selected && "bg-chrome-active",
+            )}
           >
-            <span className="truncate">{r.label}</span>
+            <span className={cn("truncate", r.selected && "font-medium")}>{r.label}</span>
             <span className="flex h-2 overflow-hidden rounded-full bg-muted">
               <span className="bg-primary/70" style={{ width: `${(r.value / max) * 100}%` }} />
             </span>
@@ -292,7 +307,9 @@ function Ranked({
               {r.extra}
               {r.value}
             </span>
-            {r.onClick ? (
+            {r.selected ? (
+              <ChevronDown size={12} className="text-primary" />
+            ) : r.onClick ? (
               <ChevronRight
                 size={12}
                 className="text-muted-foreground opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus-visible:opacity-100"
@@ -752,6 +769,7 @@ function People({ a, days }: { a: Analysis; days: AnalyticsDay[] }) {
       <Panel
         title="Most mentioned people"
         hint="Arrow: mentions in the last 90 days compared with the 90 before."
+        action="Click a name to chart them below."
       >
         <Ranked
           empty="No people mentioned yet. Type @ in a note."
@@ -760,6 +778,9 @@ function People({ a, days }: { a: Analysis; days: AnalyticsDay[] }) {
             label: p.name,
             value: p.mentions,
             extra: trend(p.trend),
+            detail: `${p.mentions} ${p.mentions === 1 ? "mention" : "mentions"} on ${p.days} ${p.days === 1 ? "day" : "days"}`,
+            hint: "Click to chart them below",
+            selected: p.name === who,
             onClick: () => setPicked(p.name),
           }))}
         />
@@ -768,7 +789,7 @@ function People({ a, days }: { a: Analysis; days: AnalyticsDay[] }) {
       {who && (
         <Panel
           title={`${who} over time`}
-          hint="Days per month they appear."
+          hint="Days per month they appear. Pick another name above to change this chart."
           action="Click a month to read those entries."
         >
           <Bars
