@@ -2,12 +2,10 @@ import { Link, Outlet, useNavigate, useParams, useRouterState } from "@tanstack/
 import {
   ChartNoAxesColumn,
   Library,
-  Moon,
   PanelLeft,
   PenLine,
   Search,
   Settings as SettingsIcon,
-  Sun,
 } from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
@@ -18,6 +16,7 @@ import { isChromePage } from "@/app/pages";
 import { Calendar } from "@/components/Calendar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Logo } from "@/components/Logo";
+import { NavPair } from "@/components/NavPair";
 import { titlebarHeight, trafficLightInset, WindowControls } from "@/components/TitleBar";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -114,22 +113,6 @@ export function Shell() {
               label="Today"
               shortcut={shortcutOf("today")}
             />
-            <NavLink
-              to="/library"
-              active={onLibrary}
-              icon={<Library size={15} />}
-              wiggle="group-hover:-rotate-12"
-              label="Library"
-              shortcut={shortcutOf("library")}
-            />
-            <NavLink
-              to="/insights"
-              active={onInsights}
-              icon={<ChartNoAxesColumn size={15} />}
-              wiggle="group-hover:-rotate-12"
-              label="Insights"
-              shortcut={shortcutOf("insights")}
-            />
           </nav>
 
           <Calendar
@@ -138,19 +121,24 @@ export function Shell() {
           />
 
           <div className="mt-auto flex flex-col gap-0.5">
-            <button
-              onClick={() => void app.toggleMode()}
-              className={cn(
-                ROW,
-                "group text-muted-foreground hover:bg-chrome-hover hover:text-foreground",
-              )}
-            >
-              <span className={cn(ICON, dark ? "group-hover:rotate-90" : "group-hover:-rotate-12")}>
-                {dark ? <Sun size={15} /> : <Moon size={15} />}
-              </span>
-              <span className="flex-1 text-left">{dark ? "Light mode" : "Dark mode"}</span>
-              {shortcutOf("mode") && <Kbd shortcut={shortcutOf("mode")!} className={REVEAL} />}
-            </button>
+            <NavPair
+              items={[
+                {
+                  to: "/library",
+                  icon: <Library size={15} />,
+                  label: "Library",
+                  shortcut: shortcutOf("library"),
+                  active: onLibrary,
+                },
+                {
+                  to: "/insights",
+                  icon: <ChartNoAxesColumn size={15} />,
+                  label: "Insights",
+                  shortcut: shortcutOf("insights"),
+                  active: onInsights,
+                },
+              ]}
+            />
             <NavLink
               to="/settings"
               active={onSettings}
@@ -220,9 +208,8 @@ const ROW =
   "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-100";
 
 function NavLink(props: {
-  to: "/day/$date" | "/settings" | "/library" | "/search" | "/insights";
+  to: "/day/$date" | "/settings";
   params?: { date: string };
-  search?: { q: string };
   active: boolean;
   icon: React.ReactNode;
   label: string;
@@ -233,7 +220,6 @@ function NavLink(props: {
     <Link
       to={props.to}
       params={props.params as never}
-      search={props.search as never}
       className={cn(
         ROW,
         "group",

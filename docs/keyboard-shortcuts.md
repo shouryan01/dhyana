@@ -21,7 +21,7 @@
 | Save now                 | `Mod S` (notes also save on their own as you type)          |
 | Focus editor             | `I`                                                         |
 | Toggle sidebar           | `Mod \`                                                     |
-| Toggle dark / light mode | `Mod Shift L`                                               |
+| Toggle dark / light mode | `Mod Shift L` (or Settings → Appearance)                    |
 | Open settings            | `Mod ,` or `G S`                                            |
 | Show keyboard shortcuts  | `?`                                                         |
 | Rebuild index            | palette only                                                |
