@@ -15,7 +15,7 @@ export function ChartTip({
 }: {
   left: string;
   heading: string;
-  detail?: string;
+  detail?: React.ReactNode;
   hint?: string;
   className?: string;
 }) {

@@ -251,6 +251,12 @@ function Bars({
 }
 
 /** A horizontal bar per row, label left, count right. */
+/** A row draws one bar, or its pieces while hovered if it has them. */
+const pieces = (
+  r: { value: number; segments?: [number, string][] },
+  hovered: boolean,
+): [number, string][] => (hovered && r.segments ? r.segments : [[r.value, "bg-primary/70"]]);
+
 function Ranked({
   rows,
   empty,
@@ -261,7 +267,9 @@ function Ranked({
     value: number;
     extra?: React.ReactNode;
     /** A second line for the hover tooltip, e.g. how the count splits. */
-    detail?: string;
+    detail?: React.ReactNode;
+    /** Bar pieces (value, colour class) shown instead of the single bar while the row is hovered. */
+    segments?: [number, string][];
     /** Overrides the tooltip's default "Click to see the entries". */
     hint?: string;
     /** This row is the one picked; it stays highlighted with its chevron pointing down. */
@@ -301,7 +309,9 @@ function Ranked({
           >
             <span className={cn("truncate", r.selected && "font-medium")}>{r.label}</span>
             <span className="flex h-2 overflow-hidden rounded-full bg-muted">
-              <span className="bg-primary/70" style={{ width: `${(r.value / max) * 100}%` }} />
+              {pieces(r, active === r.key).map(([v, cls], i) => (
+                <span key={i} className={cls} style={{ width: `${(v / max) * 100}%` }} />
+              ))}
             </span>
             <span className="flex min-w-[56px] items-center justify-end gap-1.5 text-[12px] text-muted-foreground tabular-nums">
               {r.extra}
@@ -630,7 +640,22 @@ function Mood({ a }: { a: Analysis }) {
             key: e.emotion,
             label: e.emotion,
             value: e.checkins + e.inline,
-            detail: `${e.checkins} in check-ins · ${e.inline} written inline`,
+            detail: (
+              <span className="flex flex-col gap-0.5">
+                <span className="flex items-center gap-1.5">
+                  <i className="size-2 rounded-full bg-primary/70" />
+                  {e.checkins} in check-ins
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <i className="size-2 rounded-full bg-foreground/40" />
+                  {e.inline} written inline
+                </span>
+              </span>
+            ),
+            segments: [
+              [e.checkins, "bg-primary/70"],
+              [e.inline, "bg-foreground/40"],
+            ],
             onClick: () => navigate(searchLink(`!${e.emotion}`)),
           }))}
         />
