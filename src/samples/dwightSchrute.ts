@@ -21,7 +21,7 @@ export const SAMPLE_ENTRIES: SampleEntry[] = [
     date: "2026-01-02",
     body: `New year. Three goals, written in pen so they cannot be negotiated away:
 
-1. Become Regional Manager. Michael has been told. He nodded in a way that suggested he had not understood.
+1. Become Regional Manager. [[Michael]] has been told. He nodded in a way that suggested he had not understood.
 2. Increase the beet yield at [[Schrute Farms]] by fifteen percent. The beets are the foundation of everything.
 3. Stop letting [[Jim]] near my stapler. #goals #office
 
@@ -31,7 +31,7 @@ The calendar says it is a Friday. I have already been in since six.`,
     date: "2026-01-14",
     body: `Harvest at [[Schrute Farms]]. Forty-one crates of beets before lunch. [[Mose]] wanted to take a break and I explained that beets do not wait, and neither does the frost.
 
-Mose asked if I was happy. I told him beets do not make me happy, they make me [[proud]]. He said that is the same thing for me. He is wrong, but I did not have time to correct him. #beets #farm`,
+[[Mose]] asked if I was happy. I told him beets do not make me happy, they make me [[proud]]. He said that is the same thing for me. He is wrong, but I did not have time to correct him. #beets #farm`,
   },
   {
     date: "2026-01-28",
@@ -43,43 +43,43 @@ I was [[angry]] for approximately four minutes. Then I was calm, because I had a
     date: "2026-02-09",
     body: `Fire drill, scheduled by [[Michael]] without informing anyone except the building. I was the designated fire marshal, which is an official role and not a costume.
 
-We evacuated in four minutes and eleven seconds. Michael said it was a good drill. I said it was a terrible drill because he forgot the fire exits on the second floor. He was [[annoyed]]. I was [[proud]]. Both outcomes are acceptable. #fire-drill #office`,
+We evacuated in four minutes and eleven seconds. [[Michael]] said it was a good drill. I said it was a terrible drill because he forgot the fire exits on the second floor. He was [[annoyed]]. I was [[proud]]. Both outcomes are acceptable. #fire-drill #office`,
   },
   {
     date: "2026-02-20",
     body: `The Dunder Mifflin work bus to the regional sales event. Forty minutes in a vehicle with [[Jim]] and [[Michael]] singing badly.
 
-I sat in the front seat so that I could see the road, and I was correct to do so: at one point Michael would have driven us into a lake. [[Pam]] sat in the back and laughed at things I had not said. I would like to think she was laughing with me. #work-bus #office`,
+I sat in the front seat so that I could see the road, and I was correct to do so: at one point [[Michael]] would have driven us into a lake. [[Pam]] sat in the back and laughed at things I had not said. I would like to think she was laughing with me. #work-bus #office`,
   },
   {
     date: "2026-03-03",
-    body: `Pam came to reception before lunch and said good morning, and I said good morning back. That is three words in a row and she did not seem to mind.
+    body: `[[Pam]] came to reception before lunch and said good morning, and I said good morning back. That is three words in a row and she did not seem to mind.
 
-I brought her a beet cupcake from the farm. She ate half of it and said it tasted like a vegetable. I took this as a compliment, because it is one. I am [[happy]] that she tried it. #pam #beets`,
+I brought her a beet cupcake from the farm. She ate half of it and said it tasted like a vegetable. I took this as a compliment, because it is one. I am [[happy]] that she tried it. #beets`,
   },
   {
     date: "2026-03-14",
     body: `[[Angela]] has a cat called Sprinkles. Sprinkles is not a cat. Sprinkles is a small, cold, judgemental animal that has decided I am its enemy.
 
-It sat on my keyboard during the quarterly report. I moved it. Angela said I was cruel. I said a cat in a keyboard is a security breach, not a pet. Angela did not agree and I was [[frustrated]] for the rest of the afternoon. #angela #office`,
+It sat on my keyboard during the quarterly report. I moved it. [[Angela]] said I was cruel. I said a cat in a keyboard is a security breach, not a pet. [[Angela]] did not agree and I was [[frustrated]] for the rest of the afternoon. #pets #office`,
   },
   {
     date: "2026-03-22",
     body: `[[Jim]] has now moved my stapler into the office freezer, my stapler into a cup of water on my desk, and my stapler into the printer tray. I have no stapler and no plan.
 
-I am reporting this to the office for the record. I am also documenting the time. It is 10:14 and I am [[angry]] in a way I did not know I could feel before 9 a.m. #pranks #jim`,
+I am reporting this to the office for the record. I am also documenting the time. It is 10:14 and I am [[angry]] in a way I did not know I could feel before 9 a.m. #pranks`,
   },
   {
     date: "2026-04-05",
     body: `Dinner with [[Pam]] at the Italian place that does not know what a beet is. I asked for the wine list and she asked for the bread, and we agreed to be very different people in a very compatible way.
 
-She told me about her art. I told her about bears. Neither of us was bored. I am [[happy]] in a way that is inefficient and I do not intend to fix it. #pam #date`,
+She told me about her art. I told her about bears. Neither of us was bored. I am [[happy]] in a way that is inefficient and I do not intend to fix it. #date`,
   },
   {
     date: "2026-04-19",
     body: `[[Angela]] and I have ended our relationship. We discussed it for an hour in the conference room, and both agreed that the relationship was not as efficient as we had hoped.
 
-I am [[sad]]. I know that is not a Schrute trait. I did not consult the handbook. I went home and sat in the car for a while, then went inside and organised the spice rack alphabetically, which helped, slightly. #angela #heartbreak`,
+I am [[sad]]. I know that is not a Schrute trait. I did not consult the handbook. I went home and sat in the car for a while, then went inside and organised the spice rack alphabetically, which helped, slightly. #heartbreak`,
   },
   {
     date: "2026-04-20",
@@ -89,15 +89,15 @@ I said I was fine. I am not fine. I am [[lonely]] and I have decided to write it
   },
   {
     date: "2026-05-02",
-    body: `Mose and I took the bees out for their spring inspection. Three hives, two queens, and one hive that is clearly planning something.
+    body: `[[Mose]] and I took the bees out for their spring inspection. Three hives, two queens, and one hive that is clearly planning something.
 
-Mose wore no protection. He said the bees "know him". I explained that the bees know nothing and that his arms were swelling. He was fine. I was [[anxious]] for the entire forty minutes, and I would do it again. #farm #bees`,
+[[Mose]] wore no protection. He said the bees "know him". I explained that the bees know nothing and that his arms were swelling. He was fine. I was [[anxious]] for the entire forty minutes, and I would do it again. #farm #bees`,
   },
   {
     date: "2026-05-18",
     body: `[[Jim]] swapped the nameplates on the sales desks so that my name was on [[Pam]]'s desk and hers was on mine. I did not notice for three hours. When I did notice I was [[angry]] at myself, not at him, because a good salesman checks his own name.
 
-Pam found it funnier than I did. She said she would keep my nameplate. I am still deciding whether that is a threat or a gift. #pranks #jim`,
+[[Pam]] found it funnier than I did. She said she would keep my nameplate. I am still deciding whether that is a threat or a gift. #pranks`,
   },
   {
     date: "2026-06-01",
@@ -107,9 +107,9 @@ We compromised: one greenhouse, and I will get up at four. Fine. This is what le
   },
   {
     date: "2026-06-16",
-    body: `Michael held a "Dinner Party" in the break room. He invited the whole office, served microwave lasagne, and gave a speech about the importance of family, to a room that was mostly in the building because of a free lunch.
+    body: `[[Michael]] held a "Dinner Party" in the break room. He invited the whole office, served microwave lasagne, and gave a speech about the importance of family, to a room that was mostly in the building because of a free lunch.
 
-I was [[embarrassed]] for him, then [[proud]] of how many people stayed to the end. [[Pam]] stayed. She said I was the only one who ate the salad. I said the salad was the only good food in the building. #michael #office`,
+I was [[embarrassed]] for him, then [[proud]] of how many people stayed to the end. [[Pam]] stayed. She said I was the only one who ate the salad. I said the salad was the only good food in the building. #office`,
   },
   {
     date: "2026-07-08",
@@ -127,25 +127,25 @@ I was [[proud]] of the team. I was [[happy]] to see [[Pam]] clapping at the back
     date: "2026-08-05",
     body: `[[Pam]] asked me to help paint the reception area. We spent a Saturday with rollers and a bucket of a colour the paint shop called "Harvest Wheat". It is more of an orange. It is also more beautiful than I expected, and I told her so.
 
-She told me I am the least boring person she knows. I took it as the highest compliment I have ever received, and I will be taking it to my grave. I am [[happy]] and slightly sunburnt. #pam #home`,
+She told me I am the least boring person she knows. I took it as the highest compliment I have ever received, and I will be taking it to my grave. I am [[happy]] and slightly sunburnt. #home`,
   },
   {
     date: "2026-08-19",
     body: `[[Michael]] has decided to move to Colorado. He announced it in the parking lot, to the car, while the car was driving away. He is not moving to Colorado. He is moving to a motel for a week, which he has described as "a new chapter".
 
-I am [[annoyed]], mostly because he has not yet signed the handover documents for the sales territory, and the territory does not transfer itself. #michael #office`,
+I am [[annoyed]], mostly because he has not yet signed the handover documents for the sales territory, and the territory does not transfer itself. #office`,
   },
   {
     date: "2026-09-04",
     body: `[[Angela]] asked me to return the things I kept from our relationship. A lamp. Two coffee mugs. A bowl I bought for a dinner that never happened. Sprinkles was not on the list, although I am now certain it wanted to be.
 
-I returned everything in a box with a label. I did not cry. I was [[sad]] at the front door for a sensible amount of time. Then I took the long way to the farm. #angela #heartbreak`,
+I returned everything in a box with a label. I did not cry. I was [[sad]] at the front door for a sensible amount of time. Then I took the long way to the farm. #heartbreak`,
   },
   {
     date: "2026-09-16",
     body: `[[Jim]] set up a fake phone number on my business card and forwarded it to the office line. I spent an afternoon answering calls from people who wanted to know if I was "the beet guy". Some of them were very polite. One of them asked for a quote on fifty acres of corn.
 
-I was [[annoyed]] at first. By four o'clock I was [[amused]], and I told Jim so, which I believe was a mistake, because he has now ordered three hundred more business cards. #pranks #jim`,
+I was [[annoyed]] at first. By four o'clock I was [[amused]], and I told [[Jim]] so, which I believe was a mistake, because he has now ordered three hundred more business cards. #pranks`,
   },
   {
     date: "2026-10-01",
@@ -155,7 +155,7 @@ It is [[proud]] work. I cooked breakfast, showed the barn, and told one guest th
   },
   {
     date: "2026-10-14",
-    body: `The office carnival, organised by [[Michael]] and [[Pam]]. There was a dunk tank, a bouncy castle that Michael was not allowed to bounce in, and a stall of face paint that [[Jim]] turned into a joke about my face.
+    body: `The office carnival, organised by [[Michael]] and [[Pam]]. There was a dunk tank, a bouncy castle that [[Michael]] was not allowed to bounce in, and a stall of face paint that [[Jim]] turned into a joke about my face.
 
 I did not get painted. I won a cake in the ring toss, which I think is a fair result. I was [[happy]] in the way you are happy when a day has no plans and goes well anyway. #office #carnival`,
   },
@@ -163,7 +163,7 @@ I did not get painted. I won a cake in the ring toss, which I think is a fair re
     date: "2026-10-28",
     body: `[[Pam]] and [[Jim]] are engaged. I found out from the office newsletter, which was printed on the good paper. I was not surprised. I had seen the way they looked at the vending machine together. Nobody looks at a vending machine like that unless they have decided something.
 
-I was [[happy]] for them, and I was [[grateful]] to be asked to stand at the back. Nobody will be asking me to stand anywhere else. #pam #jim`,
+I was [[happy]] for them, and I was [[grateful]] to be asked to stand at the back. Nobody will be asking me to stand anywhere else. #news`,
   },
   {
     date: "2026-11-15",
