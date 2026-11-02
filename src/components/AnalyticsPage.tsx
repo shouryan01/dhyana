@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, TriangleAlert } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, MousePointerClick, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/app/context";
 import { ChartTip } from "@/components/ChartTip";
@@ -133,11 +133,14 @@ function Section({
 function Panel({
   title,
   hint,
+  action,
   derived,
   children,
 }: {
   title: string;
   hint?: string;
+  /** What clicking inside this panel does, shown with a pointer icon so it reads as interactive. */
+  action?: string;
   derived?: boolean;
   children: React.ReactNode;
 }) {
@@ -149,6 +152,12 @@ function Panel({
       </h3>
       {children}
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {action && (
+        <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <MousePointerClick size={12} className="shrink-0 text-primary" />
+          {action}
+        </p>
+      )}
     </div>
   );
 }
@@ -167,10 +176,13 @@ function Bars({
   bars,
   height = 88,
   tick,
+  action,
 }: {
   bars: Bar[];
   height?: number;
   tick?: (b: Bar, i: number) => string | null;
+  /** Shown in the tooltip of bars that can be clicked, e.g. "Click to read this month". */
+  action?: string;
 }) {
   const max = Math.max(1, ...bars.map((b) => b.value));
   const [active, setActive] = useState<number | null>(null);
@@ -183,6 +195,7 @@ function Bars({
             left={`${((active + 0.5) / bars.length) * 100}%`}
             heading={tip.heading}
             detail={tip.detail}
+            hint={tip.onClick ? action : undefined}
             className="bottom-full mb-1.5"
           />
         )}
@@ -203,7 +216,7 @@ function Bars({
               onMouseEnter={() => setActive(i)}
               onFocus={() => setActive(i)}
               onBlur={() => setActive(null)}
-              className="group flex h-full min-w-0 flex-1 items-end focus-visible:outline-none"
+              className="group flex h-full min-w-0 flex-1 items-end focus-visible:outline-none enabled:cursor-pointer"
             >
               <span
                 className={cn(
@@ -254,7 +267,7 @@ function Ranked({
             type="button"
             onClick={r.onClick}
             disabled={!r.onClick}
-            className="group grid w-full grid-cols-[120px_1fr_auto] items-center gap-3 rounded-md px-1.5 py-1 text-left text-[13px] enabled:hover:bg-chrome-hover"
+            className="group grid w-full grid-cols-[120px_1fr_auto_12px] items-center gap-3 rounded-md px-1.5 py-1 text-left text-[13px] enabled:cursor-pointer enabled:hover:bg-chrome-hover"
           >
             <span className="truncate">{r.label}</span>
             <span className="flex h-2 overflow-hidden rounded-full bg-muted">
@@ -266,6 +279,14 @@ function Ranked({
               {r.extra}
               {r.value}
             </span>
+            {r.onClick ? (
+              <ChevronRight
+                size={12}
+                className="text-muted-foreground opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus-visible:opacity-100"
+              />
+            ) : (
+              <span />
+            )}
           </button>
         </li>
       ))}
@@ -294,8 +315,9 @@ function Consistency({ a, days, today }: { a: Analysis; days: AnalyticsDay[]; to
 
   return (
     <Section title="Consistency" source="counted">
-      <Panel title="Entries per month" hint="Click a month to read its entries.">
+      <Panel title="Entries per month" action="Click a month to read its entries.">
         <Bars
+          action="Click to read this month"
           bars={months.map((m) => ({
             label: m.month,
             value: m.entries,
@@ -307,8 +329,9 @@ function Consistency({ a, days, today }: { a: Analysis; days: AnalyticsDay[]; to
         />
       </Panel>
 
-      <Panel title="Words per day, last 90 days" hint="Click a bar to open the day.">
+      <Panel title="Words per day, last 90 days" action="Click a bar to open that day.">
         <Bars
+          action="Click to open this day"
           bars={recent.map((d) => ({
             label: d.date,
             value: d.words,
@@ -456,6 +479,7 @@ function Mood({ a }: { a: Analysis }) {
 
       <Panel
         title="Emotions"
+        action="Click an emotion to see its entries."
         hint="Check-ins are counted when you pick them in a check-in; inline are !emotions written in the text."
       >
         <div className="mb-1 flex gap-4 text-[11px] text-muted-foreground">
@@ -539,6 +563,7 @@ function Mood({ a }: { a: Analysis }) {
       <Panel
         title="What goes with a better or worse mood"
         derived
+        action="Click a row to see those entries."
         hint={`Compared with your average (${valenceLabel(c.baseline ?? 0).toLowerCase()}, over ${c.moodDays} days with a check-in). This shows what shows up together, not what causes what.`}
       >
         {c.rows.length === 0 ? (
@@ -554,7 +579,7 @@ function Mood({ a }: { a: Analysis }) {
                   onClick={() =>
                     navigate(searchLink(r.kind === "tag" ? `#${r.name}` : `@"${r.name}"`))
                   }
-                  className="grid w-full grid-cols-[1fr_auto_auto] items-center gap-3 rounded-md px-1.5 py-1 text-left text-[13px] hover:bg-chrome-hover"
+                  className="group grid w-full cursor-pointer grid-cols-[1fr_auto_auto_12px] items-center gap-3 rounded-md px-1.5 py-1 text-left text-[13px] hover:bg-chrome-hover"
                 >
                   <span className="truncate">
                     {r.kind === "tag" ? "#" : ""}
@@ -578,6 +603,10 @@ function Mood({ a }: { a: Analysis }) {
                     {r.days} {r.days === 1 ? "day" : "days"}
                     {r.small ? ` · few (<${SMALL_SAMPLE})` : ""}
                   </span>
+                  <ChevronRight
+                    size={12}
+                    className="text-muted-foreground opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus-visible:opacity-100"
+                  />
                 </button>
               </li>
             ))}
@@ -630,8 +659,13 @@ function People({ a, days }: { a: Analysis; days: AnalyticsDay[] }) {
       </Panel>
 
       {who && (
-        <Panel title={`${who} over time`} hint="Days per month they appear.">
+        <Panel
+          title={`${who} over time`}
+          hint="Days per month they appear."
+          action="Click a month to read those entries."
+        >
           <Bars
+            action="Click to read these entries"
             height={64}
             bars={over.slice(-24).map((m) => ({
               label: m.month,
@@ -647,7 +681,7 @@ function People({ a, days }: { a: Analysis; days: AnalyticsDay[] }) {
       )}
 
       {a.places.length > 0 && (
-        <Panel title="Most mentioned places">
+        <Panel title="Most mentioned places" action="Click a place to see its entries.">
           <Ranked
             empty=""
             rows={a.places.slice(0, 6).map((p) => ({
@@ -662,7 +696,11 @@ function People({ a, days }: { a: Analysis; days: AnalyticsDay[] }) {
       )}
 
       {a.pairs.length > 0 && (
-        <Panel title="Who appears together" hint="Days two people are in the same entry.">
+        <Panel
+          title="Who appears together"
+          hint="Days two people are in the same entry."
+          action="Click a pair to see their entries."
+        >
           <Ranked
             empty=""
             rows={a.pairs.slice(0, 8).map((p) => ({
@@ -675,7 +713,11 @@ function People({ a, days }: { a: Analysis; days: AnalyticsDay[] }) {
         </Panel>
       )}
 
-      <Panel title="Topics" hint="Tags (#) by the number of entries that use them.">
+      <Panel
+        title="Topics"
+        hint="Tags (#) by the number of entries that use them."
+        action="Click a topic to see its entries."
+      >
         <Ranked
           empty="No #topics yet."
           rows={a.tags.slice(0, 10).map((t) => ({
@@ -691,6 +733,7 @@ function People({ a, days }: { a: Analysis; days: AnalyticsDay[] }) {
         title="Words that stood out each month"
         derived
         hint="Keywords picked by frequency (TF-IDF), not topics understood by a model."
+        action="Click a word to search that month."
       >
         <ul className="flex flex-col gap-1.5">
           {a.terms
