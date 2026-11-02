@@ -7,6 +7,7 @@ import { backend } from "@/lib";
 import { parseTheme, themeOf, type ThemeFamily } from "@/lib/backend";
 import { addDays, formatShort, isISODate } from "@/lib/dates";
 import { IS_DEV } from "@/lib/devSettings";
+import { showTodayInCalendar } from "@/components/Calendar";
 import { createDispatcher, isTextTarget, type Action } from "@/lib/shortcuts";
 
 /** The single registry of actions (palette, tooltips, settings reference, and key handler). */
@@ -38,7 +39,10 @@ export function useActions(): Action[] {
         shortcut: "g t",
         also: ["mod+shift+t"],
         keywords: "now",
-        run: () => go(app.today),
+        run: () => {
+          go(app.today);
+          showTodayInCalendar();
+        },
       },
       {
         id: "prev",
