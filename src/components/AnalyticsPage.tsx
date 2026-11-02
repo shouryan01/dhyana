@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/app/context";
+import { ChartTip } from "@/components/ChartTip";
 import { backend } from "@/lib";
 import {
   analyze,
@@ -155,11 +156,13 @@ function Panel({
 interface Bar {
   label: string;
   value: number;
-  title: string;
+  /** The tooltip's first line (and the accessible name with `detail`). */
+  heading: string;
+  detail: string;
   onClick?: () => void;
 }
 
-/** Vertical bars on a zero baseline; each opens what it counts. A table of the values is in `title`s. */
+/** Vertical bars on a zero baseline; each opens what it counts. Hover or focus shows a tooltip. */
 function Bars({
   bars,
   height = 88,
@@ -170,29 +173,48 @@ function Bars({
   tick?: (b: Bar, i: number) => string | null;
 }) {
   const max = Math.max(1, ...bars.map((b) => b.value));
+  const [active, setActive] = useState<number | null>(null);
+  const tip = active !== null ? bars[active] : null;
   return (
     <div>
-      <div className="flex items-end gap-px" style={{ height }} role="list">
-        {bars.map((b, i) => (
-          <button
-            key={i}
-            type="button"
-            role="listitem"
-            title={b.title}
-            aria-label={b.title}
-            onClick={b.onClick}
-            disabled={!b.onClick}
-            className="group flex h-full min-w-0 flex-1 items-end focus-visible:outline-none"
-          >
-            <span
-              className={cn(
-                "w-full rounded-t-[2px] bg-primary/60 transition-colors duration-100 group-hover:bg-primary group-focus-visible:bg-primary",
-                b.value === 0 && "bg-muted",
-              )}
-              style={{ height: b.value === 0 ? 1 : `${Math.max(3, (b.value / max) * 100)}%` }}
-            />
-          </button>
-        ))}
+      <div className="relative">
+        {tip && active !== null && (
+          <ChartTip
+            left={`${((active + 0.5) / bars.length) * 100}%`}
+            heading={tip.heading}
+            detail={tip.detail}
+            className="bottom-full mb-1.5"
+          />
+        )}
+        <div
+          className="flex items-end gap-px"
+          style={{ height }}
+          role="list"
+          onMouseLeave={() => setActive(null)}
+        >
+          {bars.map((b, i) => (
+            <button
+              key={i}
+              type="button"
+              role="listitem"
+              aria-label={`${b.heading}: ${b.detail}`}
+              onClick={b.onClick}
+              disabled={!b.onClick}
+              onMouseEnter={() => setActive(i)}
+              onFocus={() => setActive(i)}
+              onBlur={() => setActive(null)}
+              className="group flex h-full min-w-0 flex-1 items-end focus-visible:outline-none"
+            >
+              <span
+                className={cn(
+                  "w-full rounded-t-[2px] bg-primary/60 transition-colors duration-100 group-hover:bg-primary group-focus-visible:bg-primary",
+                  b.value === 0 && "bg-muted",
+                )}
+                style={{ height: b.value === 0 ? 1 : `${Math.max(3, (b.value / max) * 100)}%` }}
+              />
+            </button>
+          ))}
+        </div>
       </div>
       {tick && (
         <div className="mt-1 flex gap-px text-[10px] text-muted-foreground">
@@ -277,7 +299,8 @@ function Consistency({ a, days, today }: { a: Analysis; days: AnalyticsDay[]; to
           bars={months.map((m) => ({
             label: m.month,
             value: m.entries,
-            title: `${monthLabel(m.month)}: ${m.entries} ${m.entries === 1 ? "entry" : "entries"}, ${m.words.toLocaleString()} words`,
+            heading: monthLabel(m.month),
+            detail: `${m.entries} ${m.entries === 1 ? "entry" : "entries"} · ${m.words.toLocaleString()} words`,
             onClick: m.entries ? () => navigate(searchLink(`in:${m.month}`)) : undefined,
           }))}
           tick={(b, i) => (i % 3 === 0 ? monthLabel(b.label).split(" ")[0].slice(0, 3) : null)}
@@ -289,7 +312,8 @@ function Consistency({ a, days, today }: { a: Analysis; days: AnalyticsDay[]; to
           bars={recent.map((d) => ({
             label: d.date,
             value: d.words,
-            title: `${formatShort(d.date)}: ${d.words.toLocaleString()} words`,
+            heading: formatShort(d.date),
+            detail: d.words ? `${d.words.toLocaleString()} words` : "No entry",
             onClick: d.words ? () => openDay(d.date) : undefined,
           }))}
         />
@@ -310,7 +334,8 @@ function Consistency({ a, days, today }: { a: Analysis; days: AnalyticsDay[]; to
               bars={a.timeOfDay.bins.map((n, h) => ({
                 label: String(h),
                 value: n,
-                title: `${String(h).padStart(2, "0")}:00: ${n} ${n === 1 ? "entry" : "entries"}`,
+                heading: `${String(h).padStart(2, "0")}:00`,
+                detail: `${n} ${n === 1 ? "entry" : "entries"} started`,
               }))}
               tick={(b, i) => (i % 6 === 0 ? b.label : null)}
             />
@@ -325,7 +350,8 @@ function Consistency({ a, days, today }: { a: Analysis; days: AnalyticsDay[]; to
             bars={a.weekdays.map((w, i) => ({
               label: WEEKDAYS[i],
               value: w.avgWords ?? 0,
-              title: `${WEEKDAYS[i]}: ${w.entries} ${w.entries === 1 ? "entry" : "entries"}, ${w.avgWords ?? 0} words on average`,
+              heading: WEEKDAYS[i],
+              detail: `${w.entries} ${w.entries === 1 ? "entry" : "entries"} · ${w.avgWords ?? 0} words on average`,
             }))}
             tick={(b) => b.label.slice(0, 1)}
           />
@@ -610,7 +636,8 @@ function People({ a, days }: { a: Analysis; days: AnalyticsDay[] }) {
             bars={over.slice(-24).map((m) => ({
               label: m.month,
               value: m.days,
-              title: `${monthLabel(m.month)}: ${m.days} ${m.days === 1 ? "day" : "days"}`,
+              heading: monthLabel(m.month),
+              detail: `${m.days} ${m.days === 1 ? "day" : "days"}`,
               onClick: m.days ? () => navigate(searchLink(`@"${who}" in:${m.month}`)) : undefined,
             }))}
             tick={(b, i) => (i % 3 === 0 ? monthLabel(b.label).split(" ")[0].slice(0, 3) : null)}
