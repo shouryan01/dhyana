@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, ChevronRight, MousePointerClick, TriangleAlert } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/app/context";
 import { ChartTip } from "@/components/ChartTip";
 import { backend } from "@/lib";
@@ -13,6 +13,7 @@ import {
   WEEKDAYS,
   type Analysis,
 } from "@/lib/analytics";
+import { monthTicks } from "@/lib/chartAxis";
 import { addDays, formatLong, formatMonth, formatShort } from "@/lib/dates";
 import { moodColor, valenceLabel } from "@/lib/mood";
 import type { AnalyticsDay } from "@/lib/schema";
@@ -396,60 +397,168 @@ function Consistency({ a, days, today }: { a: Analysis; days: AnalyticsDay[]; to
 // Mood
 
 const W = 640;
-const H = 150;
-const PAD = 10;
+const H = 176;
+const PAD = { top: 12, right: 16, bottom: 26, left: 100 };
+const DAY_MS = 86_400_000;
 
+/**
+ * Mood over time: a dot per day with a check-in, a line through their 7-day average, a labelled
+ * pleasant-to-unpleasant axis and month ticks. Hover (or the arrow keys) reads a day out in a
+ * tooltip, and clicking opens it.
+ */
 function ValenceLine({ a }: { a: Analysis }) {
   const navigate = useNavigate();
   const pts = a.valence;
+  const [active, setActive] = useState<number | null>(null);
+  const svg = useRef<SVGSVGElement>(null);
+
   const first = pts[0].date;
   const last = pts[pts.length - 1].date;
-  const span = Math.max(1, (Date.parse(last) - Date.parse(first)) / 86_400_000);
+  const span = Math.max(1, (Date.parse(last) - Date.parse(first)) / DAY_MS);
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
   const x = (d: string) =>
-    PAD + ((Date.parse(d) - Date.parse(first)) / 86_400_000 / span) * (W - 2 * PAD);
-  const y = (v: number) => PAD + ((1 - v) / 2) * (H - 2 * PAD);
+    PAD.left +
+    (pts.length === 1 ? plotW / 2 : ((Date.parse(d) - Date.parse(first)) / DAY_MS / span) * plotW);
+  const y = (v: number) => PAD.top + ((1 - v) / 2) * plotH;
   const line = pts
     .map((p, i) => `${i ? "L" : "M"}${x(p.date).toFixed(1)},${y(p.smooth).toFixed(1)}`)
     .join("");
+  const ticks = useMemo(() => monthTicks(first, last), [first, last]);
+  const hit = active !== null ? pts[active] : null;
+
+  const nearest = (clientX: number): number | null => {
+    const box = svg.current?.getBoundingClientRect();
+    if (!box || !box.width) return null;
+    const vx = ((clientX - box.left) / box.width) * W;
+    let best = 0;
+    for (let i = 1; i < pts.length; i++) {
+      if (Math.abs(x(pts[i].date) - vx) < Math.abs(x(pts[best].date) - vx)) best = i;
+    }
+    return best;
+  };
+  const open = (i: number) => navigate({ to: "/day/$date", params: { date: pts[i].date } });
+
   return (
     <figure className="m-0">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Mood over time">
-        <line
-          x1={PAD}
-          x2={W - PAD}
-          y1={y(0)}
-          y2={y(0)}
-          stroke="var(--border)"
-          strokeDasharray="3 3"
-        />
-        {pts.map((p) => (
-          <circle
-            key={p.date}
-            cx={x(p.date)}
-            cy={y(p.valence)}
-            r={3}
-            fill={moodColor(p.valence)}
-            opacity={0.55}
-            className="cursor-pointer"
-            onClick={() => navigate({ to: "/day/$date", params: { date: p.date } })}
-          >
-            <title>{`${formatShort(p.date)}: ${valenceLabel(p.valence)} (${p.valence})`}</title>
-          </circle>
-        ))}
-        {pts.length > 1 && (
-          <path
-            d={line}
-            fill="none"
-            stroke="var(--primary)"
-            strokeWidth={2}
-            strokeLinejoin="round"
+      <div className="relative">
+        {hit && (
+          <ChartTip
+            left={`${(x(hit.date) / W) * 100}%`}
+            heading={formatLong(hit.date)}
+            detail={`${valenceLabel(hit.valence)} (${hit.valence}) · 7-day average ${hit.smooth}`}
+            hint="Click to open this day"
+            className="bottom-full mb-1"
           />
         )}
-      </svg>
-      <figcaption className="mt-1 flex justify-between text-[10px] text-muted-foreground">
-        <span>{formatShort(first)}</span>
-        <span>line: 7-day average · dots: each day</span>
-        <span>{formatShort(last)}</span>
+        <svg
+          ref={svg}
+          viewBox={`0 0 ${W} ${H}`}
+          className={cn(
+            "w-full overflow-visible rounded-md focus-visible:outline-2 focus-visible:outline-ring/60",
+            hit && "cursor-pointer",
+          )}
+          role="img"
+          tabIndex={0}
+          aria-label={`Mood over time, ${pts.length} days with a check-in, from ${formatShort(first)} to ${formatShort(last)}. Use the arrow keys to read a day and Enter to open it.`}
+          onMouseMove={(e) => setActive(nearest(e.clientX))}
+          onMouseLeave={() => setActive(null)}
+          onClick={() => active !== null && open(active)}
+          onBlur={() => setActive(null)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+              e.preventDefault();
+              const step = e.key === "ArrowRight" ? 1 : -1;
+              setActive((i) =>
+                i === null
+                  ? step > 0
+                    ? 0
+                    : pts.length - 1
+                  : Math.min(pts.length - 1, Math.max(0, i + step)),
+              );
+            } else if (e.key === "Enter" && active !== null) open(active);
+            else if (e.key === "Escape") setActive(null);
+          }}
+        >
+          {/* Value axis: the three anchor labels, with the neutral line dashed. */}
+          {[1, 0, -1].map((v) => (
+            <g key={v}>
+              <line
+                x1={PAD.left}
+                x2={W - PAD.right}
+                y1={y(v)}
+                y2={y(v)}
+                stroke="var(--border)"
+                strokeDasharray={v === 0 ? "3 3" : undefined}
+              />
+              <text
+                x={PAD.left - 10}
+                y={y(v)}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fontSize={10}
+                className="fill-muted-foreground"
+              >
+                {valenceLabel(v)}
+              </text>
+            </g>
+          ))}
+          {/* Time axis. */}
+          {ticks.map((t) => (
+            <g key={t.date}>
+              <line
+                x1={x(t.date)}
+                x2={x(t.date)}
+                y1={PAD.top + plotH}
+                y2={PAD.top + plotH + 4}
+                stroke="var(--border)"
+              />
+              <text
+                x={x(t.date)}
+                y={H - 6}
+                textAnchor="middle"
+                fontSize={10}
+                className="fill-muted-foreground"
+              >
+                {t.label}
+              </text>
+            </g>
+          ))}
+          {hit && (
+            <line
+              x1={x(hit.date)}
+              x2={x(hit.date)}
+              y1={PAD.top}
+              y2={PAD.top + plotH}
+              stroke="var(--muted-foreground)"
+              strokeOpacity={0.4}
+            />
+          )}
+          {pts.length > 1 && (
+            <path
+              d={line}
+              fill="none"
+              stroke="var(--primary)"
+              strokeWidth={2}
+              strokeLinejoin="round"
+            />
+          )}
+          {pts.map((p, i) => (
+            <circle
+              key={p.date}
+              cx={x(p.date)}
+              cy={y(p.valence)}
+              r={i === active ? 5 : 3}
+              fill={moodColor(p.valence)}
+              stroke={i === active ? "var(--foreground)" : "none"}
+              strokeWidth={1.5}
+              opacity={i === active ? 1 : 0.65}
+            />
+          ))}
+        </svg>
+      </div>
+      <figcaption className="mt-1 text-[11px] text-muted-foreground">
+        Line: 7-day average. Dots: each day with a check-in.
       </figcaption>
     </figure>
   );
@@ -470,7 +579,7 @@ function Mood({ a }: { a: Analysis }) {
   }
   return (
     <Section title="Mood" source="derived" note="check-ins and inline ! emotions stay separate">
-      <Panel title="Mood over time" derived>
+      <Panel title="Mood over time" derived action="Click a dot to open that day.">
         <ValenceLine a={a} />
         {entered < MIN_ENTRIES && (
           <Thin>Only {entered} days with a check-in; the line is not a trend yet.</Thin>
