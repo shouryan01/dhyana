@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { SEEDED_EMOTIONS } from "@/lib/schema";
+import { FACTORS } from "@/lib/mood";
+import { CheckInSchema, SEEDED_EMOTIONS } from "@/lib/schema";
+import { SAMPLE_CHECKINS } from "./dwightCheckIns";
 import { SAMPLE_ENTRIES, SAMPLE_PEOPLE, SAMPLE_PLACES } from "./dwightSchrute";
 
 const links = (body: string) =>
@@ -23,7 +25,13 @@ describe("Dwight Schrute sample journal", () => {
     }
   });
 
-  it("uses no mood check-ins, so only the ! emotions and the people show", () => {
-    expect(SAMPLE_ENTRIES.some((e) => /^mood:/m.test(e.body))).toBe(false);
+  it("has one valid mood check-in per entry, on a day that exists", () => {
+    const days = new Set(SAMPLE_ENTRIES.map((e) => e.date));
+    expect(Object.keys(SAMPLE_CHECKINS).sort()).toEqual([...days].sort());
+    for (const [date, c] of Object.entries(SAMPLE_CHECKINS)) {
+      expect(CheckInSchema.safeParse(c).success, date).toBe(true);
+      for (const e of c.emotions) expect(SEEDED_EMOTIONS).toContain(e);
+      for (const f of c.factors) expect(FACTORS.map(([id]) => id)).toContain(f);
+    }
   });
 });

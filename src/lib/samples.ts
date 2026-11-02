@@ -4,6 +4,7 @@
  * Only desktop builds can do this; the browser build has a single in-memory vault.
  */
 import { backend } from "@/lib";
+import { SAMPLE_CHECKINS } from "@/samples/dwightCheckIns";
 import { SAMPLE_ENTRIES, SAMPLE_PEOPLE, SAMPLE_PLACES } from "@/samples/dwightSchrute";
 
 const KEY = "dhyana.sample";
@@ -58,7 +59,11 @@ export async function loadSample(app: VaultSwitch): Promise<void> {
 
   for (const name of SAMPLE_PEOPLE) await backend.createEntity("person", name);
   for (const name of SAMPLE_PLACES) await backend.createEntity("place", name);
-  for (const e of SAMPLE_ENTRIES) await backend.saveDay(e.date, e.body, null, false);
+  for (const e of SAMPLE_ENTRIES) {
+    await backend.saveDay(e.date, e.body, null, false);
+    const checkin = SAMPLE_CHECKINS[e.date];
+    if (checkin) await backend.addMood(e.date, checkin);
+  }
   await app.refreshEntities();
 }
 
