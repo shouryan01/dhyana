@@ -490,6 +490,12 @@ export function createMemoryBackend(): Backend {
     async rebuildIndex() {
       notifyEntities();
     },
+    async sampleRoot() {
+      return "samples";
+    },
+    async removeSample() {
+      // Sample journals are a desktop feature; the browser build has one in-memory vault.
+    },
     async onEntitiesChanged(cb) {
       entityListeners.add(cb);
       return () => entityListeners.delete(cb);

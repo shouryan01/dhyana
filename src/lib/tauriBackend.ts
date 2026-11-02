@@ -134,6 +134,12 @@ export const tauriBackend: Backend = {
   async rebuildIndex() {
     await invoke("rebuild_index");
   },
+  async sampleRoot() {
+    return z.string().parse(await invoke("sample_root"));
+  },
+  async removeSample(path) {
+    await invoke("remove_sample", { path });
+  },
   async onEntitiesChanged(cb) {
     return listen("vault://entities", () => cb());
   },
