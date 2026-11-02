@@ -42,7 +42,7 @@ Notes:
 
 Builds are **unsigned**: Windows shows a SmartScreen warning and macOS needs right-click → Open. Signing needs certificates added as repository secrets.
 
-Rust tests (`cargo test`, `cargo clippy`) are not in CI yet.
+Rust tests (`cargo test`, `cargo clippy`) are not in CI yet. Format the Rust code with `cd src-tauri && cargo fmt` (`cargo fmt --check` should pass; the crate was formatted in one go, so later diffs stay small).
 
 ## Developer settings
 

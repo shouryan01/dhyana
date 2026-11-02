@@ -142,7 +142,8 @@ pub fn scan(text: &str) -> Scan {
                         let cut = target_raw.find(['#', '^']).unwrap_or(target_raw.len());
                         let target = target_raw[..cut].trim();
                         if !target.is_empty() {
-                            let lead = target_raw[..cut].len() - target_raw[..cut].trim_start().len();
+                            let lead =
+                                target_raw[..cut].len() - target_raw[..cut].trim_start().len();
                             let s = line_start + inner_start + lead;
                             out.links.push(WikiLink {
                                 target: target.to_string(),
@@ -158,10 +159,16 @@ pub fn scan(text: &str) -> Scan {
             }
             if b[i] == b'#' && (i == 0 || (b[i - 1] as char).is_whitespace()) {
                 let rest = &line[i + 1..];
-                let len: usize = rest.chars().take_while(|c| is_tag_char(*c)).map(char::len_utf8).sum();
+                let len: usize = rest
+                    .chars()
+                    .take_while(|c| is_tag_char(*c))
+                    .map(char::len_utf8)
+                    .sum();
                 let tag = &rest[..len];
                 if !tag.is_empty() && tag.chars().any(|c| !c.is_ascii_digit()) {
-                    out.tags.push(TagRef { tag: tag.to_string() });
+                    out.tags.push(TagRef {
+                        tag: tag.to_string(),
+                    });
                 }
                 i += 1 + len;
                 continue;
@@ -199,7 +206,11 @@ mod tests {
     use super::*;
 
     fn targets(t: &str) -> Vec<(String, Option<String>)> {
-        scan(t).links.into_iter().map(|l| (l.target, l.label)).collect()
+        scan(t)
+            .links
+            .into_iter()
+            .map(|l| (l.target, l.label))
+            .collect()
     }
     fn tags(t: &str) -> Vec<String> {
         scan(t).tags.into_iter().map(|t| t.tag).collect()
@@ -231,7 +242,10 @@ mod tests {
 
     #[test]
     fn tags_need_whitespace_before_and_a_letter() {
-        assert_eq!(tags("#work and #deep/focus, a#b, #123, # heading\n#gratitude"), vec!["work", "deep/focus", "gratitude"]);
+        assert_eq!(
+            tags("#work and #deep/focus, a#b, #123, # heading\n#gratitude"),
+            vec!["work", "deep/focus", "gratitude"]
+        );
         assert_eq!(tags("## Heading\ntext"), Vec::<String>::new());
         assert_eq!(tags("#café ok"), vec!["café"]);
     }
@@ -258,7 +272,8 @@ mod tests {
 
     #[test]
     fn rewrite_keeps_labels_anchors_and_everything_else() {
-        let t = "A [[alice]] B [[Alice|Al]] C [[Alice#sec]] D [[Bob]] E `[[Alice]]` F ![[Alice]]\r\n";
+        let t =
+            "A [[alice]] B [[Alice|Al]] C [[Alice#sec]] D [[Bob]] E `[[Alice]]` F ![[Alice]]\r\n";
         let (out, n) = rewrite_links(t, &names::key("Alice"), "Alicia");
         assert_eq!(n, 3);
         assert_eq!(

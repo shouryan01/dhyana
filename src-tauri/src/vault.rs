@@ -60,9 +60,13 @@ pub struct SaveResult {
 pub fn validate_date(s: &str) -> Result<NaiveDate, VaultError> {
     let b = s.as_bytes();
     let shape_ok = b.len() == 10
-        && b.iter()
-            .enumerate()
-            .all(|(i, c)| if i == 4 || i == 7 { *c == b'-' } else { c.is_ascii_digit() });
+        && b.iter().enumerate().all(|(i, c)| {
+            if i == 4 || i == 7 {
+                *c == b'-'
+            } else {
+                c.is_ascii_digit()
+            }
+        });
     if !shape_ok {
         return Err(VaultError::InvalidDate(s.to_string()));
     }
@@ -193,7 +197,14 @@ pub fn save_day_at(
 
 /// `modified` set, and the identity keys added if missing (`created` from the file's birth time
 /// when an existing file has none).
-fn stamp(block: &str, eol: &str, path: &Path, d: NaiveDate, has_existing: bool, now: &str) -> String {
+fn stamp(
+    block: &str,
+    eol: &str,
+    path: &Path,
+    d: NaiveDate,
+    has_existing: bool,
+    now: &str,
+) -> String {
     let created = match frontmatter::get_value(block, "created") {
         Some(c) => c,
         None if has_existing => birth_string(path).unwrap_or_else(|| now.to_string()),
@@ -228,7 +239,10 @@ pub fn save_day_with(
     let d = validate_date(date)?;
     let path = day_path(vault, d);
     let existing = read_raw(&path)?;
-    let current_hash = existing.as_ref().map(|(_, h)| h.clone()).unwrap_or_default();
+    let current_hash = existing
+        .as_ref()
+        .map(|(_, h)| h.clone())
+        .unwrap_or_default();
 
     let info = |text: &Option<(String, String)>| match text {
         Some((t, _)) => {
@@ -315,7 +329,12 @@ pub fn save_day_with(
 
 /// Change the `mood:` list of an existing day file (only that key, plus `modified`). `None` if the
 /// day has no file yet: check-ins for it are held in app data instead.
-pub fn edit_day_mood_at(vault: &Path, date: &str, op: mood::Op, now: &str) -> Result<Option<SaveResult>, VaultError> {
+pub fn edit_day_mood_at(
+    vault: &Path,
+    date: &str,
+    op: mood::Op,
+    now: &str,
+) -> Result<Option<SaveResult>, VaultError> {
     let d = validate_date(date)?;
     let path = day_path(vault, d);
     let Some((text, hash)) = read_raw(&path)? else {
@@ -347,7 +366,11 @@ pub fn edit_day_mood_at(vault: &Path, date: &str, op: mood::Op, now: &str) -> Re
     }
     out.push_str(s.body);
     StagedWrite::stage(&path, out.as_bytes())?.commit()?;
-    Ok(Some(result(&out, hash_bytes(out.as_bytes()), SaveStatus::Saved)))
+    Ok(Some(result(
+        &out,
+        hash_bytes(out.as_bytes()),
+        SaveStatus::Saved,
+    )))
 }
 
 /// Remove a day's file with `remove` (the app passes "move to the OS trash"; tests pass a plain
@@ -526,7 +549,15 @@ mod tests {
     fn file_without_frontmatter_gets_block_and_keeps_body() {
         let dir = tempdir().unwrap();
         let p = write(dir.path(), "2026-10-28", "Phone note\n");
-        let r = save_day_at(dir.path(), "2026-10-28", "Phone note\nmore\n", None, false, NOW).unwrap();
+        let r = save_day_at(
+            dir.path(),
+            "2026-10-28",
+            "Phone note\nmore\n",
+            None,
+            false,
+            NOW,
+        )
+        .unwrap();
         assert_eq!(r.status, SaveStatus::Saved);
         let text = fs::read_to_string(&p).unwrap();
         assert!(text.starts_with("---\nid: "));
@@ -558,15 +589,42 @@ mod tests {
     fn conflict_when_hash_differs() {
         let dir = tempdir().unwrap();
         let p = write(dir.path(), "2026-10-28", "---\nid: X\n---\nOn disk\n");
-        let r = save_day_at(dir.path(), "2026-10-28", "Mine\n", Some("stale"), false, NOW).unwrap();
+        let r = save_day_at(
+            dir.path(),
+            "2026-10-28",
+            "Mine\n",
+            Some("stale"),
+            false,
+            NOW,
+        )
+        .unwrap();
         assert_eq!(r.status, SaveStatus::Conflict);
-        assert_eq!(fs::read_to_string(&p).unwrap(), "---\nid: X\n---\nOn disk\n");
+        assert_eq!(
+            fs::read_to_string(&p).unwrap(),
+            "---\nid: X\n---\nOn disk\n"
+        );
 
         let current = read_day(dir.path(), "2026-10-28").unwrap().hash;
-        let ok = save_day_at(dir.path(), "2026-10-28", "Mine\n", Some(&current), false, NOW).unwrap();
+        let ok = save_day_at(
+            dir.path(),
+            "2026-10-28",
+            "Mine\n",
+            Some(&current),
+            false,
+            NOW,
+        )
+        .unwrap();
         assert_eq!(ok.status, SaveStatus::Saved);
 
-        let forced = save_day_at(dir.path(), "2026-10-28", "Forced\n", Some("stale"), true, NOW).unwrap();
+        let forced = save_day_at(
+            dir.path(),
+            "2026-10-28",
+            "Forced\n",
+            Some("stale"),
+            true,
+            NOW,
+        )
+        .unwrap();
         assert_eq!(forced.status, SaveStatus::Saved);
         assert!(fs::read_to_string(&p).unwrap().ends_with("Forced\n"));
     }
@@ -604,7 +662,10 @@ mod tests {
         let dir = tempdir().unwrap();
         let target = dir.path().join("2026-10-28.md");
         fs::write(&target, "original").unwrap();
-        StagedWrite::stage(&target, b"new content").unwrap().commit().unwrap();
+        StagedWrite::stage(&target, b"new content")
+            .unwrap()
+            .commit()
+            .unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "new content");
         assert!(!dir.path().join(".2026-10-28.md.tmp").exists());
     }
@@ -613,7 +674,12 @@ mod tests {
     fn years_are_the_four_digit_folders_under_journal() {
         let dir = tempdir().unwrap();
         assert!(list_years(dir.path()).is_empty());
-        for d in ["journal/2026", "journal/2024", "journal/notes", "journal/20x6"] {
+        for d in [
+            "journal/2026",
+            "journal/2024",
+            "journal/notes",
+            "journal/20x6",
+        ] {
             fs::create_dir_all(dir.path().join(d)).unwrap();
         }
         fs::write(dir.path().join("journal/2030"), "a file, not a folder").unwrap();
@@ -652,7 +718,10 @@ mod tests {
         fs::write(month.join("2026-10-05.txt"), "x").unwrap();
         fs::write(month.join("2026-09-05.md"), "wrong month").unwrap();
         fs::create_dir(month.join("2026-10-06.md")).unwrap();
-        assert_eq!(list_days(dir.path(), 2026, 10), vec!["2026-10-02", "2026-10-28"]);
+        assert_eq!(
+            list_days(dir.path(), 2026, 10),
+            vec!["2026-10-02", "2026-10-28"]
+        );
         assert_eq!(list_days(dir.path(), 2026, 11), vec!["2026-11-01"]);
         assert!(list_days(dir.path(), 2025, 1).is_empty());
         assert!(list_days(dir.path(), 2026, 13).is_empty());
@@ -669,7 +738,12 @@ mod tests {
     }
 
     fn checkin(at: &str, v: f64) -> CheckIn {
-        CheckIn { at: at.into(), valence: v, emotions: vec!["calm".into()], factors: Vec::new() }
+        CheckIn {
+            at: at.into(),
+            valence: v,
+            emotions: vec!["calm".into()],
+            factors: Vec::new(),
+        }
     }
 
     #[test]
@@ -681,23 +755,52 @@ mod tests {
         assert_eq!(r.status, SaveStatus::Skipped);
         assert!(!dir.path().join("journal").exists());
 
-        let r = save_day_with(dir.path(), "2026-10-28", "Hi\n", None, false, NOW, &pending).unwrap();
+        let r =
+            save_day_with(dir.path(), "2026-10-28", "Hi\n", None, false, NOW, &pending).unwrap();
         assert_eq!(r.status, SaveStatus::Saved);
-        let text = fs::read_to_string(day_path(dir.path(), validate_date("2026-10-28").unwrap())).unwrap();
+        let text =
+            fs::read_to_string(day_path(dir.path(), validate_date("2026-10-28").unwrap())).unwrap();
         assert!(text.contains(&format!("modified: {NOW}\nmood:\n  - {{ at: \"07:12\", valence: 0.4, emotions: [calm] }}\n---\nHi\n")));
         let day = read_day(dir.path(), "2026-10-28").unwrap();
         assert_eq!(day.mood, pending.to_vec());
         // Saving again with the same pending list (a crash before it was forgotten) adds no duplicate.
-        save_day_with(dir.path(), "2026-10-28", "Hi again\n", None, false, NOW, &pending).unwrap();
+        save_day_with(
+            dir.path(),
+            "2026-10-28",
+            "Hi again\n",
+            None,
+            false,
+            NOW,
+            &pending,
+        )
+        .unwrap();
         assert_eq!(read_day(dir.path(), "2026-10-28").unwrap().mood.len(), 1);
     }
 
     #[test]
     fn mood_edits_touch_only_the_mood_list_and_modified() {
         let dir = tempdir().unwrap();
-        assert!(edit_day_mood_at(dir.path(), "2026-10-28", mood::Op::Push(checkin("07:00", 0.0)), NOW).unwrap().is_none());
-        let p = write(dir.path(), "2026-10-28", "---\r\n# hi\r\nid: X\r\ncreated: C\r\nmodified: M\r\n---\r\nBody stays\r\n");
-        let r = edit_day_mood_at(dir.path(), "2026-10-28", mood::Op::Push(checkin("07:00", -0.5)), NOW).unwrap().unwrap();
+        assert!(edit_day_mood_at(
+            dir.path(),
+            "2026-10-28",
+            mood::Op::Push(checkin("07:00", 0.0)),
+            NOW
+        )
+        .unwrap()
+        .is_none());
+        let p = write(
+            dir.path(),
+            "2026-10-28",
+            "---\r\n# hi\r\nid: X\r\ncreated: C\r\nmodified: M\r\n---\r\nBody stays\r\n",
+        );
+        let r = edit_day_mood_at(
+            dir.path(),
+            "2026-10-28",
+            mood::Op::Push(checkin("07:00", -0.5)),
+            NOW,
+        )
+        .unwrap()
+        .unwrap();
         assert_eq!(r.status, SaveStatus::Saved);
         let text = fs::read_to_string(&p).unwrap();
         assert_eq!(
@@ -706,7 +809,14 @@ mod tests {
         );
         assert_eq!(r.hash, hash_bytes(text.as_bytes()));
         // A no-op edit writes nothing.
-        let same = edit_day_mood_at(dir.path(), "2026-10-28", mood::Op::Update(0, checkin("07:00", -0.5)), "LATER").unwrap().unwrap();
+        let same = edit_day_mood_at(
+            dir.path(),
+            "2026-10-28",
+            mood::Op::Update(0, checkin("07:00", -0.5)),
+            "LATER",
+        )
+        .unwrap()
+        .unwrap();
         assert_eq!(same.status, SaveStatus::Skipped);
         assert_eq!(fs::read_to_string(&p).unwrap(), text);
         edit_day_mood_at(dir.path(), "2026-10-28", mood::Op::Delete(0), NOW).unwrap();

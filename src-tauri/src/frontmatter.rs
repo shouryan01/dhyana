@@ -165,7 +165,11 @@ pub fn update_block(block: &str, eol: &str, f: &Fields) -> String {
                 let lead_len = content.len() - content.trim_start_matches([' ', '\t']).len();
                 let end = value_end(rest);
                 out.push_str("modified:");
-                out.push_str(if lead_len == 0 { " " } else { &rest[..lead_len] });
+                out.push_str(if lead_len == 0 {
+                    " "
+                } else {
+                    &rest[..lead_len]
+                });
                 out.push_str(f.modified);
                 out.push_str(&rest[end..]);
                 modified_done = true;

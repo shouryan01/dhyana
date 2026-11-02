@@ -61,7 +61,10 @@ impl Kind {
 
     /// Kinds a user can create and rename from the UI.
     pub fn is_entity(self) -> bool {
-        matches!(self, Kind::Person | Kind::Place | Kind::Emotion | Kind::Tag | Kind::Note)
+        matches!(
+            self,
+            Kind::Person | Kind::Place | Kind::Emotion | Kind::Tag | Kind::Note
+        )
     }
 }
 
@@ -78,7 +81,9 @@ pub fn key(s: &str) -> String {
     s.trim().nfc().collect::<String>().to_lowercase()
 }
 
-const ILLEGAL: &[char] = &['<', '>', ':', '"', '/', '\\', '|', '?', '*', '[', ']', '#', '^'];
+const ILLEGAL: &[char] = &[
+    '<', '>', ':', '"', '/', '\\', '|', '?', '*', '[', ']', '#', '^',
+];
 const RESERVED: &[&str] = &[
     "con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
     "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
@@ -90,7 +95,11 @@ pub fn file_stem(name: &str) -> Result<String, NameError> {
     let nfc: String = name.nfc().collect();
     let mut out = String::with_capacity(nfc.len());
     for ch in nfc.chars() {
-        out.push(if ILLEGAL.contains(&ch) || ch.is_control() { '-' } else { ch });
+        out.push(if ILLEGAL.contains(&ch) || ch.is_control() {
+            '-'
+        } else {
+            ch
+        });
     }
     let collapsed = out.split_whitespace().collect::<Vec<_>>().join(" ");
     let mut stem: String = collapsed
@@ -140,7 +149,10 @@ mod tests {
     fn stems_reject_empty_and_dates() {
         assert_eq!(file_stem("   "), Err(NameError::Empty));
         assert_eq!(file_stem("..."), Err(NameError::Empty));
-        assert!(matches!(file_stem("2026-12-25"), Err(NameError::DateShaped(_))));
+        assert!(matches!(
+            file_stem("2026-12-25"),
+            Err(NameError::DateShaped(_))
+        ));
         assert!(file_stem("2026-12-25 party").is_ok());
     }
 

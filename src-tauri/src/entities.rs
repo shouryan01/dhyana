@@ -119,7 +119,10 @@ pub fn create(vault: &Path, idx: &mut Index, kind: Kind, name: &str) -> Result<E
     let stem = names::file_stem(display)?;
     let exists = |idx: &Index, key: &str| -> Result<()> {
         match idx.same_kind_with_key(kind, key)? {
-            Some(path) => Err(EntityError::Exists { name: display.to_string(), path }),
+            Some(path) => Err(EntityError::Exists {
+                name: display.to_string(),
+                path,
+            }),
             None => Ok(()),
         }
     };
@@ -130,13 +133,19 @@ pub fn create(vault: &Path, idx: &mut Index, kind: Kind, name: &str) -> Result<E
     if !idx.by_name_key(&names::key(&file))?.is_empty() {
         file = names::disambiguated(&stem, kind);
         if let Some((path, _)) = idx.by_name_key(&names::key(&file))?.into_iter().next() {
-            return Err(EntityError::Exists { name: display.to_string(), path });
+            return Err(EntityError::Exists {
+                name: display.to_string(),
+                path,
+            });
         }
     }
     let rel = format!("{}/{}.md", kind.dir(), file);
     let abs = vault.join(&rel);
     if abs.exists() {
-        return Err(EntityError::Exists { name: display.to_string(), path: rel });
+        return Err(EntityError::Exists {
+            name: display.to_string(),
+            path: rel,
+        });
     }
 
     let now = vault::now_string();
@@ -166,10 +175,16 @@ pub fn detail(vault: &Path, idx: &Index, rel: &str) -> Result<EntityDetail> {
     })
 }
 
-pub fn update(vault: &Path, idx: &mut Index, rel: &str, patch: EntityPatch) -> Result<EntityDetail> {
+pub fn update(
+    vault: &Path,
+    idx: &mut Index,
+    rel: &str,
+    patch: EntityPatch,
+) -> Result<EntityDetail> {
     entity_at(idx, rel)?;
     let abs = vault.join(rel);
-    let (text, _) = vault::read_raw(&abs)?.ok_or_else(|| EntityError::NotEntity(rel.to_string()))?;
+    let (text, _) =
+        vault::read_raw(&abs)?.ok_or_else(|| EntityError::NotEntity(rel.to_string()))?;
     let s = frontmatter::split(&text);
     let eol = frontmatter::detect_eol(&text);
     let mut block = s.block.to_string();
@@ -186,7 +201,10 @@ pub fn update(vault: &Path, idx: &mut Index, rel: &str, patch: EntityPatch) -> R
                 continue;
             }
             if let Some((_, other)) = idx.alias_owner(&key, rel)? {
-                return Err(EntityError::AliasTaken { alias: a.to_string(), other });
+                return Err(EntityError::AliasTaken {
+                    alias: a.to_string(),
+                    other,
+                });
             }
             clean.push(a.to_string());
         }
@@ -249,7 +267,10 @@ pub fn rename(vault: &Path, idx: &mut Index, rel: &str, new_name: &str) -> Resul
     let old_key = names::key(&old.name);
     let new_key = names::key(&new_stem);
 
-    let clash = |path: String| EntityError::Exists { name: display.to_string(), path };
+    let clash = |path: String| EntityError::Exists {
+        name: display.to_string(),
+        path,
+    };
     for (path, _) in idx.by_name_key(&new_key)? {
         if path != rel {
             return Err(clash(path));
@@ -285,7 +306,9 @@ pub fn rename(vault: &Path, idx: &mut Index, rel: &str, new_name: &str) -> Resul
         for src in idx.linking_to(&old_key)? {
             let src_rel = if src == rel { new_rel.clone() } else { src };
             let path = vault.join(&src_rel);
-            let Ok(text) = fs::read_to_string(&path) else { continue };
+            let Ok(text) = fs::read_to_string(&path) else {
+                continue;
+            };
             let s = frontmatter::split(&text);
             let (body, n) = links::rewrite_links(s.body, &old_key, &new_stem);
             if n == 0 {
@@ -302,11 +325,20 @@ pub fn rename(vault: &Path, idx: &mut Index, rel: &str, new_name: &str) -> Resul
     if kind == Kind::Emotion && old.name != new_stem {
         for src in idx.with_emotion(&old_key)? {
             let path = vault.join(&src);
-            let Ok(text) = fs::read_to_string(&path) else { continue };
+            let Ok(text) = fs::read_to_string(&path) else {
+                continue;
+            };
             let s = frontmatter::split(&text);
             let eol = frontmatter::detect_eol(&text);
-            let block = mood::edit(s.block, eol, mood::Op::RenameEmotion { old_key: &old_key, new: &new_stem })
-                .map_err(VaultError::from)?;
+            let block = mood::edit(
+                s.block,
+                eol,
+                mood::Op::RenameEmotion {
+                    old_key: &old_key,
+                    new: &new_stem,
+                },
+            )
+            .map_err(VaultError::from)?;
             if block == s.block {
                 continue;
             }
@@ -321,15 +353,51 @@ pub fn rename(vault: &Path, idx: &mut Index, rel: &str, new_name: &str) -> Resul
     let entity = idx
         .summary(&new_rel)?
         .ok_or_else(|| EntityError::NotEntity(new_rel))?;
-    Ok(RenameResult { entity, updated_notes })
+    Ok(RenameResult {
+        entity,
+        updated_notes,
+    })
 }
 
 const EMOTIONS: &[&str] = &[
-    "amazed", "amused", "angry", "annoyed", "anxious", "ashamed", "brave", "calm", "confident",
-    "content", "disappointed", "discouraged", "disgusted", "drained", "embarrassed", "excited",
-    "frustrated", "grateful", "guilty", "happy", "hopeful", "hopeless", "indifferent",
-    "irritated", "jealous", "joyful", "lonely", "overwhelmed", "passionate", "peaceful", "proud",
-    "relieved", "sad", "satisfied", "scared", "stressed", "surprised", "worried",
+    "amazed",
+    "amused",
+    "angry",
+    "annoyed",
+    "anxious",
+    "ashamed",
+    "brave",
+    "calm",
+    "confident",
+    "content",
+    "disappointed",
+    "discouraged",
+    "disgusted",
+    "drained",
+    "embarrassed",
+    "excited",
+    "frustrated",
+    "grateful",
+    "guilty",
+    "happy",
+    "hopeful",
+    "hopeless",
+    "indifferent",
+    "irritated",
+    "jealous",
+    "joyful",
+    "lonely",
+    "overwhelmed",
+    "passionate",
+    "peaceful",
+    "proud",
+    "relieved",
+    "sad",
+    "satisfied",
+    "scared",
+    "stressed",
+    "surprised",
+    "worried",
 ];
 
 /// (name, icon, extra fields) for the built-in type definitions in `types/`.
@@ -370,17 +438,21 @@ pub fn ensure_seeded(vault: &Path) -> Result<()> {
 /// Only the starter names are touched, and never when the lowercase file already exists.
 fn lowercase_starter_emotions(vault: &Path) -> Result<()> {
     let dir = vault.join(Kind::Emotion.dir());
-    let Ok(rd) = fs::read_dir(&dir) else { return Ok(()) };
+    let Ok(rd) = fs::read_dir(&dir) else {
+        return Ok(());
+    };
     let stems: Vec<String> = rd
         .flatten()
-        .filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".md").map(String::from))
+        .filter_map(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .strip_suffix(".md")
+                .map(String::from)
+        })
         .collect();
     for stem in &stems {
         let lower = stem.to_lowercase();
-        if *stem == lower
-            || !EMOTIONS.contains(&lower.as_str())
-            || stems.contains(&lower)
-        {
+        if *stem == lower || !EMOTIONS.contains(&lower.as_str()) || stems.contains(&lower) {
             continue;
         }
         // Two steps, because on a case-insensitive disk a direct rename would be a no-op.
@@ -397,7 +469,12 @@ fn seed_missing_emotions(vault: &Path) -> Result<Vec<String>> {
     let have: std::collections::HashSet<String> = fs::read_dir(vault.join(Kind::Emotion.dir()))
         .map(|rd| {
             rd.flatten()
-                .filter_map(|e| e.file_name().to_string_lossy().strip_suffix(".md").map(names::key))
+                .filter_map(|e| {
+                    e.file_name()
+                        .to_string_lossy()
+                        .strip_suffix(".md")
+                        .map(names::key)
+                })
                 .collect()
         })
         .unwrap_or_default();
@@ -442,11 +519,21 @@ pub fn reset_library(
 ) -> Result<usize> {
     let mut touched = Vec::new();
     let mut removed = 0;
-    for kind in [Kind::Person, Kind::Place, Kind::Note, Kind::Tag, Kind::Emotion] {
-        let Ok(rd) = fs::read_dir(vault.join(kind.dir())) else { continue };
+    for kind in [
+        Kind::Person,
+        Kind::Place,
+        Kind::Note,
+        Kind::Tag,
+        Kind::Emotion,
+    ] {
+        let Ok(rd) = fs::read_dir(vault.join(kind.dir())) else {
+            continue;
+        };
         for e in rd.flatten() {
             let name = e.file_name().to_string_lossy().into_owned();
-            let Some(stem) = name.strip_suffix(".md") else { continue };
+            let Some(stem) = name.strip_suffix(".md") else {
+                continue;
+            };
             if name.starts_with('.') || !e.file_type().map(|t| t.is_file()).unwrap_or(false) {
                 continue;
             }
@@ -463,7 +550,6 @@ pub fn reset_library(
     idx.refresh(vault, &touched)?;
     Ok(removed)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -487,7 +573,10 @@ mod tests {
     fn create_writes_a_valid_note_and_indexes_it() {
         let (dir, mut idx) = setup();
         let e = create(dir.path(), &mut idx, Kind::Person, "  Alice  ").unwrap();
-        assert_eq!((e.path.as_str(), e.kind.as_str(), e.display.as_str()), ("people/Alice.md", "person", "Alice"));
+        assert_eq!(
+            (e.path.as_str(), e.kind.as_str(), e.display.as_str()),
+            ("people/Alice.md", "person", "Alice")
+        );
         let text = fs::read_to_string(dir.path().join("people/Alice.md")).unwrap();
         assert!(text.starts_with("---\nid: "));
         assert!(text.contains("\ntype: person\n"));
@@ -500,9 +589,18 @@ mod tests {
     fn same_kind_duplicates_and_bad_names_are_rejected() {
         let (dir, mut idx) = setup();
         create(dir.path(), &mut idx, Kind::Person, "Alice").unwrap();
-        assert!(matches!(create(dir.path(), &mut idx, Kind::Person, "alice"), Err(EntityError::Exists { .. })));
-        assert!(matches!(create(dir.path(), &mut idx, Kind::Person, "  "), Err(EntityError::Name(NameError::Empty))));
-        assert!(matches!(create(dir.path(), &mut idx, Kind::Person, "2026-12-25"), Err(EntityError::Name(NameError::DateShaped(_)))));
+        assert!(matches!(
+            create(dir.path(), &mut idx, Kind::Person, "alice"),
+            Err(EntityError::Exists { .. })
+        ));
+        assert!(matches!(
+            create(dir.path(), &mut idx, Kind::Person, "  "),
+            Err(EntityError::Name(NameError::Empty))
+        ));
+        assert!(matches!(
+            create(dir.path(), &mut idx, Kind::Person, "2026-12-25"),
+            Err(EntityError::Name(NameError::DateShaped(_)))
+        ));
         assert!(create(dir.path(), &mut idx, Kind::Journal, "x").is_err());
     }
 
@@ -518,7 +616,10 @@ mod tests {
         assert!(text.contains("title: Paris\n"));
         assert!(!text.contains("aliases"));
         // And a second "Paris" place is a duplicate, found through its title.
-        assert!(matches!(create(dir.path(), &mut idx, Kind::Place, "Paris"), Err(EntityError::Exists { .. })));
+        assert!(matches!(
+            create(dir.path(), &mut idx, Kind::Place, "Paris"),
+            Err(EntityError::Exists { .. })
+        ));
     }
 
     #[test]
@@ -567,25 +668,50 @@ mod tests {
     #[test]
     fn update_without_changes_writes_nothing_and_validates() {
         let (dir, mut idx) = setup();
-        put(dir.path(), "people/Alice.md", "---\nid: X\ntype: person\n---\nhi\n");
-        put(dir.path(), "people/Bob.md", "---\nid: Y\ntype: person\naliases: [Bobby]\n---\n");
+        put(
+            dir.path(),
+            "people/Alice.md",
+            "---\nid: X\ntype: person\n---\nhi\n",
+        );
+        put(
+            dir.path(),
+            "people/Bob.md",
+            "---\nid: Y\ntype: person\naliases: [Bobby]\n---\n",
+        );
         idx.sync(dir.path()).unwrap();
         let p = dir.path().join("people/Alice.md");
         let before = fs::metadata(&p).unwrap().modified().unwrap();
         std::thread::sleep(std::time::Duration::from_millis(30));
-        update(dir.path(), &mut idx, "people/Alice.md", EntityPatch::default()).unwrap();
+        update(
+            dir.path(),
+            &mut idx,
+            "people/Alice.md",
+            EntityPatch::default(),
+        )
+        .unwrap();
         assert_eq!(fs::metadata(&p).unwrap().modified().unwrap(), before);
 
         let err = update(
             dir.path(),
             &mut idx,
             "people/Alice.md",
-            EntityPatch { aliases: Some(vec!["BOBBY".into()]), ..Default::default() },
+            EntityPatch {
+                aliases: Some(vec!["BOBBY".into()]),
+                ..Default::default()
+            },
         )
         .unwrap_err();
         assert_eq!(err.to_string(), "\"BOBBY\" is already an alias of Bob");
         assert!(matches!(
-            update(dir.path(), &mut idx, "people/Alice.md", EntityPatch { birthday: Some("nope".into()), ..Default::default() }),
+            update(
+                dir.path(),
+                &mut idx,
+                "people/Alice.md",
+                EntityPatch {
+                    birthday: Some("nope".into()),
+                    ..Default::default()
+                }
+            ),
             Err(EntityError::BadDate(_))
         ));
     }
@@ -595,7 +721,16 @@ mod tests {
         let (dir, mut idx) = setup();
         put(dir.path(), "people/Carl.md", "Just some text\n");
         idx.sync(dir.path()).unwrap();
-        update(dir.path(), &mut idx, "people/Carl.md", EntityPatch { relationship: Some("neighbour".into()), ..Default::default() }).unwrap();
+        update(
+            dir.path(),
+            &mut idx,
+            "people/Carl.md",
+            EntityPatch {
+                relationship: Some("neighbour".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let text = fs::read_to_string(dir.path().join("people/Carl.md")).unwrap();
         assert!(text.starts_with("---\nrelationship: neighbour\nid: "));
         assert!(text.contains("\ntype: person\n---\nJust some text\n"));
@@ -606,8 +741,16 @@ mod tests {
         let (dir, mut idx) = setup();
         put(dir.path(), "journal/2026/10/2026-10-28.md", "x");
         idx.sync(dir.path()).unwrap();
-        for bad in ["journal/2026/10/2026-10-28.md", "../outside.md", "people/Nobody.md", "settings.json"] {
-            assert!(update(dir.path(), &mut idx, bad, EntityPatch::default()).is_err(), "{bad}");
+        for bad in [
+            "journal/2026/10/2026-10-28.md",
+            "../outside.md",
+            "people/Nobody.md",
+            "settings.json",
+        ] {
+            assert!(
+                update(dir.path(), &mut idx, bad, EntityPatch::default()).is_err(),
+                "{bad}"
+            );
             assert!(rename(dir.path(), &mut idx, bad, "X").is_err(), "{bad}");
         }
     }
@@ -621,17 +764,30 @@ mod tests {
         create(dir.path(), &mut idx, Kind::Note, "Reading list").unwrap();
         create(dir.path(), &mut idx, Kind::Tag, "work").unwrap();
         create(dir.path(), &mut idx, Kind::Emotion, "Wistful").unwrap();
-        put(dir.path(), "journal/2026/10/2026-10-28.md", "Saw [[Alice]] in [[Paris]].
-");
+        put(
+            dir.path(),
+            "journal/2026/10/2026-10-28.md",
+            "Saw [[Alice]] in [[Paris]].
+",
+        );
         fs::remove_file(dir.path().join("emotions/calm.md")).unwrap(); // a starter the user deleted
 
         let n = reset_library(dir.path(), &mut idx, |p| fs::remove_file(p)).unwrap();
         assert_eq!(n, 5);
-        for gone in ["people/Alice.md", "places/Paris.md", "notes/Reading list.md", "tags/work.md", "emotions/Wistful.md"] {
+        for gone in [
+            "people/Alice.md",
+            "places/Paris.md",
+            "notes/Reading list.md",
+            "tags/work.md",
+            "emotions/Wistful.md",
+        ] {
             assert!(!dir.path().join(gone).exists(), "{gone}");
         }
         assert!(dir.path().join("emotions/sad.md").exists());
-        assert!(dir.path().join("emotions/calm.md").exists(), "starter restored");
+        assert!(
+            dir.path().join("emotions/calm.md").exists(),
+            "starter restored"
+        );
         assert!(dir.path().join("journal/2026/10/2026-10-28.md").exists());
         assert!(idx.summary("people/Alice.md").unwrap().is_none());
         assert!(idx.summary("emotions/calm.md").unwrap().is_some());
@@ -641,27 +797,45 @@ mod tests {
     #[test]
     fn tag_notes_lists_the_notes_that_use_a_tag_with_the_line() {
         let (dir, mut idx) = setup();
-        put(dir.path(), "journal/2026/10/2026-10-27.md", "---
+        put(
+            dir.path(),
+            "journal/2026/10/2026-10-27.md",
+            "---
 id: A
 ---
 nothing here
-");
-        put(dir.path(), "journal/2026/10/2026-10-28.md", "Morning.
+",
+        );
+        put(
+            dir.path(),
+            "journal/2026/10/2026-10-28.md",
+            "Morning.
 Big day at the #Work site #deep/focus
-");
-        put(dir.path(), "notes/Plan.md", "---
+",
+        );
+        put(
+            dir.path(),
+            "notes/Plan.md",
+            "---
 id: B
 type: note
 ---
 To do #work later
-");
+",
+        );
         idx.sync(dir.path()).unwrap();
         let got = tag_notes(dir.path(), &idx, "work").unwrap();
-        let shown: Vec<(&str, &str)> = got.iter().map(|m| (m.path.as_str(), m.context.as_str())).collect();
+        let shown: Vec<(&str, &str)> = got
+            .iter()
+            .map(|m| (m.path.as_str(), m.context.as_str()))
+            .collect();
         assert_eq!(
             shown,
             vec![
-                ("journal/2026/10/2026-10-28.md", "Big day at the #Work site #deep/focus"),
+                (
+                    "journal/2026/10/2026-10-28.md",
+                    "Big day at the #Work site #deep/focus"
+                ),
                 ("notes/Plan.md", "To do #work later"),
             ]
         );
@@ -671,8 +845,16 @@ To do #work later
     #[test]
     fn starter_emotions_seeded_with_capitals_are_renamed_to_lowercase() {
         let dir = tempdir().unwrap();
-        put(dir.path(), "emotions/Calm.md", "---\nid: A\ntype: emotion\n---\n");
-        put(dir.path(), "emotions/Wistful.md", "---\nid: B\ntype: emotion\n---\n");
+        put(
+            dir.path(),
+            "emotions/Calm.md",
+            "---\nid: A\ntype: emotion\n---\n",
+        );
+        put(
+            dir.path(),
+            "emotions/Wistful.md",
+            "---\nid: B\ntype: emotion\n---\n",
+        );
         put(dir.path(), "emotions/types.md", "---\nid: C\n---\n");
         lowercase_starter_emotions(dir.path()).unwrap();
         let mut names: Vec<String> = fs::read_dir(dir.path().join("emotions"))
@@ -683,7 +865,9 @@ To do #work later
         names.sort();
         // Windows and macOS disks fold case in lookups but keep it in listings, so list, don't probe.
         assert_eq!(names, vec!["Wistful.md", "calm.md", "types.md"]);
-        assert!(fs::read_to_string(dir.path().join("emotions/calm.md")).unwrap().contains("id: A"));
+        assert!(fs::read_to_string(dir.path().join("emotions/calm.md"))
+            .unwrap()
+            .contains("id: A"));
     }
 
     #[test]
@@ -691,9 +875,14 @@ To do #work later
         let dir = tempdir().unwrap();
         let mut idx = Index::open_in_memory().unwrap();
         let alice = create(dir.path(), &mut idx, Kind::Person, "Alice").unwrap();
-        put(dir.path(), "journal/2026/10/2026-10-28.md", "hi [[Alice]]
-");
-        idx.refresh(dir.path(), &["journal/2026/10/2026-10-28.md".into()]).unwrap();
+        put(
+            dir.path(),
+            "journal/2026/10/2026-10-28.md",
+            "hi [[Alice]]
+",
+        );
+        idx.refresh(dir.path(), &["journal/2026/10/2026-10-28.md".into()])
+            .unwrap();
 
         let rm = |p: &Path| fs::remove_file(p);
         delete(dir.path(), &mut idx, &alice.path, rm).unwrap();
@@ -709,9 +898,17 @@ To do #work later
     #[test]
     fn rename_moves_the_file_and_rewrites_every_link() {
         let (dir, mut idx) = setup();
-        put(dir.path(), "people/Alice.md", "---\nid: A\ntype: person\naliases: [Ali]\n---\nSee [[Alice]] herself.\n");
+        put(
+            dir.path(),
+            "people/Alice.md",
+            "---\nid: A\ntype: person\naliases: [Ali]\n---\nSee [[Alice]] herself.\n",
+        );
         put(dir.path(), "journal/2026/10/2026-10-27.md", "---\nid: J\n---\nMet [[Alice]], [[alice|my friend]], [[Alice#x]] and [[Ali]] and `[[Alice]]`.\r\n");
-        put(dir.path(), "journal/2026/10/2026-10-28.md", "Nothing about her. [[Bob]]\n");
+        put(
+            dir.path(),
+            "journal/2026/10/2026-10-28.md",
+            "Nothing about her. [[Bob]]\n",
+        );
         idx.sync(dir.path()).unwrap();
 
         let r = rename(dir.path(), &mut idx, "people/Alice.md", "Alicia").unwrap();
@@ -725,7 +922,10 @@ To do #work later
         );
         let own = fs::read_to_string(dir.path().join("people/Alicia.md")).unwrap();
         assert!(own.contains("See [[Alicia]] herself."));
-        assert_eq!(fs::read_to_string(dir.path().join("journal/2026/10/2026-10-28.md")).unwrap(), "Nothing about her. [[Bob]]\n");
+        assert_eq!(
+            fs::read_to_string(dir.path().join("journal/2026/10/2026-10-28.md")).unwrap(),
+            "Nothing about her. [[Bob]]\n"
+        );
         // Backlinks survive the rename, including the one through the alias.
         let d = detail(dir.path(), &idx, "people/Alicia.md").unwrap();
         assert_eq!(d.summary.mentions, 4);
@@ -750,12 +950,25 @@ To do #work later
         create(dir.path(), &mut idx, Kind::Person, "Alice").unwrap();
         create(dir.path(), &mut idx, Kind::Person, "Bob").unwrap();
         create(dir.path(), &mut idx, Kind::Place, "Rome").unwrap();
-        assert!(matches!(rename(dir.path(), &mut idx, "people/Bob.md", "alice"), Err(EntityError::Exists { .. })));
-        assert!(matches!(rename(dir.path(), &mut idx, "people/Bob.md", "ROME"), Err(EntityError::Exists { .. })));
-        assert!(matches!(rename(dir.path(), &mut idx, "people/Bob.md", "2026-01-01"), Err(EntityError::Name(_))));
+        assert!(matches!(
+            rename(dir.path(), &mut idx, "people/Bob.md", "alice"),
+            Err(EntityError::Exists { .. })
+        ));
+        assert!(matches!(
+            rename(dir.path(), &mut idx, "people/Bob.md", "ROME"),
+            Err(EntityError::Exists { .. })
+        ));
+        assert!(matches!(
+            rename(dir.path(), &mut idx, "people/Bob.md", "2026-01-01"),
+            Err(EntityError::Name(_))
+        ));
         let r = rename(dir.path(), &mut idx, "people/Alice.md", "ALICE").unwrap();
         assert_eq!(r.entity.name, "ALICE");
-        let names: Vec<_> = fs::read_dir(dir.path().join("people")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        let names: Vec<_> = fs::read_dir(dir.path().join("people"))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
         assert!(names.contains(&"ALICE.md".to_string()), "{names:?}");
         assert!(rename(dir.path(), &mut idx, "places/Rome.md", "x").is_ok());
     }
@@ -763,7 +976,11 @@ To do #work later
     #[test]
     fn renaming_an_emotion_rewrites_check_ins_too() {
         let (dir, mut idx) = setup();
-        put(dir.path(), "emotions/sad.md", "---\nid: E\ntype: emotion\n---\n");
+        put(
+            dir.path(),
+            "emotions/sad.md",
+            "---\nid: E\ntype: emotion\n---\n",
+        );
         put(dir.path(), "journal/2026/10/2026-10-27.md", "---\nid: J\nmood:\n  - { at: \"07:00\", valence: -0.5, emotions: [Sad, tired] } # rough\n  - { at: \"09:00\", valence: 0 }\n---\nNo inline links.\n");
         put(dir.path(), "journal/2026/10/2026-10-28.md", "---\nmood:\n  - { at: \"07:00\", valence: 0.2, emotions: [sad] }\n---\nFelt [[sad]].\n");
         idx.sync(dir.path()).unwrap();
@@ -780,7 +997,10 @@ To do #work later
     fn tags_cannot_be_renamed_yet() {
         let (dir, mut idx) = setup();
         let t = create(dir.path(), &mut idx, Kind::Tag, "work").unwrap();
-        assert!(matches!(rename(dir.path(), &mut idx, &t.path, "job"), Err(EntityError::CantRename(_))));
+        assert!(matches!(
+            rename(dir.path(), &mut idx, &t.path, "job"),
+            Err(EntityError::CantRename(_))
+        ));
     }
 
     #[test]
