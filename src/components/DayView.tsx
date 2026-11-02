@@ -365,9 +365,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
               </h1>
               <p className="mt-1 text-[12px] text-surface-muted">
                 {date === app.today ? "Today · " : ""}
-                {meta.created
-                  ? `Created ${formatTime(meta.created)}`
-                  : "Not saved yet — start typing"}
+                {meta.created ? `Created ${formatTime(meta.created)}` : ""}
                 {meta.modified && meta.modified !== meta.created
                   ? ` · Edited ${formatTime(meta.modified)}`
                   : ""}

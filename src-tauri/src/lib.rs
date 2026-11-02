@@ -82,6 +82,8 @@ pub fn run() {
             commands::analytics_days,
             commands::saved_searches,
             commands::save_saved_searches,
+            commands::sample_root,
+            commands::remove_sample,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

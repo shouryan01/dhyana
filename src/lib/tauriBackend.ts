@@ -157,6 +157,12 @@ export const tauriBackend: Backend = {
   async saveSavedSearches(searches) {
     await invoke("save_saved_searches", { searches });
   },
+  async sampleRoot() {
+    return z.string().parse(await invoke("sample_root"));
+  },
+  async removeSample(path) {
+    await invoke("remove_sample", { path });
+  },
   async onEntitiesChanged(cb) {
     return listen("vault://entities", () => cb());
   },

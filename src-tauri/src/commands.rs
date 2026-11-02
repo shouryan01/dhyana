@@ -656,3 +656,60 @@ pub fn save_saved_searches(ctx: State<AppCtx>, searches: serde_json::Value) -> R
     std::fs::write(&tmp, text).map_err(|e| e.to_string())?;
     std::fs::rename(&tmp, &file).map_err(|e| e.to_string())
 }
+
+/// Where sample journals live: `samples/` beside the index, in app data, never in a real vault.
+fn samples_root(ctx: &AppCtx) -> PathBuf {
+    ctx.index_dir
+        .parent()
+        .unwrap_or(&ctx.index_dir)
+        .join("samples")
+}
+
+/// The folder that holds sample journals (created on demand by the sample loader).
+#[tauri::command]
+pub fn sample_root(ctx: State<AppCtx>) -> Result<String, String> {
+    Ok(samples_root(&ctx).display().to_string())
+}
+
+/// Whether `path` is a folder strictly inside `root`, with no `..` tricks.
+pub fn is_inside_samples(root: &Path, path: &Path) -> bool {
+    let plain = path
+        .components()
+        .all(|c| !matches!(c, std::path::Component::ParentDir));
+    plain && path.starts_with(root) && path != root
+}
+
+/// Moves a sample journal's folder to the OS trash. Refuses anything outside the samples folder.
+#[tauri::command]
+pub fn remove_sample(ctx: State<AppCtx>, path: String) -> Result<(), String> {
+    let root = samples_root(&ctx);
+    let target = PathBuf::from(&path);
+    if !is_inside_samples(&root, &target) {
+        return Err("that folder isn't a sample journal".into());
+    }
+    if target.exists() {
+        trash::delete(&target).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod sample_tests {
+    use super::*;
+
+    #[test]
+    fn only_folders_strictly_inside_the_samples_root_pass() {
+        let root = Path::new("/data/samples");
+        assert!(is_inside_samples(
+            root,
+            Path::new("/data/samples/dwight-schrute")
+        ));
+        assert!(!is_inside_samples(root, root));
+        assert!(!is_inside_samples(root, Path::new("/data/index")));
+        assert!(!is_inside_samples(
+            root,
+            Path::new("/data/samples/../vault")
+        ));
+        assert!(!is_inside_samples(root, Path::new("/home/me/journal")));
+    }
+}

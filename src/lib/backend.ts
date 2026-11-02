@@ -188,6 +188,10 @@ export interface Backend {
   /** Saved searches live in the vault's `.dhyana/` folder. */
   savedSearches(): Promise<SavedSearch[]>;
   saveSavedSearches(searches: SavedSearch[]): Promise<void>;
+  /** The folder that holds sample journals (in app data, never inside a real vault). */
+  sampleRoot(): Promise<string>;
+  /** Moves a sample journal folder to the OS trash. Refuses anything outside the samples folder. */
+  removeSample(path: string): Promise<void>;
   /** Fires when entities, links or tags may have changed (any note file changed). */
   onEntitiesChanged(cb: () => void): Promise<() => void>;
 }

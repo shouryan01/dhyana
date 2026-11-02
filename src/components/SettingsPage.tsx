@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useApp } from "@/app/context";
@@ -19,6 +19,7 @@ import { backend } from "@/lib";
 import { parseTheme, themeOf, type Font, type Mode, type ThemeFamily } from "@/lib/backend";
 import { getDevSettings, IS_DEV, setDevSettings } from "@/lib/devSettings";
 import { nameKey } from "@/lib/names";
+import { loadSample, loadedSample, unloadSample } from "@/lib/samples";
 import { SEEDED_EMOTIONS } from "@/lib/schema";
 import { trashName } from "@/lib/utils";
 import { previewSplash } from "@/lib/splash";
@@ -254,6 +255,7 @@ function DeveloperSection({ onPreviewOnboarding }: { onPreviewOnboarding(): void
           onChange={(v) => update({ holdSplash: v === "on" })}
         />
       </Row>
+      <SampleRow />
       <Row label="Preview now">
         <span className="flex gap-2">
           <Button variant="outline" onClick={() => previewSplash()}>
@@ -265,6 +267,55 @@ function DeveloperSection({ onPreviewOnboarding }: { onPreviewOnboarding(): void
         </span>
       </Row>
     </Section>
+  );
+}
+
+/** Loads or unloads the sample journal (Dwight Schrute, 2026) in its own folder. */
+function SampleRow() {
+  const app = useApp();
+  const navigate = useNavigate();
+  const [loaded, setLoaded] = useState(() => loadedSample() !== null);
+  const [busy, setBusy] = useState(false);
+  const switching = {
+    current: app.app?.vaultPath ?? null,
+    setVault: app.setVault,
+    refreshEntities: app.refreshEntities,
+  };
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      if (loaded) {
+        await unloadSample(switching);
+        setLoaded(false);
+        toast.success("Back to your journal");
+      } else {
+        await flushAll();
+        await loadSample(switching);
+        setLoaded(true);
+        toast.success("Sample journal loaded", { description: "Dwight Schrute, 2026." });
+        void navigate({ to: "/year", search: { year: 2026, view: "words" } });
+      }
+    } catch (e) {
+      toast.error(String(e instanceof Error ? e.message : e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Row
+      label="Sample journal"
+      hint={
+        loaded
+          ? "Dwight Schrute's 2026 is loaded in its own folder. Unloading returns to your journal and moves the sample to the trash."
+          : "Loads a year of sample entries in a separate folder, so you can try search and insights."
+      }
+    >
+      <Button variant="outline" disabled={busy} onClick={() => void run()}>
+        {loaded ? "Unload sample" : "Load Dwight Schrute 2026"}
+      </Button>
+    </Row>
   );
 }
 

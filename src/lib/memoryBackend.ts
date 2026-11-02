@@ -504,6 +504,12 @@ export function createMemoryBackend(): Backend {
     async saveSavedSearches(searches) {
       write(KEY_SEARCHES, searches);
     },
+    async sampleRoot() {
+      return "samples";
+    },
+    async removeSample() {
+      // Sample journals are a desktop feature; the browser build has one in-memory vault.
+    },
     async onEntitiesChanged(cb) {
       entityListeners.add(cb);
       return () => entityListeners.delete(cb);

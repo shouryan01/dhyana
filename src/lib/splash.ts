@@ -11,6 +11,7 @@ export function hideSplash(el: HTMLElement | null = document.getElementById("spl
 export function previewSplash(ms = 2000): void {
   if (document.getElementById("splash")) return;
   const el = document.createElement("div");
+  el.setAttribute("data-tauri-drag-region", "");
   el.id = "splash"; // styled by the <style> block in index.html
   el.innerHTML = '<img src="/logo.svg" alt="" /><div class="mark">dhyāna</div>';
   el.style.opacity = "0";
