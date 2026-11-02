@@ -253,28 +253,40 @@ function Ranked({
     label: string;
     value: number;
     extra?: React.ReactNode;
+    /** A second line for the hover tooltip, e.g. how the count splits. */
+    detail?: string;
     onClick?: () => void;
-    segments?: [number, string][];
   }[];
   empty: string;
 }) {
+  const [active, setActive] = useState<string | null>(null);
   if (!rows.length) return <p className="text-[12px] text-muted-foreground">{empty}</p>;
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
-    <ul className="flex flex-col">
+    <ul className="flex flex-col" onMouseLeave={() => setActive(null)}>
       {rows.map((r) => (
-        <li key={r.key}>
+        <li key={r.key} className="relative">
+          {active === r.key && r.detail && (
+            <ChartTip
+              left="45%"
+              heading={r.label}
+              detail={r.detail}
+              hint={r.onClick ? "Click to see the entries" : undefined}
+              className="bottom-full mb-0.5"
+            />
+          )}
           <button
             type="button"
             onClick={r.onClick}
             disabled={!r.onClick}
+            onMouseEnter={() => setActive(r.key)}
+            onFocus={() => setActive(r.key)}
+            onBlur={() => setActive(null)}
             className="group grid w-full grid-cols-[120px_1fr_auto_12px] items-center gap-3 rounded-md px-1.5 py-1 text-left text-[13px] enabled:cursor-pointer enabled:hover:bg-chrome-hover"
           >
             <span className="truncate">{r.label}</span>
             <span className="flex h-2 overflow-hidden rounded-full bg-muted">
-              {(r.segments ?? [[r.value, "bg-primary/70"]]).map(([v, cls], i) => (
-                <span key={i} className={cls} style={{ width: `${(v / max) * 100}%` }} />
-              ))}
+              <span className="bg-primary/70" style={{ width: `${(r.value / max) * 100}%` }} />
             </span>
             <span className="flex min-w-[56px] items-center justify-end gap-1.5 text-[12px] text-muted-foreground tabular-nums">
               {r.extra}
@@ -578,7 +590,11 @@ function Mood({ a }: { a: Analysis }) {
     );
   }
   return (
-    <Section title="Mood" source="derived" note="check-ins and inline ! emotions stay separate">
+    <Section
+      title="Mood"
+      source="derived"
+      note="check-ins and inline ! emotions are counted together"
+    >
       <Panel title="Mood over time" derived action="Click a dot to open that day.">
         <ValenceLine a={a} />
         {entered < MIN_ENTRIES && (
@@ -589,33 +605,15 @@ function Mood({ a }: { a: Analysis }) {
       <Panel
         title="Emotions"
         action="Click an emotion to see its entries."
-        hint="Check-ins are counted when you pick them in a check-in; inline are !emotions written in the text."
+        hint="Every time an emotion was picked in a check-in or written inline as !emotion. Hover a row for the split."
       >
-        <div className="mb-1 flex gap-4 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <i className="size-2 rounded-full bg-primary/70" />
-            check-ins
-          </span>
-          <span className="flex items-center gap-1.5">
-            <i className="size-2 rounded-full bg-foreground/40" />
-            inline
-          </span>
-        </div>
         <Ranked
           empty="No emotions yet."
           rows={a.emotions.slice(0, 10).map((e) => ({
             key: e.emotion,
             label: e.emotion,
             value: e.checkins + e.inline,
-            segments: [
-              [e.checkins, "bg-primary/70"],
-              [e.inline, "bg-foreground/40"],
-            ],
-            extra: (
-              <span className="text-[11px]">
-                {e.checkins}·{e.inline}
-              </span>
-            ),
+            detail: `${e.checkins} in check-ins · ${e.inline} written inline`,
             onClick: () => navigate(searchLink(`!${e.emotion}`)),
           }))}
         />
