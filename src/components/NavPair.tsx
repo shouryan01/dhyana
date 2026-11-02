@@ -13,15 +13,15 @@ export interface NavPairItem {
 
 /**
  * How much of the row each half takes: resting, hovered, and squeezed by its neighbour. In the
- * 248px sidebar that is about 113px each at rest, 132px hovered (icon, label and a two-key
- * shortcut still fit) and 94px squeezed (icon and label still fit). Any narrower and the
+ * 248px sidebar that is about 113px each at rest, 132px hovered (label and a two-key
+ * shortcut fit, the icon is hidden) and 94px squeezed (icon and label still fit). Any narrower and the
  * squeezed label would be cut off.
  */
 const GROW = { rest: 1, hot: 1.4, squeezed: 1 } as const;
 
 /**
- * Two sidebar destinations as one joined button. Hovering (or focusing) one half widens it and
- * shows its shortcut while the other narrows, and the same the other way round. The widths
+ * Two sidebar destinations as one joined button. Hovering (or focusing) one half widens it, hides its
+ * icon so the label slides over, and shows its shortcut while the other narrows. The widths
  * animate with `flex-grow`, which is why both halves have a zero flex-basis.
  */
 export function NavPair({ items }: { items: [NavPairItem, NavPairItem] }) {
@@ -47,9 +47,8 @@ export function NavPair({ items }: { items: [NavPairItem, NavPairItem] }) {
               : "text-muted-foreground hover:bg-chrome-hover hover:text-foreground",
           )}
         >
-          <span className="inline-flex shrink-0 transition-transform duration-200 ease-spring group-hover:scale-110 group-hover:-rotate-12">
-            {it.icon}
-          </span>
+          {/* The hovered half drops its icon so the label can slide over and make room for the shortcut. */}
+          {hot !== i && <span className="inline-flex shrink-0">{it.icon}</span>}
           <span className="truncate">{it.label}</span>
           {hot === i && it.shortcut && (
             <Kbd shortcut={it.shortcut} className="anim-fade shrink-0" />
