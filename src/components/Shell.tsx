@@ -8,7 +8,6 @@ import {
   Search,
   Settings as SettingsIcon,
   Sun,
-  TextSearch,
 } from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
@@ -92,14 +91,17 @@ export function Shell() {
           </div>
 
           <button
-            onClick={() => app.openPalette("commands")}
-            className="group flex h-8 items-center gap-2 rounded-md border border-border bg-popover px-2.5 text-muted-foreground transition-colors duration-100 hover:bg-chrome-hover"
+            onClick={() => navigate({ to: "/search", search: { q: "" } })}
+            className={cn(
+              "group flex h-8 items-center gap-2 rounded-md border border-border px-2.5 text-muted-foreground transition-colors duration-100 hover:bg-chrome-hover",
+              onSearch ? "bg-chrome-active text-foreground" : "bg-popover",
+            )}
           >
             <span className={cn(ICON, "group-hover:-rotate-12")}>
               <Search size={14} />
             </span>
             <span className="flex-1 text-left">Search</span>
-            <Kbd shortcut="mod+k" className={REVEAL} />
+            {shortcutOf("search") && <Kbd shortcut={shortcutOf("search")!} className={REVEAL} />}
           </button>
 
           <nav className="flex flex-col gap-0.5">
@@ -119,15 +121,6 @@ export function Shell() {
               wiggle="group-hover:-rotate-12"
               label="Library"
               shortcut={shortcutOf("library")}
-            />
-            <NavLink
-              to="/search"
-              search={{ q: "" }}
-              active={onSearch}
-              icon={<TextSearch size={15} />}
-              wiggle="group-hover:-rotate-12"
-              label="Find entries"
-              shortcut={shortcutOf("search")}
             />
             <NavLink
               to="/insights"

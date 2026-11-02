@@ -11,7 +11,7 @@
 | Go to person or place…   | `G P` (also creates one: type a new name)                   |
 | Open library             | `G L` (everything created so far, click to edit)            |
 | Open year view           | `G Y`, or click the year above the calendar                 |
-| Search entries…          | `/` or `Mod Shift F` (see [search](search-and-insights.md)) |
+| Search entries…          | `Mod Shift F` or `/` (see [search](search-and-insights.md)) |
 | Open insights            | `G I`                                                       |
 | Add mood check-in        | `M` (opens today if no day is open)                         |
 | Toggle mood panel        | `G M`                                                       |

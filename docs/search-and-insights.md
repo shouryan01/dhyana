@@ -4,7 +4,7 @@ Everything here is computed on your machine from your entries. No AI, no network
 
 ## Search
 
-Open it with <kbd>/</kbd> (outside the editor), <kbd>Ctrl/⌘</kbd> <kbd>Shift</kbd> <kbd>F</kbd>, or **Find entries** in the sidebar. One line holds the words you're looking for and the filters:
+Open it with <kbd>Ctrl/⌘</kbd> <kbd>Shift</kbd> <kbd>F</kbd> (works everywhere), <kbd>/</kbd> (outside the editor), or **Search** at the top of the sidebar. <kbd>Ctrl/⌘</kbd> <kbd>K</kbd> stays the command palette. One line holds the words you're looking for and the filters:
 
 ```
 walk river @Alex #outdoors !calm in:last-month mood:>0.2
