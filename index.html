@@ -33,6 +33,9 @@
         color: #5b4a33;
         letter-spacing: 0.01em;
       }
+      #splash > * {
+        pointer-events: none; /* clicks reach the splash itself, so it drags the window */
+      }
       #splash img {
         width: 72px;
         height: 72px;
@@ -40,7 +43,7 @@
     </style>
   </head>
   <body>
-    <div id="splash">
+    <div id="splash" data-tauri-drag-region>
       <img src="/logo.svg" alt="" />
       <div class="mark">dhyāna</div>
     </div>

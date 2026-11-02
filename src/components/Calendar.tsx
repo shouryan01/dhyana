@@ -15,6 +15,11 @@ interface Props {
 const weekStartsOn = firstDayOfWeek() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
 const firstOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 
+const SHOW_TODAY = "dhyana:show-today";
+
+/** Tell the sidebar calendar to jump back to the current month, even if today is already open. */
+export const showTodayInCalendar = () => window.dispatchEvent(new Event(SHOW_TODAY));
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** The day-cell class for each mood bucket; the colours are `--dot` values in `index.css`. */
@@ -41,6 +46,13 @@ export function Calendar({ selected, onSelect }: Props) {
   useEffect(() => {
     setMonth(firstOfMonth(sel));
   }, [sel]);
+
+  // "Today" while already on today's note leaves the selection unchanged, so reset the month here.
+  useEffect(() => {
+    const show = () => setMonth(firstOfMonth(parseISODate(today)));
+    window.addEventListener(SHOW_TODAY, show);
+    return () => window.removeEventListener(SHOW_TODAY, show);
+  }, [today]);
 
   useEffect(() => {
     let live = true;

@@ -37,7 +37,8 @@ const writeOpen = (open: boolean) => {
 /**
  * The day's mood, under the "Today · Created · Edited" line. With check-ins there is an
  * always-visible toggle (a chevron and a dot per check-in, no words); opening it shows the chips,
- * which then stay until you close it. With none there is just an "Add mood check-in" button.
+ * which then stay until you close it. With none there is an add button: the smiley always, its
+ * label and shortcut only on hover or focus.
  */
 export function MoodRow({ mood, pending, onEdit, onAdd, shortcut }: Props) {
   const { entities } = useApp();
@@ -65,7 +66,9 @@ export function MoodRow({ mood, pending, onEdit, onAdd, shortcut }: Props) {
           className="group/add flex h-6 items-center gap-1.5 rounded-md pr-2 pl-1 text-[12px] text-surface-muted transition-colors duration-100 hover:bg-chrome-hover hover:text-surface-fg"
         >
           <Smile size={14} aria-hidden="true" />
-          <span>Add mood check-in</span>
+          <span className="opacity-0 transition-opacity duration-100 group-hover/add:opacity-100 group-focus-visible/add:opacity-100">
+            Add mood check-in
+          </span>
           {shortcut && (
             <Kbd
               shortcut={shortcut}

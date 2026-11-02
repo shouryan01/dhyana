@@ -13,7 +13,7 @@ import { Toaster } from "sonner";
 import { useActions, useHotkeys, useRolloverNotice } from "@/app/actions";
 import { useApp } from "@/app/context";
 import { installCloseFlush } from "@/app/flush";
-import { Calendar } from "@/components/Calendar";
+import { Calendar, showTodayInCalendar } from "@/components/Calendar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Logo } from "@/components/Logo";
 import { titlebarHeight, trafficLightInset, WindowControls } from "@/components/TitleBar";
@@ -105,6 +105,7 @@ export function Shell() {
               wiggle="group-hover:-rotate-12"
               label="Today"
               shortcut={shortcutOf("today")}
+              onClick={showTodayInCalendar}
             />
             <NavLink
               to="/library"
@@ -211,11 +212,13 @@ function NavLink(props: {
   label: string;
   shortcut?: string;
   wiggle?: string;
+  onClick?: () => void;
 }) {
   return (
     <Link
       to={props.to}
       params={props.params as never}
+      onClick={props.onClick}
       className={cn(
         ROW,
         "group",
