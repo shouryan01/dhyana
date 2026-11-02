@@ -188,7 +188,11 @@ export function parseBar(bar: string, entities: Entity[], today: string): Parsed
 }
 
 /** Matched words in a snippet sit between these (see `search.rs`). */
-export function snippetParts(snippet: string): { text: string; hit: boolean }[] {
+export function snippetParts(raw: string): { text: string; hit: boolean }[] {
+  // Index snippets are raw markdown: show `[[Jim]]` as Jim and `[[Jim|J]]` as J, even when the
+  // snippet cuts a link in half.
+  // oxlint-disable-next-line no-control-regex -- U+0001/U+0002 are the highlight markers
+  const snippet = raw.replace(/\[\[(?:[^\]|\u0001\u0002]*\|)?/g, "").replace(/\]\]/g, "");
   const parts: { text: string; hit: boolean }[] = [];
   let hit = false;
   let cur = "";

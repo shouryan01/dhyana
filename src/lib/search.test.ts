@@ -91,6 +91,16 @@ describe("parseBar", () => {
 });
 
 describe("snippetParts", () => {
+  it("shows links as their text, even cut in half or around a highlight", () => {
+    const text = (s: string) =>
+      snippetParts(s)
+        .map((p) => p.text)
+        .join("");
+    expect(text("[[Jim]] moved [[Pam|P]]")).toBe("Jim moved P");
+    expect(text("[[\u0001Jim\u0002]] has")).toBe("Jim has");
+    expect(text("…the [[Schr")).toBe("…the Schr");
+  });
+
   it("separates highlighted words", () => {
     expect(snippetParts("a \u0001big\u0002 day")).toEqual([
       { text: "a ", hit: false },
