@@ -104,6 +104,7 @@ export function Onboarding() {
 
   return (
     <div className="anim-fade fixed inset-0 z-30 flex flex-col items-center justify-center bg-chrome px-6">
+      <div data-tauri-drag-region className="absolute inset-x-0 top-0 h-10" />
       <div className={cn("w-full", step === "try" ? "max-w-[560px]" : "max-w-[460px]")}>
         {step === "welcome" && (
           <div className="group anim-pop mb-6 flex justify-center">
