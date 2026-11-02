@@ -610,3 +610,49 @@ pub fn upcoming(
 pub fn rebuild_index(ctx: State<AppCtx>) -> Result<(), String> {
     ctx.with_index(|v, idx| idx.rebuild(v).map_err(|e| e.to_string()))
 }
+
+/// Journal days matching free text (FTS5) and metadata filters, best match first.
+#[tauri::command]
+pub fn search(
+    ctx: State<AppCtx>,
+    query: crate::search::SearchQuery,
+) -> Result<Vec<crate::search::SearchHit>, String> {
+    for d in [&query.from, &query.to].into_iter().flatten() {
+        vault::validate_date(d).map_err(|e| e.to_string())?;
+    }
+    ctx.with_index(|_, idx| idx.search(&query).map_err(|e| e.to_string()))
+}
+
+/// Per-day records (text, check-ins, tags, links) the analytics dashboard is computed from.
+#[tauri::command]
+pub fn analytics_days(ctx: State<AppCtx>) -> Result<Vec<crate::search::AnalyticsDay>, String> {
+    ctx.with_index(|_, idx| idx.analytics_days().map_err(|e| e.to_string()))
+}
+
+const SAVED_SEARCHES: &str = ".dhyana/saved-searches.json";
+
+/// The vault's saved searches (a JSON array; the UI validates the shape).
+#[tauri::command]
+pub fn saved_searches(ctx: State<AppCtx>) -> Result<serde_json::Value, String> {
+    let file = ctx.vault()?.join(SAVED_SEARCHES);
+    match std::fs::read_to_string(&file) {
+        Ok(text) => Ok(serde_json::from_str(&text).unwrap_or(serde_json::json!([]))),
+        Err(_) => Ok(serde_json::json!([])),
+    }
+}
+
+/// Replaces the saved searches. Written to a temp file first so a crash can't leave half a file.
+#[tauri::command]
+pub fn save_saved_searches(ctx: State<AppCtx>, searches: serde_json::Value) -> Result<(), String> {
+    if !searches.is_array() {
+        return Err("saved searches must be a list".into());
+    }
+    let file = ctx.vault()?.join(SAVED_SEARCHES);
+    if let Some(dir) = file.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    let tmp = file.with_extension("json.tmp");
+    let text = serde_json::to_string_pretty(&searches).map_err(|e| e.to_string())?;
+    std::fs::write(&tmp, text).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp, &file).map_err(|e| e.to_string())
+}

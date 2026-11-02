@@ -1,5 +1,6 @@
 import { Link, Outlet, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
 import {
+  ChartNoAxesColumn,
   Library,
   Moon,
   PanelLeft,
@@ -7,6 +8,7 @@ import {
   Search,
   Settings as SettingsIcon,
   Sun,
+  TextSearch,
 } from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
@@ -35,6 +37,8 @@ export function Shell() {
   });
   const onLibrary = useRouterState({ select: (s) => s.location.pathname.startsWith("/library") });
   const onDay = useRouterState({ select: (s) => s.location.pathname.startsWith("/day/") });
+  const onSearch = useRouterState({ select: (s) => s.location.pathname.startsWith("/search") });
+  const onInsights = useRouterState({ select: (s) => s.location.pathname.startsWith("/insights") });
   const actions = useActions();
   useHotkeys(actions);
   useRolloverNotice();
@@ -113,6 +117,23 @@ export function Shell() {
               wiggle="group-hover:-rotate-12"
               label="Library"
               shortcut={shortcutOf("library")}
+            />
+            <NavLink
+              to="/search"
+              search={{ q: "" }}
+              active={onSearch}
+              icon={<TextSearch size={15} />}
+              wiggle="group-hover:-rotate-12"
+              label="Find entries"
+              shortcut={shortcutOf("search")}
+            />
+            <NavLink
+              to="/insights"
+              active={onInsights}
+              icon={<ChartNoAxesColumn size={15} />}
+              wiggle="group-hover:-rotate-12"
+              label="Insights"
+              shortcut={shortcutOf("insights")}
             />
           </nav>
 
@@ -204,8 +225,9 @@ const ROW =
   "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-100";
 
 function NavLink(props: {
-  to: "/day/$date" | "/settings" | "/library";
+  to: "/day/$date" | "/settings" | "/library" | "/search" | "/insights";
   params?: { date: string };
+  search?: { q: string };
   active: boolean;
   icon: React.ReactNode;
   label: string;
@@ -216,6 +238,7 @@ function NavLink(props: {
     <Link
       to={props.to}
       params={props.params as never}
+      search={props.search as never}
       className={cn(
         ROW,
         "group",

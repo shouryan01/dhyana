@@ -4,6 +4,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
 import { AppStateSchema, DayFileSchema, SaveResultSchema, type Backend } from "./backend";
 import {
+  AnalyticsDaySchema,
   CheckInSchema,
   DayStatSchema,
   EntityDetailSchema,
@@ -12,6 +13,8 @@ import {
   MentionSchema,
   OnThisDaySchema,
   RenameResultSchema,
+  SavedSearchSchema,
+  SearchHitSchema,
   TagInfoSchema,
   UpcomingEventSchema,
   VersionContentSchema,
@@ -133,6 +136,26 @@ export const tauriBackend: Backend = {
   },
   async rebuildIndex() {
     await invoke("rebuild_index");
+  },
+  async search(query) {
+    return z.array(SearchHitSchema).parse(await invoke("search", { query }));
+  },
+  async analyticsDays() {
+    return z.array(AnalyticsDaySchema).parse(await invoke("analytics_days"));
+  },
+  async savedSearches() {
+    // A hand-edited or damaged file shouldn't break search: keep the entries that still parse.
+    const raw = z
+      .array(z.unknown())
+      .catch([])
+      .parse(await invoke("saved_searches"));
+    return raw.flatMap((r) => {
+      const s = SavedSearchSchema.safeParse(r);
+      return s.success ? [s.data] : [];
+    });
+  },
+  async saveSavedSearches(searches) {
+    await invoke("save_saved_searches", { searches });
   },
   async onEntitiesChanged(cb) {
     return listen("vault://entities", () => cb());

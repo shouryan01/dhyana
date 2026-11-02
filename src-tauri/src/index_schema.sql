@@ -7,6 +7,7 @@ CREATE TABLE notes (
   title_key TEXT,
   relationship TEXT,
   birthday TEXT,
+  created TEXT,
   words INTEGER NOT NULL DEFAULT 0,
   mtime INTEGER NOT NULL,
   size INTEGER NOT NULL
@@ -51,3 +52,6 @@ CREATE TABLE moods (
   factors TEXT NOT NULL
 );
 CREATE INDEX moods_src ON moods(src);
+
+-- Full text of every journal day. Porter stemming, so "walking" finds "walked".
+CREATE VIRTUAL TABLE fts USING fts5(path UNINDEXED, body, tokenize = 'porter unicode61');

@@ -9,10 +9,12 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppProvider, useApp } from "@/app/context";
+import { AnalyticsPage } from "@/components/AnalyticsPage";
 import { DayView } from "@/components/DayView";
 import { EntityPage } from "@/components/EntityPage";
 import { LibraryPage } from "@/components/LibraryPage";
 import { Onboarding } from "@/components/Onboarding";
+import { SearchPage } from "@/components/SearchPage";
 import { TopicPage } from "@/components/TopicPage";
 import { SettingsPage } from "@/components/SettingsPage";
 import { ShortcutsPage } from "@/components/ShortcutsPage";
@@ -94,6 +96,21 @@ const libraryRoute = createRoute({
   component: LibraryPage,
 });
 
+const searchRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/search",
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
+  component: SearchRoute,
+});
+
+const insightsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/insights",
+  component: AnalyticsPage,
+});
+
 const router = createRouter({
   routeTree: rootRoute.addChildren([
     indexRoute,
@@ -102,6 +119,8 @@ const router = createRouter({
     libraryRoute,
     yearRoute,
     topicRoute,
+    searchRoute,
+    insightsRoute,
     settingsRoute,
     shortcutsRoute,
   ]),
@@ -122,6 +141,11 @@ function DayRoute() {
 function TopicRoute() {
   const { tag } = topicRoute.useSearch();
   return tag ? <TopicPage key={tag} tag={tag} /> : null;
+}
+
+function SearchRoute() {
+  const { q } = searchRoute.useSearch();
+  return <SearchPage initial={q} />;
 }
 
 function YearRoute() {

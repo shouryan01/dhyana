@@ -91,6 +91,24 @@ export function useActions(): Action[] {
           navigate({ to: "/year", search: { year: Number(current.slice(0, 4)), view: "words" } }),
       },
       {
+        id: "search",
+        label: "Search entries…",
+        group: "Navigate",
+        shortcut: "/",
+        also: ["mod+shift+f"],
+        keywords: "find full text filter person tag emotion mood date saved",
+        run: () => navigate({ to: "/search", search: { q: "" } }),
+      },
+      {
+        id: "insights",
+        label: "Open insights",
+        group: "Navigate",
+        shortcut: "g i",
+        keywords:
+          "analytics statistics charts streak mood correlations people topics writing style",
+        run: () => navigate({ to: "/insights" }),
+      },
+      {
         id: "mood",
         label: "Add mood check-in",
         group: "Journal",

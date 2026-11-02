@@ -19,7 +19,7 @@ use crate::vault::{date_from_file_name, hash_bytes};
 use crate::yaml;
 
 /// Bump when the tables change; an index with another version is dropped and rebuilt.
-const SCHEMA_VERSION: i32 = 2;
+const SCHEMA_VERSION: i32 = 3;
 
 #[derive(Debug, thiserror::Error)]
 pub enum IndexError {
@@ -129,6 +129,8 @@ struct Parsed {
     tags: Vec<String>,
     words: usize,
     moods: Vec<CheckIn>,
+    created: Option<String>,
+    body: String,
 }
 
 /// Words in a note body: whitespace-separated runs with at least one letter or digit, so `-` and
@@ -144,6 +146,8 @@ fn parse_note(text: &str) -> Parsed {
     let scan = links::scan(s.body);
     Parsed {
         words: count_words(s.body),
+        created: frontmatter::get_value(s.block, "created").map(|v| yaml::unquote(&v)),
+        body: s.body.to_string(),
         moods: mood::read(s.block),
         title: frontmatter::get_value(s.block, "title").map(|v| yaml::unquote(&v)),
         relationship: frontmatter::get_value(s.block, "relationship"),
@@ -244,7 +248,7 @@ impl VaultIndex {
 }
 
 pub struct Index {
-    conn: Connection,
+    pub(crate) conn: Connection,
 }
 
 impl Index {
@@ -265,7 +269,7 @@ impl Index {
         if version != SCHEMA_VERSION {
             conn.execute_batch(
                 "DROP TABLE IF EXISTS notes; DROP TABLE IF EXISTS aliases;
-                 DROP TABLE IF EXISTS links; DROP TABLE IF EXISTS tags; DROP TABLE IF EXISTS moods;",
+                 DROP TABLE IF EXISTS links; DROP TABLE IF EXISTS tags; DROP TABLE IF EXISTS moods; DROP TABLE IF EXISTS fts;",
             )?;
             conn.execute_batch(include_str!("index_schema.sql"))?;
             conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
@@ -276,7 +280,7 @@ impl Index {
     /// Throw everything away and re-read the vault.
     pub fn rebuild(&mut self, vault: &Path) -> Result<()> {
         self.conn
-            .execute_batch("DELETE FROM notes; DELETE FROM aliases; DELETE FROM links; DELETE FROM tags; DELETE FROM moods;")?;
+            .execute_batch("DELETE FROM notes; DELETE FROM aliases; DELETE FROM links; DELETE FROM tags; DELETE FROM moods; DELETE FROM fts;")?;
         self.sync(vault)
     }
 
@@ -672,6 +676,7 @@ fn remove_rows(conn: &Connection, path: &str) -> Result<()> {
     conn.execute("DELETE FROM links WHERE src = ?1", [path])?;
     conn.execute("DELETE FROM tags WHERE src = ?1", [path])?;
     conn.execute("DELETE FROM moods WHERE src = ?1", [path])?;
+    conn.execute("DELETE FROM fts WHERE path = ?1", [path])?;
     Ok(())
 }
 
@@ -690,8 +695,8 @@ fn index_file(conn: &Connection, vault: &Path, rel: &str) -> Result<()> {
     };
     let p = parse_note(&text);
     conn.execute(
-        "INSERT INTO notes(path, kind, name, name_key, title, title_key, relationship, birthday, words, mtime, size)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
+        "INSERT INTO notes(path, kind, name, name_key, title, title_key, relationship, birthday, created, words, mtime, size)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
         params![
             rel,
             kind.as_str(),
@@ -701,6 +706,7 @@ fn index_file(conn: &Connection, vault: &Path, rel: &str) -> Result<()> {
             p.title.as_deref().map(names::key),
             p.relationship,
             p.birthday,
+            p.created,
             p.words as i64,
             mtime_ns(&meta),
             meta.len() as i64
@@ -725,6 +731,10 @@ fn index_file(conn: &Connection, vault: &Path, rel: &str) -> Result<()> {
         )?;
     }
     if kind == Kind::Journal {
+        conn.execute(
+            "INSERT INTO fts(path, body) VALUES (?1, ?2)",
+            params![rel, p.body],
+        )?;
         for (i, m) in p.moods.iter().enumerate() {
             let keys: String = m
                 .emotions
