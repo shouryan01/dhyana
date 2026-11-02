@@ -371,7 +371,7 @@ export function tagFrequency(days: AnalyticsDay[]): { tag: string; entries: numb
 // Text
 
 const STOPWORDS = new Set(
-  `a about above after again all also am an and any are aren't as at back be because been before being below between both but by can can't could couldn't day did didn't do does doesn't doing don't down during each even ever every few for from further get got had hadn't has hasn't have haven't having he her here hers herself him himself his how i i'd i'll i'm i've if in into is isn't it it's its itself just know like little made make many me more most much my myself no nor not now of off on once one only or other our ours ourselves out over own really same she should shouldn't so some still such take than that the their theirs them themselves then there these they this those through time to today too under until up us very was wasn't we we'd we'll we're we've well went were weren't what when where which while who whom why will with won't would wouldn't yes yesterday you you'd you'll you're you've your yours yourself yourselves`.split(
+  `a about above after again all also am an and any are aren't as at back be because been before being below between both but by can can't could couldn't day did didn't do does doesn't doing don't down during each even ever every few for from further get got had hadn't has hasn't have haven't having he her here hers herself him himself his how i i'd i'll i'm i've if in into is isn't it it's its itself just know like little made make many me more most much my myself no nor not now of off on once one only or other our ours ourselves out over own really same she should shouldn't so some still such take than that the their theirs them themselves then there these they this those through time to today too under until up us very was wasn't we we'd we'll we're we've well went were weren't what when where which while who whom why will with won't would wouldn't yes yesterday you you'd you'll you're you've your yours yourself yourselves said says told tell asked ask sat gave give wanted want came took thought agreed saw went felt first two three four five since though although another always never sure around away`.split(
     /\s+/,
   ),
 );
@@ -393,7 +393,7 @@ export function plainText(body: string): string {
 }
 
 const wordsOf = (text: string): string[] =>
-  (text.toLowerCase().match(/[\p{L}\p{N}]+(?:['’][\p{L}]+)*/gu) ?? []).map((w) =>
+  (text.toLowerCase().match(/[\p{L}\p{N}]+(?:['’-][\p{L}]+)*/gu) ?? []).map((w) =>
     w.replace(/’/g, "'"),
   );
 
@@ -411,7 +411,8 @@ export function topTermsByMonth(days: AnalyticsDay[], perMonth = 5): TermRow[] {
   for (const d of days) {
     const m = d.date.slice(0, 7);
     const tf = docs.get(m) ?? new Map<string, number>();
-    for (const w of wordsOf(plainText(d.body))) {
+    // Links are people, places and emotions, which have their own charts; keywords are the rest.
+    for (const w of wordsOf(plainText(d.body.replace(/!?\[\[[^\]]*\]\]/g, " ")))) {
       if (w.length < 3 || STOPWORDS.has(w) || /^\d+$/.test(w)) continue;
       tf.set(w, (tf.get(w) ?? 0) + 1);
     }

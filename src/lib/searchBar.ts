@@ -31,6 +31,8 @@ export interface ParsedBar {
   query: SearchQuery;
   /** Names or values the bar mentions that matched nothing, so the UI can say so. */
   problems: string[];
+  /** A date, period or mood value could not be read, so the search should return nothing rather than ignore it. */
+  invalid: boolean;
   /** True when there is nothing to search for. */
   empty: boolean;
 }
@@ -115,10 +117,14 @@ const PERSON_PLACE = ["person", "place"];
 export function parseBar(bar: string, entities: Entity[], today: string): ParsedBar {
   const q: SearchQuery = { ...EMPTY_QUERY, people: [], tags: [], emotions: [] };
   const problems: string[] = [];
+  let invalid = false;
   const text: string[] = [];
 
   const setRange = (r: [string, string] | null, raw: string) => {
-    if (!r) return void problems.push(raw);
+    if (!r) {
+      invalid = true;
+      return void problems.push(raw);
+    }
     q.from = r[0];
     q.to = r[1];
   };
@@ -131,6 +137,7 @@ export function parseBar(bar: string, entities: Entity[], today: string): Parsed
 
     if (key === "from" || key === "to" || key === "on") {
       if (!isISODate(value)) {
+        invalid = true;
         problems.push(raw);
         continue;
       }
@@ -143,13 +150,17 @@ export function parseBar(bar: string, entities: Entity[], today: string): Parsed
     } else if (key === "mood") {
       const r = moodRange(value);
       if (r) [q.moodMin, q.moodMax] = r;
-      else problems.push(raw);
+      else {
+        invalid = true;
+        problems.push(raw);
+      }
     } else if (key === "person" || key === "place" || raw.startsWith("@")) {
       const name = key ? value : unquote(raw.slice(1));
       if (!name) continue;
       const hit = resolve(name, entities, PERSON_PLACE);
-      if (hit) q.people.push(hit);
-      else problems.push(`@${name}`);
+      // An unknown name stays in the filter, so it matches nothing instead of everything.
+      q.people.push(hit ?? name);
+      if (!hit) problems.push(`@${name}`);
     } else if (key === "tag" || (raw.startsWith("#") && raw.length > 1)) {
       const name = key ? value : unquote(raw.slice(1));
       if (name) q.tags.push(name);
@@ -157,8 +168,8 @@ export function parseBar(bar: string, entities: Entity[], today: string): Parsed
       const name = key ? value : unquote(raw.slice(1));
       if (!name) continue;
       const hit = resolve(name, entities, ["emotion"]);
-      if (hit) q.emotions.push(hit);
-      else problems.push(`!${name}`);
+      q.emotions.push(hit ?? name);
+      if (!hit) problems.push(`!${name}`);
     } else {
       text.push(unquote(raw));
     }
@@ -173,7 +184,7 @@ export function parseBar(bar: string, entities: Entity[], today: string): Parsed
     q.to === null &&
     q.moodMin === null &&
     q.moodMax === null;
-  return { query: q, problems, empty };
+  return { query: q, problems, invalid, empty };
 }
 
 /** Matched words in a snippet sit between these (see `search.rs`). */

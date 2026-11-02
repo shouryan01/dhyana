@@ -50,6 +50,10 @@ export function SearchPage({ initial }: { initial: string }) {
       setHits(null);
       return;
     }
+    if (parsed.invalid) {
+      setHits([]); // a filter we can't read matches nothing, rather than being ignored
+      return;
+    }
     let live = true;
     const t = window.setTimeout(() => {
       backend
@@ -137,7 +141,7 @@ export function SearchPage({ initial }: { initial: string }) {
 
         {parsed.problems.length > 0 && (
           <p className="mt-2 text-[12px] text-muted-foreground">
-            Not understood: {parsed.problems.join(", ")}
+            {parsed.invalid ? "Can't read" : "Not found"}: {parsed.problems.join(", ")}
           </p>
         )}
 

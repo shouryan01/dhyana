@@ -27,10 +27,21 @@ describe("parseBar", () => {
     expect(query.emotions).toEqual(["sad"]);
   });
 
-  it("reports names that match nothing instead of guessing", () => {
-    const { query, problems } = parseBar("@Zed !glee from:nope", people, TODAY);
-    expect(query.people).toEqual([]);
-    expect(problems).toEqual(["@Zed", "!glee", "from:nope"]);
+  it("keeps unknown names in the filter, so they match nothing rather than everything", () => {
+    const { query, problems, invalid } = parseBar("@Zed !glee", people, TODAY);
+    expect(query.people).toEqual(["Zed"]);
+    expect(query.emotions).toEqual(["glee"]);
+    expect(problems).toEqual(["@Zed", "!glee"]);
+    expect(invalid).toBe(false);
+  });
+
+  it("flags unreadable dates and moods as invalid", () => {
+    for (const bar of ["from:nope", "in:someday", "last:0d", "mood:lots"]) {
+      const p = parseBar(bar, people, TODAY);
+      expect(p.invalid, bar).toBe(true);
+      expect(p.problems, bar).toEqual([bar]);
+    }
+    expect(parseBar("in:2026-03 mood:>0", people, TODAY).invalid).toBe(false);
   });
 
   it("reads dates and periods", () => {
@@ -121,6 +132,7 @@ describe("searchDays", () => {
     expect(run("in:2026-03")).toEqual(["2026-03-05", "2026-03-02"]);
     expect(run("@Alex in:2026-03")).toEqual(["2026-03-02"]);
     expect(run("late @Alex")).toEqual([]);
+    expect(run("@Dwight")).toEqual([]); // unknown person: nothing, not everything
   });
 
   it("marks the matched words", () => {
