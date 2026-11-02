@@ -1,7 +1,11 @@
 import { z } from "zod";
 import {
   CheckInSchema,
+  type AnalyticsDay,
   type CheckIn,
+  type SavedSearch,
+  type SearchHit,
+  type SearchQuery,
   type DayStat,
   type EntityDetail,
   type EntityKind,
@@ -17,7 +21,11 @@ import {
 } from "./schema";
 
 export type {
+  AnalyticsDay,
   CheckIn,
+  SavedSearch,
+  SearchHit,
+  SearchQuery,
   DayStat,
   EntityDetail,
   EntityKind,
@@ -173,6 +181,13 @@ export interface Backend {
   upcoming(from: string, limit?: number): Promise<UpcomingEvent[]>;
   /** Drops the index and rebuilds it from the files. */
   rebuildIndex(): Promise<void>;
+  /** Journal days matching the text (full text, stemmed) and every filter; best match first. */
+  search(query: SearchQuery): Promise<SearchHit[]>;
+  /** Every journal day with the data the analytics dashboard is computed from, oldest first. */
+  analyticsDays(): Promise<AnalyticsDay[]>;
+  /** Saved searches live in the vault's `.dhyana/` folder. */
+  savedSearches(): Promise<SavedSearch[]>;
+  saveSavedSearches(searches: SavedSearch[]): Promise<void>;
   /** The folder that holds sample journals (in app data, never inside a real vault). */
   sampleRoot(): Promise<string>;
   /** Moves a sample journal folder to the OS trash. Refuses anything outside the samples folder. */

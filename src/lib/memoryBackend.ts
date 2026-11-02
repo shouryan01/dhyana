@@ -6,8 +6,9 @@ import {
   type SaveResult,
 } from "./backend";
 import { createEntityStore, journalPath, seedEntities, type MemEntity } from "./memoryEntities";
+import { buildAnalyticsDays, searchDays } from "./memorySearch";
 import { nameKey } from "./names";
-import { CheckInSchema, type CheckIn, type Version } from "./schema";
+import { CheckInSchema, type CheckIn, type SavedSearch, type Version } from "./schema";
 import { countWords } from "./words";
 
 /**
@@ -43,6 +44,7 @@ const KEY_FILES = "dhyana:mem:files";
 const KEY_ENTITIES = "dhyana:mem:entities";
 const KEY_MOOD = "dhyana:mem:mood";
 const KEY_HISTORY = "dhyana:mem:history";
+const KEY_SEARCHES = "dhyana:mem:searches";
 
 const read = <T>(key: string, fallback: T): T => {
   try {
@@ -489,6 +491,18 @@ export function createMemoryBackend(): Backend {
     },
     async rebuildIndex() {
       notifyEntities();
+    },
+    async search(query) {
+      return searchDays(buildAnalyticsDays(files, store.list()), query);
+    },
+    async analyticsDays() {
+      return buildAnalyticsDays(files, store.list());
+    },
+    async savedSearches() {
+      return read<SavedSearch[]>(KEY_SEARCHES, []);
+    },
+    async saveSavedSearches(searches) {
+      write(KEY_SEARCHES, searches);
     },
     async sampleRoot() {
       return "samples";

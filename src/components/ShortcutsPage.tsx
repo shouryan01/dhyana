@@ -7,7 +7,7 @@ import { Kbd } from "@/components/ui/kbd";
 export function ShortcutsPage() {
   const actions = useActions();
   return (
-    <div className="h-full overflow-y-auto bg-chrome">
+    <div className="h-full overflow-y-auto">
       <div className="anim-fade mx-auto max-w-[620px] px-8 pb-24 pt-14">
         <Link
           to="/settings"

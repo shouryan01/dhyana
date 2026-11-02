@@ -2,29 +2,31 @@
 
 `Mod` is <kbd>Ctrl</kbd> on Windows and Linux and <kbd>⌘</kbd> on macOS. On macOS modifiers are shown in Apple's order (<kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>⇧</kbd> <kbd>⌘</kbd>), so `Mod Shift T` reads <kbd>⇧⌘T</kbd>. Chords work everywhere. Single keys and sequences (like <kbd>G</kbd> <kbd>T</kbd>) only work when you're **not** typing in the editor; press <kbd>Esc</kbd> to leave it.
 
-| Action                   | Shortcut                                            |
-| ------------------------ | --------------------------------------------------- |
-| Open command palette     | `Mod K`                                             |
-| Go to today              | `G T` or `Mod Shift T`                              |
-| Previous / next day      | `Mod [` / `Mod ]` (or `[` / `]` outside the editor) |
-| Go to date…              | `Mod G` or `G D`                                    |
-| Go to person or place…   | `G P` (also creates one: type a new name)           |
-| Open library             | `G L` (everything created so far, click to edit)    |
-| Open year view           | `G Y`, or click the year above the calendar         |
-| Add mood check-in        | `M` (opens today if no day is open)                 |
-| Toggle mood panel        | `G M`                                               |
-| Show version history     | `G H` (also the history button, top right)          |
-| Save a version now       | palette only                                        |
-| Delete this note…        | palette only (moves it to the Trash / Recycle Bin)  |
-| Save now                 | `Mod S` (notes also save on their own as you type)  |
-| Focus editor             | `I`                                                 |
-| Toggle sidebar           | `Mod \`                                             |
-| Toggle dark / light mode | `Mod Shift L`                                       |
-| Open settings            | `Mod ,` or `G S`                                    |
-| Show keyboard shortcuts  | `?`                                                 |
-| Rebuild index            | palette only                                        |
-| Replay onboarding        | palette only (development builds)                   |
-| Theme: Dhyāna / Basic    | palette only                                        |
+| Action                   | Shortcut                                                    |
+| ------------------------ | ----------------------------------------------------------- |
+| Open command palette     | `Mod K`                                                     |
+| Go to today              | `G T` or `Mod Shift T`                                      |
+| Previous / next day      | `Mod [` / `Mod ]` (or `[` / `]` outside the editor)         |
+| Go to date…              | `Mod G` or `G D`                                            |
+| Go to person or place…   | `G P` (also creates one: type a new name)                   |
+| Open library             | `G L` (everything created so far, click to edit)            |
+| Open year view           | `G Y`, or click the year above the calendar                 |
+| Search entries…          | `Mod Shift F` or `/` (see [search](search-and-insights.md)) |
+| Open insights            | `G I`                                                       |
+| Add mood check-in        | `M` (opens today if no day is open)                         |
+| Toggle mood panel        | `G M`                                                       |
+| Show version history     | `G H` (also the history button, top right)                  |
+| Save a version now       | palette only                                                |
+| Delete this note…        | palette only (moves it to the Trash / Recycle Bin)          |
+| Save now                 | `Mod S` (notes also save on their own as you type)          |
+| Focus editor             | `I`                                                         |
+| Toggle sidebar           | `Mod \`                                                     |
+| Toggle dark / light mode | `Mod Shift L` (or Settings → Appearance)                    |
+| Open settings            | `Mod ,` or `G S`                                            |
+| Show keyboard shortcuts  | `?`                                                         |
+| Rebuild index            | palette only                                                |
+| Replay onboarding        | palette only (development builds)                           |
+| Theme: Dhyāna / Basic    | palette only                                                |
 
 "Go to date" understands `2026-10-28`, `yesterday`, `tomorrow`, `-3`, `friday`, `next monday`, `last friday`, `in 3 days`, `in 2 weeks`, `next week`, `dec 25`, `25 december`, `12/25` and `dec 25 2027`. A month and day without a year means the next one coming.
 

@@ -30,7 +30,7 @@ export function TopicPage({ tag }: { tag: string }) {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-chrome">
+    <div className="h-full overflow-y-auto">
       <div className="anim-fade mx-auto max-w-[680px] px-8 pb-24 pt-14">
         <Link
           to="/library"

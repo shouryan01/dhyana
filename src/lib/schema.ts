@@ -164,3 +164,48 @@ export const VersionContentSchema = z.object({
   current: z.string().nullable(),
 });
 export type VersionContent = z.infer<typeof VersionContentSchema>;
+
+/** What the search bar asks the core. People and places are note names (what links point at). */
+export const SearchQuerySchema = z.object({
+  text: z.string(),
+  people: z.array(z.string()),
+  tags: z.array(z.string()),
+  emotions: z.array(z.string()),
+  from: z.string().nullable(),
+  to: z.string().nullable(),
+  /** Bounds on a day's average valence, -1 … 1. */
+  moodMin: z.number().nullable(),
+  moodMax: z.number().nullable(),
+});
+export type SearchQuery = z.infer<typeof SearchQuerySchema>;
+
+export const SearchHitSchema = z.object({
+  date: z.string(),
+  words: z.number(),
+  valence: z.number().nullable(),
+  /** A piece of the entry; matched words sit between U+0001 and U+0002. */
+  snippet: z.string(),
+});
+export type SearchHit = z.infer<typeof SearchHitSchema>;
+
+export const SavedSearchSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** The search bar's text, so a saved search reads (and re-parses) like what was typed. */
+  bar: z.string(),
+});
+export type SavedSearch = z.infer<typeof SavedSearchSchema>;
+
+/** One journal day with everything the analytics are computed from. */
+export const AnalyticsDaySchema = z.object({
+  date: z.string(),
+  words: z.number(),
+  /** `created` from the frontmatter (ISO 8601 with offset), when the file has one. */
+  created: z.string().nullable(),
+  body: z.string(),
+  moods: z.array(CheckInSchema),
+  tags: z.array(z.string()),
+  /** Notes the day links to, once per mention. */
+  links: z.array(z.object({ name: z.string(), kind: z.string() })),
+});
+export type AnalyticsDay = z.infer<typeof AnalyticsDaySchema>;

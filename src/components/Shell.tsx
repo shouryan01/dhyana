@@ -1,21 +1,22 @@
 import { Link, Outlet, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
 import {
+  ChartNoAxesColumn,
   Library,
-  Moon,
   PanelLeft,
   PenLine,
   Search,
   Settings as SettingsIcon,
-  Sun,
 } from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { useActions, useHotkeys, useRolloverNotice } from "@/app/actions";
 import { useApp } from "@/app/context";
 import { installCloseFlush } from "@/app/flush";
+import { isChromePage } from "@/app/pages";
 import { Calendar, showTodayInCalendar } from "@/components/Calendar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Logo } from "@/components/Logo";
+import { NavPair } from "@/components/NavPair";
 import { titlebarHeight, trafficLightInset, WindowControls } from "@/components/TitleBar";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -31,10 +32,13 @@ export function Shell() {
   const params = useParams({ strict: false }) as { date?: string };
   const selected = params.date && isISODate(params.date) ? params.date : app.today;
   const onSettings = useRouterState({
-    select: (s) => /^\/(settings|shortcuts|library)/.test(s.location.pathname),
+    select: (s) => /^\/(settings|shortcuts)/.test(s.location.pathname),
   });
+  const chromePage = useRouterState({ select: (s) => isChromePage(s.location.pathname) });
   const onLibrary = useRouterState({ select: (s) => s.location.pathname.startsWith("/library") });
   const onDay = useRouterState({ select: (s) => s.location.pathname.startsWith("/day/") });
+  const onSearch = useRouterState({ select: (s) => s.location.pathname.startsWith("/search") });
+  const onInsights = useRouterState({ select: (s) => s.location.pathname.startsWith("/insights") });
   const actions = useActions();
   useHotkeys(actions);
   useRolloverNotice();
@@ -86,14 +90,17 @@ export function Shell() {
           </div>
 
           <button
-            onClick={() => app.openPalette("commands")}
-            className="group flex h-8 items-center gap-2 rounded-md border border-border bg-popover px-2.5 text-muted-foreground transition-colors duration-100 hover:bg-chrome-hover"
+            onClick={() => navigate({ to: "/search", search: { q: "" } })}
+            className={cn(
+              "group flex h-8 items-center gap-2 rounded-md border border-border px-2.5 text-muted-foreground transition-colors duration-100 hover:bg-chrome-hover",
+              onSearch ? "bg-chrome-active text-foreground" : "bg-popover",
+            )}
           >
             <span className={cn(ICON, "group-hover:-rotate-12")}>
               <Search size={14} />
             </span>
             <span className="flex-1 text-left">Search</span>
-            <Kbd shortcut="mod+k" className={REVEAL} />
+            {shortcutOf("search") && <Kbd shortcut={shortcutOf("search")!} className={REVEAL} />}
           </button>
 
           <nav className="flex flex-col gap-0.5">
@@ -107,14 +114,6 @@ export function Shell() {
               shortcut={shortcutOf("today")}
               onClick={showTodayInCalendar}
             />
-            <NavLink
-              to="/library"
-              active={onLibrary}
-              icon={<Library size={15} />}
-              wiggle="group-hover:-rotate-12"
-              label="Library"
-              shortcut={shortcutOf("library")}
-            />
           </nav>
 
           <Calendar
@@ -123,19 +122,24 @@ export function Shell() {
           />
 
           <div className="mt-auto flex flex-col gap-0.5">
-            <button
-              onClick={() => void app.toggleMode()}
-              className={cn(
-                ROW,
-                "group text-muted-foreground hover:bg-chrome-hover hover:text-foreground",
-              )}
-            >
-              <span className={cn(ICON, dark ? "group-hover:rotate-90" : "group-hover:-rotate-12")}>
-                {dark ? <Sun size={15} /> : <Moon size={15} />}
-              </span>
-              <span className="flex-1 text-left">{dark ? "Light mode" : "Dark mode"}</span>
-              {shortcutOf("mode") && <Kbd shortcut={shortcutOf("mode")!} className={REVEAL} />}
-            </button>
+            <NavPair
+              items={[
+                {
+                  to: "/library",
+                  icon: <Library size={15} />,
+                  label: "Library",
+                  shortcut: shortcutOf("library"),
+                  active: onLibrary,
+                },
+                {
+                  to: "/insights",
+                  icon: <ChartNoAxesColumn size={15} />,
+                  label: "Insights",
+                  shortcut: shortcutOf("insights"),
+                  active: onInsights,
+                },
+              ]}
+            />
             <NavLink
               to="/settings"
               active={onSettings}
@@ -150,7 +154,7 @@ export function Shell() {
         <main
           className={cn(
             "flex min-w-0 flex-1 flex-col overflow-hidden",
-            onSettings ? "bg-chrome" : "bg-surface",
+            chromePage ? "bg-chrome" : "bg-surface",
           )}
         >
           <div
@@ -205,7 +209,7 @@ const ROW =
   "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-100";
 
 function NavLink(props: {
-  to: "/day/$date" | "/settings" | "/library";
+  to: "/day/$date" | "/settings";
   params?: { date: string };
   active: boolean;
   icon: React.ReactNode;

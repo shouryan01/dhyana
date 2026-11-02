@@ -19,6 +19,12 @@ The whole app, sidebar included, follows the theme. Colours are CSS variables in
 
 First run always starts with Dhyāna light and the serif writing font selected.
 
+### Page backgrounds
+
+Every page paints from the shell, never from itself. `Shell` fills the whole main area (title bar included) with one colour: the sidebar's `chrome` for list-style pages (settings, shortcuts, library, search, topic, insights) and the writing `surface` for everything else. The list of chrome pages is `CHROME_PAGES` in `src/app/pages.ts`.
+
+A page component must not set its own background (`bg-chrome`, `bg-surface`, `bg-background`) on its root. If it does, the strip above it (the title bar) is the shell's colour and the page below is another, and a band shows across the top. That mistake has happened on the library, search, topic and insights pages. To add a page, give its root `h-full overflow-y-auto` and, if it belongs on the chrome colour, add its path to `CHROME_PAGES`. `src/app/pages.test.ts` covers the list.
+
 ## Motion
 
 Short and subtle; none at all when the OS asks for reduced motion.

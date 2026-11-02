@@ -23,6 +23,7 @@ Tauri 2 (Rust core), Vite + React + TypeScript, Tailwind, shadcn/ui, TanStack Ro
 - Spell the name dhyāna (macron) in UI text; identifiers and paths stay ASCII.
 - UI components come from the shadcn CLI on Base UI (`pnpm dlx shadcn@latest add <name>`); see `docs/development.md` before editing `src/components/ui/`.
 - Docs: root `README.md` stays short; detail goes in separate `docs/*.md` pages (master §10).
+- Full pages never set their own background; the shell paints the main area, and a chrome-coloured page is listed in `CHROME_PAGES` (`src/app/pages.ts`). A page-level `bg-chrome` leaves a mismatched band under the title bar (`docs/design.md`).
 
 ## More docs
 

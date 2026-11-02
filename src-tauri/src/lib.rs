@@ -6,6 +6,7 @@ mod index;
 mod links;
 mod mood;
 mod names;
+mod search;
 mod settings;
 mod vault;
 mod watcher;
@@ -77,6 +78,10 @@ pub fn run() {
             commands::tag_notes,
             commands::upcoming,
             commands::rebuild_index,
+            commands::search,
+            commands::analytics_days,
+            commands::saved_searches,
+            commands::save_saved_searches,
             commands::sample_root,
             commands::remove_sample,
         ])
