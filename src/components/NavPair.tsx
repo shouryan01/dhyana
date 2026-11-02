@@ -11,8 +11,13 @@ export interface NavPairItem {
   active: boolean;
 }
 
-/** How much of the row each half takes: resting, hovered, and squeezed by its neighbour. */
-const GROW = { rest: 1, hot: 1.8, squeezed: 0.7 } as const;
+/**
+ * How much of the row each half takes: resting, hovered, and squeezed by its neighbour. In the
+ * 248px sidebar that is about 113px each at rest, 132px hovered (icon, label and a two-key
+ * shortcut still fit) and 94px squeezed (icon and label still fit). Any narrower and the
+ * squeezed label would be cut off.
+ */
+const GROW = { rest: 1, hot: 1.4, squeezed: 1 } as const;
 
 /**
  * Two sidebar destinations as one joined button. Hovering (or focusing) one half widens it and
@@ -35,7 +40,7 @@ export function NavPair({ items }: { items: [NavPairItem, NavPairItem] }) {
           onBlur={() => setHot(null)}
           style={{ flexGrow: hot === null ? GROW.rest : hot === i ? GROW.hot : GROW.squeezed }}
           className={cn(
-            "group flex min-w-0 basis-0 items-center justify-center gap-2 px-2 text-[13px] transition-[flex-grow,background-color,color] duration-150 ease-out",
+            "group flex min-w-0 basis-0 items-center justify-center gap-1.5 px-1.5 text-[13px] transition-[flex-grow,background-color,color] duration-150 ease-out",
             i === 1 && "border-l border-border",
             it.active
               ? "bg-chrome-active text-foreground"
