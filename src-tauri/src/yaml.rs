@@ -192,6 +192,12 @@ pub fn set_scalar(block: &str, eol: &str, key: &str, value: Option<&str>) -> Str
     replace_value(block, eol, key, value.map(quote).as_deref())
 }
 
+/// Set or remove (`None`) a key whose value is written exactly as given (no quoting), for
+/// booleans like `private: true` that other apps must read as booleans.
+pub fn set_bare(block: &str, eol: &str, key: &str, value: Option<&str>) -> String {
+    replace_value(block, eol, key, value)
+}
+
 /// Set a list key; an empty list removes it. A key already written as a block sequence stays one.
 pub fn set_list(block: &str, eol: &str, key: &str, items: &[String]) -> String {
     if items.is_empty() {

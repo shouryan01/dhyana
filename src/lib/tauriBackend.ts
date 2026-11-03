@@ -2,6 +2,17 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
+import {
+  AiViewSchema,
+  BuiltSchema,
+  DetectedAgentSchema,
+  LogEntrySchema,
+  McpInfoSchema,
+  SessionInfoSchema,
+  SessionSchema,
+  UsageSchema,
+  type ChatEvent,
+} from "./ai";
 import { AppStateSchema, DayFileSchema, SaveResultSchema, type Backend } from "./backend";
 import {
   AnalyticsDaySchema,
@@ -46,6 +57,9 @@ export const tauriBackend: Backend = {
   },
   async saveDay(date, body, expectedHash, force) {
     return SaveResultSchema.parse(await invoke("save_day", { date, body, expectedHash, force }));
+  },
+  async setPrivate(date, value) {
+    return DayFileSchema.parse(await invoke("set_private", { date, private: value }));
   },
   async deleteDay(date) {
     return z.boolean().parse(await invoke("delete_day", { date }));
@@ -165,5 +179,76 @@ export const tauriBackend: Backend = {
   },
   async onEntitiesChanged(cb) {
     return listen("vault://entities", () => cb());
+  },
+
+  async aiGetSettings() {
+    return AiViewSchema.parse(await invoke("ai_get_settings"));
+  },
+  async aiUpdateSettings(settings) {
+    return AiViewSchema.parse(await invoke("ai_update_settings", { settings }));
+  },
+  async aiConsent(target, accepted) {
+    return AiViewSchema.parse(await invoke("ai_consent", { target, accepted }));
+  },
+  async aiSetKey(provider, key) {
+    await invoke("ai_set_key", { provider, key });
+  },
+  async aiClearKey(provider) {
+    await invoke("ai_clear_key", { provider });
+  },
+  async aiDetectAgents() {
+    return z.array(DetectedAgentSchema).parse(await invoke("ai_detect_agents"));
+  },
+  async aiPreview(input) {
+    return BuiltSchema.parse(await invoke("ai_preview", { input }));
+  },
+  async aiSend(id, input) {
+    return BuiltSchema.parse(await invoke("ai_send", { id, input }));
+  },
+  async aiCancel(id) {
+    await invoke("ai_cancel", { id });
+  },
+  async onAiEvent(cb) {
+    const Delta = z.object({ id: z.string(), text: z.string() });
+    const Done = z.object({
+      id: z.string(),
+      inputTokens: z.number(),
+      outputTokens: z.number(),
+      sources: z.array(z.string()),
+    });
+    const Err = z.object({ id: z.string(), message: z.string() });
+    const offs = await Promise.all([
+      listen("ai://delta", (e) => {
+        const d = Delta.parse(e.payload);
+        cb({ type: "delta", ...d } satisfies ChatEvent);
+      }),
+      listen("ai://done", (e) => cb({ type: "done", ...Done.parse(e.payload) })),
+      listen("ai://error", (e) => cb({ type: "error", ...Err.parse(e.payload) })),
+    ]);
+    return () => offs.forEach((off) => off());
+  },
+  async aiUsage() {
+    return UsageSchema.parse(await invoke("ai_usage"));
+  },
+  async aiLog(limit) {
+    return z.array(LogEntrySchema).parse(await invoke("ai_log", { limit }));
+  },
+  async aiClearLog() {
+    await invoke("ai_clear_log");
+  },
+  async aiMcpInfo() {
+    return McpInfoSchema.parse(await invoke("ai_mcp_info"));
+  },
+  async aiListSessions() {
+    return z.array(SessionInfoSchema).parse(await invoke("ai_list_sessions"));
+  },
+  async aiLoadSession(id) {
+    return SessionSchema.parse(await invoke("ai_load_session", { id }));
+  },
+  async aiSaveSession(id, session) {
+    await invoke("ai_save_session", { id, session });
+  },
+  async aiDeleteSession(id) {
+    await invoke("ai_delete_session", { id });
   },
 };

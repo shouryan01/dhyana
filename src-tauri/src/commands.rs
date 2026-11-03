@@ -36,6 +36,12 @@ pub struct AppCtx {
     pub history: SharedHistory,
     /// Changes the watcher has seen since the last autocommit.
     pub activity: Arc<Activity>,
+    /// AI configuration (`ai.json` in app data) and the local request log.
+    pub ai: Mutex<crate::ai::settings::AiSettings>,
+    pub ai_path: PathBuf,
+    pub ai_log: PathBuf,
+    /// Chat streams the user stopped.
+    pub ai_cancelled: Mutex<std::collections::HashSet<String>>,
 }
 
 #[derive(Serialize)]
@@ -86,10 +92,14 @@ impl AppCtx {
             mood: Mutex::new(None),
             history: Arc::new(Mutex::new(None)),
             activity: Arc::new(Activity::default()),
+            ai: Mutex::new(crate::ai::settings::AiSettings::load(&data.join("ai.json"))),
+            ai_path: data.join("ai.json"),
+            ai_log: data.join("ai").join("requests.jsonl"),
+            ai_cancelled: Mutex::new(Default::default()),
         }
     }
 
-    fn vault(&self) -> Result<PathBuf, String> {
+    pub(crate) fn vault(&self) -> Result<PathBuf, String> {
         self.settings
             .lock()
             .map_err(|e| e.to_string())?
@@ -146,7 +156,7 @@ impl AppCtx {
     }
 
     /// Run `f` against the open vault and its index.
-    fn with_index<T>(
+    pub(crate) fn with_index<T>(
         &self,
         f: impl FnOnce(&Path, &mut Index) -> Result<T, String>,
     ) -> Result<T, String> {
@@ -357,6 +367,23 @@ fn change_mood(ctx: &AppCtx, date: &str, change: MoodChange) -> Result<DayFile, 
     })?;
     ctx.refresh(&path);
     ctx.day(date)
+}
+
+/// Mark the day private (hidden from AI and MCP) or not. A day with no file yet can't be marked.
+#[tauri::command]
+pub fn set_private(ctx: State<AppCtx>, date: String, private: bool) -> Result<DayFile, String> {
+    let vault_dir = ctx.vault()?;
+    let path = vault::day_path(
+        &vault_dir,
+        vault::validate_date(&date).map_err(|e| e.to_string())?,
+    );
+    vault::set_private_at(&vault_dir, &date, private, &vault::now_string())
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| {
+            "write something first: only a saved note can be marked private".to_string()
+        })?;
+    ctx.refresh(&path);
+    ctx.day(&date)
 }
 
 #[tauri::command]

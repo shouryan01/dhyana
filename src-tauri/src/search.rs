@@ -34,6 +34,9 @@ pub struct SearchQuery {
     pub mood_min: Option<f64>,
     pub mood_max: Option<f64>,
     pub limit: Option<usize>,
+    /// Leave out `private: true` days (set for everything an AI or MCP client can see).
+    #[serde(skip)]
+    pub exclude_private: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -116,6 +119,9 @@ impl Index {
                         (SELECT substr(body, 1, 240) FROM fts WHERE fts.path = n.path)
                  FROM notes n",
             );
+        }
+        if q.exclude_private {
+            cond.push("n.private = 0".to_string());
         }
         if let Some(from) = &q.from {
             cond.push("n.name >= ?".into());

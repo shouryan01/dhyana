@@ -1,4 +1,4 @@
-import { ChevronLeft, History, Trash2 } from "lucide-react";
+import { ChevronLeft, Eye, EyeOff, History, Trash2 } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -6,6 +6,12 @@ import { shortcutLabel } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 
 interface Props {
+  /** The day is marked private (hidden from AI and MCP). */
+  isPrivate?: boolean;
+  /** Absent until the day has a file to mark. */
+  onTogglePrivate?: () => void;
+  /** Shortcut hint for the private toggle, from the action registry. */
+  privateShortcut?: string;
   /** Absent until the day has a file to show a history of. */
   onHistory?: () => void;
   /** Absent until the day has a file to delete. */
@@ -36,6 +42,7 @@ function IconButton({
   label,
   shortcut,
   danger,
+  active,
   expanded,
   controls,
   onClick,
@@ -44,6 +51,8 @@ function IconButton({
   label: string;
   shortcut?: string;
   danger?: boolean;
+  /** Shown in the accent colour: a state that is switched on. */
+  active?: boolean;
   expanded?: boolean;
   controls?: string;
   onClick(): void;
@@ -66,6 +75,7 @@ function IconButton({
               // same open or closed (only hover changes it), so undo that and keep hover winning.
               "aria-expanded:bg-transparent aria-expanded:text-surface-muted aria-expanded:hover:bg-chrome-hover aria-expanded:hover:text-surface-fg",
               danger && "hover:text-red-500",
+              active && "text-primary hover:text-primary",
             )}
           />
         }
@@ -82,14 +92,21 @@ function IconButton({
 
 /**
  * The note's own actions, top right. A chevron toggle is always visible; opening it reveals a
- * version-history icon and a delete icon beside it, which stay until you close it again (the
+ * private eye, a version-history icon and a delete icon beside it, which stay until you close it again (the
  * choice is remembered). Each names itself on hover, and both are in the command palette.
  * Renders nothing for a day with no file yet.
  */
-export function NoteMenu({ onHistory, onDelete, historyShortcut }: Props) {
+export function NoteMenu({
+  onHistory,
+  onDelete,
+  historyShortcut,
+  isPrivate,
+  onTogglePrivate,
+  privateShortcut,
+}: Props) {
   const [open, setOpen] = useState(readOpen);
   const listId = useId();
-  if (!onHistory && !onDelete) return null;
+  if (!onHistory && !onDelete && !onTogglePrivate) return null;
 
   const toggle = () => {
     writeOpen(!open);
@@ -100,6 +117,20 @@ export function NoteMenu({ onHistory, onDelete, historyShortcut }: Props) {
     <div className="flex shrink-0 items-center gap-0.5 select-none">
       {open && (
         <div id={listId} className="flex items-center gap-0.5">
+          {onTogglePrivate && (
+            <IconButton
+              label={
+                isPrivate
+                  ? "Private: hidden from AI. Click to make visible"
+                  : "Visible to AI. Click to make private"
+              }
+              shortcut={privateShortcut}
+              active={isPrivate}
+              onClick={onTogglePrivate}
+            >
+              {isPrivate ? <EyeOff size={15} /> : <Eye size={15} />}
+            </IconButton>
+          )}
           {onHistory && (
             <IconButton label="Version history" shortcut={historyShortcut} onClick={onHistory}>
               <History size={15} />

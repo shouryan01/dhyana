@@ -43,6 +43,7 @@ const EMPTY_DAY: DayFile = {
   hash: "",
   created: null,
   modified: null,
+  private: false,
   mood: [],
   pendingMood: [],
 };
@@ -83,6 +84,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   const app = useApp();
   const [meta, setMeta] = useState({ created: initial.created, modified: initial.modified });
   const [mood, setMood] = useState({ file: initial.mood, pending: initial.pendingMood });
+  const [isPrivate, setIsPrivate] = useState(initial.private);
   const [checkIn, setCheckIn] = useState<CheckInState>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [external, setExternal] = useState<Disk | null>(null);
@@ -186,6 +188,7 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     hash.current = f.hash;
     setMeta({ created: f.created, modified: f.modified });
     setMood({ file: f.mood, pending: f.pendingMood });
+    setIsPrivate(f.private);
     setExternal(null);
   };
 
@@ -249,6 +252,17 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     );
   };
 
+  /** The frontmatter changes, so it queues behind saves like a check-in change does. */
+  const togglePrivate = () => {
+    const next = !isPrivate;
+    changeMood(() => backend.setPrivate(date, next))
+      .then(() => {
+        setIsPrivate(next);
+        toast(next ? "Private: hidden from AI" : "Visible to AI again", { duration: 1800 });
+      })
+      .catch((e) => toast.error(`Couldn't change that: ${e instanceof Error ? e.message : e}`));
+  };
+
   const all = [...mood.file, ...mood.pending];
   const editCheckIn = (index: number) => setCheckIn({ initial: all[index], index });
 
@@ -275,8 +289,8 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
     }
   };
 
-  const latest = useRef({ flush, checkExternal, requestDelete });
-  latest.current = { flush, checkExternal, requestDelete };
+  const latest = useRef({ flush, checkExternal, requestDelete, togglePrivate });
+  latest.current = { flush, checkExternal, requestDelete, togglePrivate };
 
   // Flush on unmount (navigation) and on quit.
   useEffect(() => {
@@ -336,17 +350,19 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
   // Focus: editor registers itself for "Focus editor"; today's note takes focus on open.
   useEffect(() => {
     if (!editor) return;
-    const { focusEditor, deleteNote, addCheckIn, showHistory } = app; // stable ref objects, captured so cleanup clears the same ones
+    const { focusEditor, deleteNote, addCheckIn, showHistory, togglePrivate } = app; // stable ref objects, captured so cleanup clears the same ones
     focusEditor.current = () => editor.commands.focus("end");
     if (date === app.today && !app.paletteOpen) editor.commands.focus("end");
     deleteNote.current = () => latest.current.requestDelete();
     addCheckIn.current = () => setCheckIn({});
     showHistory.current = () => setHistoryOpen(true);
+    togglePrivate.current = () => latest.current.togglePrivate();
     return () => {
       focusEditor.current = null;
       deleteNote.current = null;
       addCheckIn.current = null;
       showHistory.current = null;
+      togglePrivate.current = null;
     };
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, date]);
@@ -381,6 +397,9 @@ function DayEditor({ date, initial }: { date: string; initial: DayFile }) {
             </div>
             {/* Top right: version history and delete, in a collapsible whose toggle is always shown. */}
             <NoteMenu
+              isPrivate={isPrivate}
+              onTogglePrivate={meta.created ? togglePrivate : undefined}
+              privateShortcut="g v"
               onHistory={meta.created ? () => setHistoryOpen(true) : undefined}
               onDelete={meta.created ? requestDelete : undefined}
               historyShortcut="g h"

@@ -28,6 +28,8 @@ rusqlite = { version = "0.41.1", features = ["bundled"] }
 unicode-normalization = "0.1.26"
 # Local history only: no network transports, so no OpenSSL/libssh2.
 git2 = { version = "0.21.0", default-features = false }
+ureq = { version = "2", features = ["json"] }
+keyring = { version = "3", features = ["windows-native", "apple-native"] }
 
 [dev-dependencies]
 tempfile = "3.27.0"

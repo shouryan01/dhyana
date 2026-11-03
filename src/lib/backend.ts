@@ -1,4 +1,17 @@
 import { z } from "zod";
+import type {
+  AiSettings,
+  AiView,
+  Built,
+  ChatEvent,
+  ChatInput,
+  DetectedAgent,
+  LogEntry,
+  McpInfo,
+  Session,
+  SessionInfo,
+  Usage,
+} from "./ai";
 import {
   CheckInSchema,
   type AnalyticsDay,
@@ -83,6 +96,8 @@ export const DayFileSchema = z.object({
   hash: z.string(),
   created: z.string().nullable(),
   modified: z.string().nullable(),
+  /** `private: true`: hidden from AI and MCP. */
+  private: z.boolean().catch(false),
   /** Check-ins in the file's frontmatter. */
   mood: z.array(CheckInSchema),
   /** Check-ins held in app data until the first text creates the file. */
@@ -135,6 +150,8 @@ export interface Backend {
    * held (in app data) until the first text creates the file. `index` counts the file's
    * check-ins first, then the pending ones. Each resolves to the day as it is now.
    */
+  /** Marks the day private (hidden from AI and MCP) or not. Only a saved note can be marked. */
+  setPrivate(date: string, value: boolean): Promise<DayFile>;
   addMood(date: string, checkin: CheckIn): Promise<DayFile>;
   updateMood(date: string, index: number, checkin: CheckIn): Promise<DayFile>;
   deleteMood(date: string, index: number): Promise<DayFile>;
@@ -194,4 +211,29 @@ export interface Backend {
   removeSample(path: string): Promise<void>;
   /** Fires when entities, links or tags may have changed (any note file changed). */
   onEntitiesChanged(cb: () => void): Promise<() => void>;
+
+  // ---- AI (0.5). With the master switch off none of these reach the network. ----
+  aiGetSettings(): Promise<AiView>;
+  /** Saves everything except consent, which only `aiConsent` can grant. */
+  aiUpdateSettings(settings: AiSettings): Promise<AiView>;
+  /** `target` is a provider id or "mcp". */
+  aiConsent(target: string, accepted: boolean): Promise<AiView>;
+  aiSetKey(provider: string, key: string): Promise<void>;
+  aiClearKey(provider: string): Promise<void>;
+  /** Agent CLIs (claude, codex, gemini, agy…) found on PATH. */
+  aiDetectAgents(): Promise<DetectedAgent[]>;
+  /** Exactly what a send would transmit. */
+  aiPreview(input: ChatInput): Promise<Built>;
+  /** Starts a streamed reply; events arrive through `onAiEvent`. Resolves to what was sent. */
+  aiSend(id: string, input: ChatInput): Promise<Built>;
+  aiCancel(id: string): Promise<void>;
+  onAiEvent(cb: (e: ChatEvent) => void): Promise<() => void>;
+  aiUsage(): Promise<Usage>;
+  aiLog(limit?: number): Promise<LogEntry[]>;
+  aiClearLog(): Promise<void>;
+  aiMcpInfo(): Promise<McpInfo>;
+  aiListSessions(): Promise<SessionInfo[]>;
+  aiLoadSession(id: string): Promise<Session>;
+  aiSaveSession(id: string, session: Session): Promise<void>;
+  aiDeleteSession(id: string): Promise<void>;
 }

@@ -31,13 +31,14 @@ Pick a vault folder on first launch, then start writing.
 
 ## Learn more
 
-|                                                                         |                                       |
-| ----------------------------------------------------------------------- | ------------------------------------- |
-| [Getting started](docs/getting-started.md)                              | Install, run, test, build             |
-| [Keyboard shortcuts](docs/keyboard-shortcuts.md)                        | Every shortcut                        |
-| [Search and insights](docs/search-and-insights.md)                      | Finding entries, patterns, mood       |
-| [Vault format](docs/vault-format.md)                                    | Files, frontmatter, markdown fidelity |
-| [Mobile](docs/mobile.md)                                                | Capture on your phone with Obsidian   |
-| [Tech stack](docs/tech-stack.md) · [Architecture](docs/architecture.md) | How it's built                        |
-| [Development](docs/development.md) · [Design](docs/design.md)           | Tooling, CI, themes, conventions      |
-| [Plans](docs/plans/00-master-plan.md)                                   | Roadmap and decisions                 |
+|                                                                         |                                        |
+| ----------------------------------------------------------------------- | -------------------------------------- |
+| [Getting started](docs/getting-started.md)                              | Install, run, test, build              |
+| [Keyboard shortcuts](docs/keyboard-shortcuts.md)                        | Every shortcut                         |
+| [Search and insights](docs/search-and-insights.md)                      | Finding entries, patterns, mood        |
+| [Vault format](docs/vault-format.md)                                    | Files, frontmatter, markdown fidelity  |
+| [Privacy and AI](docs/privacy-and-ai.md)                                | Optional AI, consent, MCP, request log |
+| [Mobile](docs/mobile.md)                                                | Capture on your phone with Obsidian    |
+| [Tech stack](docs/tech-stack.md) · [Architecture](docs/architecture.md) | How it's built                         |
+| [Development](docs/development.md) · [Design](docs/design.md)           | Tooling, CI, themes, conventions       |
+| [Plans](docs/plans/00-master-plan.md)                                   | Roadmap and decisions                  |

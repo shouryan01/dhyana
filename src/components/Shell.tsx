@@ -14,6 +14,7 @@ import { useApp } from "@/app/context";
 import { installCloseFlush } from "@/app/flush";
 import { isChromePage } from "@/app/pages";
 import { Calendar, showTodayInCalendar } from "@/components/Calendar";
+import { ChatSidebar } from "@/components/ChatSidebar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Logo } from "@/components/Logo";
 import { NavPair } from "@/components/NavPair";
@@ -181,6 +182,8 @@ export function Shell() {
             <Outlet />
           </div>
         </main>
+
+        {app.aiOn && app.chatOpen && <ChatSidebar />}
 
         <CommandPalette actions={actions} />
         <Toaster

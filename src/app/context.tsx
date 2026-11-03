@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { backend } from "@/lib";
+import type { AiView } from "@/lib/ai";
 import { getDevSettings } from "@/lib/devSettings";
 import {
   parseTheme,
@@ -71,10 +72,25 @@ export interface AppContextValue {
   checkInRequested: { current: boolean };
   /** Registered by the open day or note page: shows its version history. */
   showHistory: { current: (() => void) | null };
+  /** Registered by the open day: marks it private / visible to AI. */
+  togglePrivate: { current: (() => void) | null };
 
   /** The mood panel beside a day (valence over the last weeks). */
   moodPanelOpen: boolean;
   toggleMoodPanel(): void;
+
+  /** AI settings (null until loaded). With `ai.settings.enabled` false no AI UI is shown. */
+  ai: AiView | null;
+  /** True only when the master switch is on. */
+  aiOn: boolean;
+  setAi(view: AiView): void;
+  refreshAi(): Promise<void>;
+  /** The chat sidebar on the right. */
+  chatOpen: boolean;
+  toggleChat(): void;
+  /** Bumped by "New chat" so an open sidebar notices. */
+  chatResetKey: number;
+  newChat(): void;
 }
 
 const Ctx = createContext<AppContextValue | null>(null);
@@ -108,7 +124,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addCheckIn = useRef<(() => void) | null>(null);
   const checkInRequested = useRef(false);
   const showHistory = useRef<(() => void) | null>(null);
+  const togglePrivate = useRef<(() => void) | null>(null);
   const [moodPanelOpen, setMoodPanelOpen] = useState(false);
+  const [ai, setAi] = useState<AiView | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatResetKey, setChatResetKey] = useState(0);
+
+  const refreshAi = useCallback(async () => {
+    try {
+      setAi(await backend.aiGetSettings());
+    } catch {
+      setAi(null);
+    }
+  }, []);
+  useEffect(() => {
+    void refreshAi();
+  }, [refreshAi]);
+  const aiOn = ai?.settings.enabled ?? false;
+  // Switching AI off closes the chat: no AI UI remains.
+  useEffect(() => {
+    if (!aiOn) setChatOpen(false);
+  }, [aiOn]);
 
   useEffect(() => {
     backend
@@ -246,8 +282,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCheckIn,
       checkInRequested,
       showHistory,
+      togglePrivate,
       moodPanelOpen,
       toggleMoodPanel: () => setMoodPanelOpen((v) => !v),
+      ai,
+      aiOn,
+      setAi,
+      refreshAi,
+      chatOpen,
+      toggleChat: () => setChatOpen((v) => !v),
+      chatResetKey,
+      newChat: () => {
+        setChatResetKey((k) => k + 1);
+        setChatOpen(true);
+      },
     }),
     [
       app,
@@ -268,6 +316,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       refreshEntities,
       createEntity,
       moodPanelOpen,
+      ai,
+      aiOn,
+      refreshAi,
+      chatOpen,
+      chatResetKey,
     ],
   );
 

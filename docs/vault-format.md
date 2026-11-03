@@ -106,3 +106,7 @@ dhyana keeps a history of your notes with Git, in a repository in the app's data
 Opening and saving an untouched note doesn't change a byte. When you edit, only the blocks you edited are rewritten; the rest of the file (blank lines, CRLF line endings, list markers, tables, footnotes, raw HTML, comments) is kept exactly as it was. Anything the editor can't represent appears as a dashed, non-editable block and is saved verbatim.
 
 Saves are atomic, and if the file changed on disk while you were editing, dhyana asks before overwriting it.
+
+## Private days
+
+`private: true` in a day's frontmatter keeps it out of everything an AI or MCP client can see: entries, search snippets, mentions, counts and summaries. See [Privacy and AI](privacy-and-ai.md).
