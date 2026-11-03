@@ -21,7 +21,7 @@ A "local" provider whose address is not `localhost` counts as cloud and needs ap
 
 With AI on, dhyāna looks on your `PATH` for `claude`, `codex`, `gemini` and `agy` and lists the ones it finds under **Agent**. Pick one, approve it, and chat uses it like any other provider. To use another program, enter its command (and arguments) under **Custom command**; the conversation is written to its standard input and its output is streamed back.
 
-Agents run in an empty temporary folder, so they have no access to your vault, and the prompt tells them not to use tools. They only see the context shown in "What will be sent?". The exact flags dhyāna passes are listed in `KNOWN_AGENTS` (`src-tauri/src/ai/provider.rs`); if a CLI changes its non-interactive flags, use the custom command.
+Agents run in an empty temporary folder, so they have no access to your vault, and are started with their tools off or read-only (Claude Code: `--tools ""`; Codex: `--sandbox read-only --skip-git-repo-check`). `claude` and `codex` were run for real with these flags. `gemini` and `agy` were not installed when this was written, so their flags (`-p`) are unverified: if one fails, copy the error and use **Custom command**. They only see the context shown in "What will be sent?". The exact flags dhyāna passes are listed in `KNOWN_AGENTS` (`src-tauri/src/ai/provider.rs`).
 
 ## What is sent, and what never is
 

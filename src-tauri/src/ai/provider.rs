@@ -220,7 +220,7 @@ pub const KNOWN_AGENTS: &[KnownAgent] = &[
         id: "claude",
         label: "Claude Code",
         bins: &["claude"],
-        args: &["-p"],
+        args: &["-p", "--tools", "", "--no-session-persistence"],
     },
     KnownAgent {
         id: "codex",
