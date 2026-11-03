@@ -226,7 +226,13 @@ pub const KNOWN_AGENTS: &[KnownAgent] = &[
         id: "codex",
         label: "OpenAI Codex CLI",
         bins: &["codex"],
-        args: &["exec", "-"],
+        args: &[
+            "exec",
+            "--skip-git-repo-check",
+            "--sandbox",
+            "read-only",
+            "-",
+        ],
     },
     KnownAgent {
         id: "gemini",
