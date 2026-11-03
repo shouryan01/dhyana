@@ -1,4 +1,15 @@
 import {
+  DEFAULT_AI_SETTINGS,
+  PROVIDER_IDS,
+  type AiSettings,
+  type AiView,
+  type Built,
+  type ChatEvent,
+  type ChatInput,
+  type LogEntry,
+  type Session,
+} from "./ai";
+import {
   AppStateSchema,
   type AppState,
   type Backend,
@@ -135,6 +146,56 @@ export function createMemoryBackend(): Backend {
 
   const listeners = new Set<(dates: string[]) => void>();
   const entityListeners = new Set<() => void>();
+
+  let ai: AiSettings = {
+    ...DEFAULT_AI_SETTINGS,
+    providers: Object.fromEntries(
+      PROVIDER_IDS.map((id) => [
+        id,
+        {
+          baseUrl: id === "local" ? "http://localhost:11434/v1" : "",
+          model: id === "local" ? "llama3.2" : id === "agent" ? "claude" : "",
+          consented: false,
+        },
+      ]),
+    ),
+  };
+  const aiKeys = new Set<string>();
+  const aiCancelled = new Set<string>();
+  const aiListeners = new Set<(e: ChatEvent) => void>();
+  const aiLogEntries: LogEntry[] = [];
+  const aiSessions: Record<string, Session> = {};
+  const NL = String.fromCharCode(10);
+  const emitAi = (e: ChatEvent) => aiListeners.forEach((cb) => cb(e));
+  const aiView = (): AiView => ({
+    settings: ai,
+    hasKey: ai.enabled ? Object.fromEntries(PROVIDER_IDS.map((id) => [id, aiKeys.has(id)])) : {},
+  });
+  const aiBuild = (input: ChatInput): Built => {
+    if (!ai.enabled) throw new Error("AI is turned off. Turn it on in Settings > AI.");
+    const kind = ai.active;
+    const cfg = ai.providers[kind];
+    const cloud = kind !== "local";
+    if (cloud && !cfg?.consented) throw new Error(`${kind} has not been approved yet.`);
+    const a = input.attachments;
+    const dates = [...(a.currentNote && a.currentDate ? [a.currentDate] : []), ...(a.dates ?? [])];
+    const sources = [...new Set(dates)].filter((d) => files[d]);
+    const parts = sources.map((d) => "### Entry " + d + NL + files[d].body);
+    const context = parts.join(NL + NL);
+    const extra = ai.instructions ? NL + NL + ai.instructions : "";
+    const provided = context
+      ? NL + NL + "## Journal text provided by the user" + NL + NL + context
+      : "";
+    return {
+      provider: kind,
+      model: cfg?.model ?? "",
+      cloud,
+      system: "You are the assistant inside dhyana." + extra + provided,
+      messages: input.messages,
+      sources,
+      omitted: dates.filter((d) => !files[d]).map((d) => `${d} (missing)`),
+    };
+  };
   const notifyEntities = () => entityListeners.forEach((cb) => cb());
   const notifyDays = (dates: string[]) => listeners.forEach((cb) => cb(dates));
   const saveMood = () => write(KEY_MOOD, mood);
@@ -513,6 +574,135 @@ export function createMemoryBackend(): Backend {
     async onEntitiesChanged(cb) {
       entityListeners.add(cb);
       return () => entityListeners.delete(cb);
+    },
+
+    // ---- AI: a stand-in so the UI can be exercised in a browser. Nothing here touches the network.
+    async aiGetSettings() {
+      return aiView();
+    },
+    async aiUpdateSettings(settings) {
+      const cur = ai;
+      const providers = Object.fromEntries(
+        Object.entries(settings.providers).map(([id, cfg]) => {
+          const old = cur.providers[id];
+          const same = old?.consented && old.baseUrl === cfg.baseUrl;
+          return [id, { ...cfg, consented: !!same }];
+        }),
+      );
+      ai = {
+        ...settings,
+        providers,
+        mcpConsented: cur.mcpConsented,
+        mcpEnabled: settings.enabled && settings.mcpEnabled,
+      };
+      return aiView();
+    },
+    async aiConsent(target, accepted) {
+      if (target === "mcp") ai = { ...ai, mcpConsented: accepted };
+      else
+        ai = {
+          ...ai,
+          providers: {
+            ...ai.providers,
+            [target]: { ...ai.providers[target], consented: accepted },
+          },
+        };
+      return aiView();
+    },
+    async aiSetKey(provider) {
+      aiKeys.add(provider);
+    },
+    async aiClearKey(provider) {
+      aiKeys.delete(provider);
+    },
+    async aiDetectAgents() {
+      return ai.enabled
+        ? [{ id: "claude", label: "Claude Code", path: "/usr/local/bin/claude" }]
+        : [];
+    },
+    async aiPreview(input) {
+      return aiBuild(input);
+    },
+    async aiSend(id, input) {
+      const built = aiBuild(input);
+      const reply = `(browser preview) I can see ${built.sources.length} entr${
+        built.sources.length === 1 ? "y" : "ies"
+      }. In the desktop app this is answered by ${built.model}.`;
+      const words = reply.split(" ");
+      let i = 0;
+      const tick = () => {
+        if (aiCancelled.has(id)) return;
+        if (i < words.length) {
+          emitAi({ id, type: "delta", text: (i ? " " : "") + words[i++] });
+          window.setTimeout(tick, 30);
+        } else {
+          aiLogEntries.unshift({
+            at: new Date().toISOString(),
+            kind: "chat",
+            provider: built.provider,
+            model: built.model,
+            cloud: built.cloud,
+            sent: built.system,
+            sources: built.sources,
+            inputTokens: Math.ceil(built.system.length / 4),
+            outputTokens: Math.ceil(reply.length / 4),
+            error: null,
+          });
+          emitAi({
+            id,
+            type: "done",
+            inputTokens: Math.ceil(built.system.length / 4),
+            outputTokens: Math.ceil(reply.length / 4),
+            sources: built.sources,
+          });
+        }
+      };
+      window.setTimeout(tick, 60);
+      return built;
+    },
+    async aiCancel(id) {
+      aiCancelled.add(id);
+    },
+    async onAiEvent(cb) {
+      aiListeners.add(cb);
+      return () => aiListeners.delete(cb);
+    },
+    async aiUsage() {
+      return {
+        requests: aiLogEntries.length,
+        cloudRequests: aiLogEntries.filter((e) => e.cloud).length,
+        inputTokens: aiLogEntries.reduce((n, e) => n + e.inputTokens, 0),
+        outputTokens: aiLogEntries.reduce((n, e) => n + e.outputTokens, 0),
+      };
+    },
+    async aiLog(limit = 100) {
+      return aiLogEntries.slice(0, limit);
+    },
+    async aiClearLog() {
+      aiLogEntries.length = 0;
+    },
+    async aiMcpInfo() {
+      const command = '"/Applications/dhyana.app/Contents/MacOS/dhyana" --mcp';
+      return {
+        command,
+        config: { mcpServers: { dhyana: { command: "dhyana", args: ["--mcp"] } } },
+      };
+    },
+    async aiListSessions() {
+      return Object.entries(aiSessions)
+        .map(([id, s]) => ({ id, title: s.title, updated: s.updated }))
+        .sort((a, b) => b.updated.localeCompare(a.updated));
+    },
+    async aiLoadSession(id) {
+      const s = aiSessions[id];
+      if (!s) throw new Error("no such chat");
+      return s;
+    },
+    async aiSaveSession(id, session) {
+      aiSessions[id] = session;
+    },
+    async aiDeleteSession(id) {
+      delete aiSessions[id];
     },
   };
 }

@@ -19,7 +19,7 @@ use crate::vault::{date_from_file_name, hash_bytes};
 use crate::yaml;
 
 /// Bump when the tables change; an index with another version is dropped and rebuilt.
-const SCHEMA_VERSION: i32 = 3;
+const SCHEMA_VERSION: i32 = 4;
 
 #[derive(Debug, thiserror::Error)]
 pub enum IndexError {
@@ -130,6 +130,7 @@ struct Parsed {
     words: usize,
     moods: Vec<CheckIn>,
     created: Option<String>,
+    private: bool,
     body: String,
 }
 
@@ -147,6 +148,8 @@ fn parse_note(text: &str) -> Parsed {
     Parsed {
         words: count_words(s.body),
         created: frontmatter::get_value(s.block, "created").map(|v| yaml::unquote(&v)),
+        private: frontmatter::get_value(s.block, "private")
+            .is_some_and(|v| v.eq_ignore_ascii_case("true")),
         body: s.body.to_string(),
         moods: mood::read(s.block),
         title: frontmatter::get_value(s.block, "title").map(|v| yaml::unquote(&v)),
@@ -265,6 +268,8 @@ impl Index {
     }
 
     fn init(conn: Connection) -> Result<Index> {
+        // The MCP process and the app may open the same files; wait instead of failing.
+        conn.busy_timeout(std::time::Duration::from_secs(5))?;
         let version: i32 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
         if version != SCHEMA_VERSION {
             conn.execute_batch(
@@ -695,8 +700,8 @@ fn index_file(conn: &Connection, vault: &Path, rel: &str) -> Result<()> {
     };
     let p = parse_note(&text);
     conn.execute(
-        "INSERT INTO notes(path, kind, name, name_key, title, title_key, relationship, birthday, created, words, mtime, size)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+        "INSERT INTO notes(path, kind, name, name_key, title, title_key, relationship, birthday, created, words, mtime, size, private)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)",
         params![
             rel,
             kind.as_str(),
@@ -709,7 +714,8 @@ fn index_file(conn: &Connection, vault: &Path, rel: &str) -> Result<()> {
             p.created,
             p.words as i64,
             mtime_ns(&meta),
-            meta.len() as i64
+            meta.len() as i64,
+            p.private as i64
         ],
     )?;
     for alias in &p.aliases {

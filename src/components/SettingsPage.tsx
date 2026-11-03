@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AiSection } from "@/components/AiSettings";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { backend } from "@/lib";
@@ -110,6 +111,8 @@ export function SettingsPage() {
         </Section>
 
         <HistorySection />
+
+        <AiSection />
 
         {IS_DEV && <DeveloperSection onPreviewOnboarding={app.replayOnboarding} />}
 
@@ -319,7 +322,7 @@ function SampleRow() {
   );
 }
 
-function Section({
+export function Section({
   title,
   id,
   children,
@@ -338,7 +341,7 @@ function Section({
   );
 }
 
-function Row({
+export function Row({
   label,
   hint,
   children,
@@ -358,7 +361,7 @@ function Row({
   );
 }
 
-function Segmented<T extends string>({
+export function Segmented<T extends string>({
   options,
   labels,
   value,

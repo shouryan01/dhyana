@@ -1,4 +1,17 @@
 import { z } from "zod";
+import type {
+  AiSettings,
+  AiView,
+  Built,
+  ChatEvent,
+  ChatInput,
+  DetectedAgent,
+  LogEntry,
+  McpInfo,
+  Session,
+  SessionInfo,
+  Usage,
+} from "./ai";
 import {
   CheckInSchema,
   type AnalyticsDay,
@@ -194,4 +207,29 @@ export interface Backend {
   removeSample(path: string): Promise<void>;
   /** Fires when entities, links or tags may have changed (any note file changed). */
   onEntitiesChanged(cb: () => void): Promise<() => void>;
+
+  // ---- AI (0.5). With the master switch off none of these reach the network. ----
+  aiGetSettings(): Promise<AiView>;
+  /** Saves everything except consent, which only `aiConsent` can grant. */
+  aiUpdateSettings(settings: AiSettings): Promise<AiView>;
+  /** `target` is a provider id or "mcp". */
+  aiConsent(target: string, accepted: boolean): Promise<AiView>;
+  aiSetKey(provider: string, key: string): Promise<void>;
+  aiClearKey(provider: string): Promise<void>;
+  /** Agent CLIs (claude, codex, gemini, agy…) found on PATH. */
+  aiDetectAgents(): Promise<DetectedAgent[]>;
+  /** Exactly what a send would transmit. */
+  aiPreview(input: ChatInput): Promise<Built>;
+  /** Starts a streamed reply; events arrive through `onAiEvent`. Resolves to what was sent. */
+  aiSend(id: string, input: ChatInput): Promise<Built>;
+  aiCancel(id: string): Promise<void>;
+  onAiEvent(cb: (e: ChatEvent) => void): Promise<() => void>;
+  aiUsage(): Promise<Usage>;
+  aiLog(limit?: number): Promise<LogEntry[]>;
+  aiClearLog(): Promise<void>;
+  aiMcpInfo(): Promise<McpInfo>;
+  aiListSessions(): Promise<SessionInfo[]>;
+  aiLoadSession(id: string): Promise<Session>;
+  aiSaveSession(id: string, session: Session): Promise<void>;
+  aiDeleteSession(id: string): Promise<void>;
 }

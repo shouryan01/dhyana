@@ -10,7 +10,8 @@ CREATE TABLE notes (
   created TEXT,
   words INTEGER NOT NULL DEFAULT 0,
   mtime INTEGER NOT NULL,
-  size INTEGER NOT NULL
+  size INTEGER NOT NULL,
+  private INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX notes_name_key ON notes(name_key);
 CREATE INDEX notes_kind ON notes(kind);

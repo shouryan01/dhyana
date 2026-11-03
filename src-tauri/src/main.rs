@@ -2,5 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    dhyana_lib::run()
+    if std::env::args().any(|a| a == "--mcp") {
+        dhyana_lib::run_mcp()
+    } else {
+        dhyana_lib::run()
+    }
 }

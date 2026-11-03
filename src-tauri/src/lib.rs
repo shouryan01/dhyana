@@ -1,16 +1,18 @@
-mod commands;
-mod entities;
-mod frontmatter;
-mod history;
-mod index;
-mod links;
-mod mood;
-mod names;
-mod search;
-mod settings;
-mod vault;
-mod watcher;
-mod yaml;
+pub mod ai;
+mod ai_commands;
+pub mod commands;
+pub mod entities;
+pub mod frontmatter;
+pub mod history;
+pub mod index;
+pub mod links;
+pub mod mood;
+pub mod names;
+pub mod search;
+pub mod settings;
+pub mod vault;
+pub mod watcher;
+pub mod yaml;
 
 use std::time::Duration;
 
@@ -23,6 +25,11 @@ const AUTOCOMMIT_QUIET: Duration = Duration::from_secs(20);
 const AUTOCOMMIT_MAX: Duration = Duration::from_secs(300);
 /// Told to the UI whenever a version is recorded, so an open history list can add it.
 const HISTORY_EVENT: &str = "history://changed";
+
+/// `dhyana --mcp`: serve the journal tools to an MCP client over stdio, no window.
+pub fn run_mcp() {
+    ai::mcp::run_stdio();
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -84,6 +91,23 @@ pub fn run() {
             commands::save_saved_searches,
             commands::sample_root,
             commands::remove_sample,
+            ai_commands::ai_get_settings,
+            ai_commands::ai_update_settings,
+            ai_commands::ai_consent,
+            ai_commands::ai_set_key,
+            ai_commands::ai_clear_key,
+            ai_commands::ai_detect_agents,
+            ai_commands::ai_preview,
+            ai_commands::ai_send,
+            ai_commands::ai_cancel,
+            ai_commands::ai_usage,
+            ai_commands::ai_log,
+            ai_commands::ai_clear_log,
+            ai_commands::ai_mcp_info,
+            ai_commands::ai_list_sessions,
+            ai_commands::ai_load_session,
+            ai_commands::ai_save_session,
+            ai_commands::ai_delete_session,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

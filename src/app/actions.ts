@@ -168,6 +168,26 @@ export function useActions(): Action[] {
         keywords: "write type",
         run: () => app.focusEditor.current?.(),
       },
+      // AI actions exist only while AI is on; with it off the palette shows none.
+      ...(app.aiOn
+        ? [
+            {
+              id: "chat",
+              label: "Toggle AI chat",
+              group: "App" as const,
+              shortcut: "mod+j",
+              keywords: "assistant ask ai sidebar companion",
+              run: app.toggleChat,
+            },
+            {
+              id: "chat-new",
+              label: "New AI chat",
+              group: "App" as const,
+              keywords: "assistant ask ai conversation",
+              run: app.newChat,
+            },
+          ]
+        : []),
       {
         id: "sidebar",
         label: "Toggle sidebar",
@@ -256,6 +276,7 @@ export function useActions(): Action[] {
     ],
     // oxlint-disable-next-line react-hooks/exhaustive-deps
     [
+      app.aiOn,
       app.today,
       app.app?.theme,
       app.toggleSidebar,

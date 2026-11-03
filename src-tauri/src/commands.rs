@@ -36,6 +36,12 @@ pub struct AppCtx {
     pub history: SharedHistory,
     /// Changes the watcher has seen since the last autocommit.
     pub activity: Arc<Activity>,
+    /// AI configuration (`ai.json` in app data) and the local request log.
+    pub ai: Mutex<crate::ai::settings::AiSettings>,
+    pub ai_path: PathBuf,
+    pub ai_log: PathBuf,
+    /// Chat streams the user stopped.
+    pub ai_cancelled: Mutex<std::collections::HashSet<String>>,
 }
 
 #[derive(Serialize)]
@@ -86,10 +92,14 @@ impl AppCtx {
             mood: Mutex::new(None),
             history: Arc::new(Mutex::new(None)),
             activity: Arc::new(Activity::default()),
+            ai: Mutex::new(crate::ai::settings::AiSettings::load(&data.join("ai.json"))),
+            ai_path: data.join("ai.json"),
+            ai_log: data.join("ai").join("requests.jsonl"),
+            ai_cancelled: Mutex::new(Default::default()),
         }
     }
 
-    fn vault(&self) -> Result<PathBuf, String> {
+    pub(crate) fn vault(&self) -> Result<PathBuf, String> {
         self.settings
             .lock()
             .map_err(|e| e.to_string())?
@@ -146,7 +156,7 @@ impl AppCtx {
     }
 
     /// Run `f` against the open vault and its index.
-    fn with_index<T>(
+    pub(crate) fn with_index<T>(
         &self,
         f: impl FnOnce(&Path, &mut Index) -> Result<T, String>,
     ) -> Result<T, String> {
