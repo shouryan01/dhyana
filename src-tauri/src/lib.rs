@@ -63,6 +63,7 @@ pub fn run() {
             commands::list_days,
             commands::list_years,
             commands::delete_day,
+            commands::set_private,
             commands::add_mood,
             commands::update_mood,
             commands::delete_mood,

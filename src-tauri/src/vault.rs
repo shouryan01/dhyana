@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 
 use crate::frontmatter::{self, Fields};
 use crate::mood::{self, CheckIn, MoodError};
+use crate::yaml;
 
 #[derive(Debug, thiserror::Error)]
 pub enum VaultError {
@@ -33,6 +34,8 @@ pub struct DayFile {
     pub hash: String,
     pub created: Option<String>,
     pub modified: Option<String>,
+    /// `private: true` in the frontmatter: kept out of everything an AI or MCP client can see.
+    pub private: bool,
     /// Check-ins in the file's frontmatter.
     pub mood: Vec<CheckIn>,
     /// Check-ins held in app data until the first text creates the file (filled in by the command).
@@ -101,6 +104,11 @@ pub(crate) fn read_raw(path: &Path) -> Result<Option<(String, String)>, VaultErr
     }
 }
 
+/// Does the frontmatter say `private: true`?
+pub fn is_private(block: &str) -> bool {
+    frontmatter::get_value(block, "private").is_some_and(|v| v.eq_ignore_ascii_case("true"))
+}
+
 pub fn read_day(vault: &Path, date: &str) -> Result<DayFile, VaultError> {
     let d = validate_date(date)?;
     match read_raw(&day_path(vault, d))? {
@@ -110,6 +118,7 @@ pub fn read_day(vault: &Path, date: &str) -> Result<DayFile, VaultError> {
             hash: String::new(),
             created: None,
             modified: None,
+            private: false,
             mood: Vec::new(),
             pending_mood: Vec::new(),
         }),
@@ -121,6 +130,7 @@ pub fn read_day(vault: &Path, date: &str) -> Result<DayFile, VaultError> {
                 hash,
                 created: frontmatter::get_value(s.block, "created"),
                 modified: frontmatter::get_value(s.block, "modified"),
+                private: is_private(s.block),
                 mood: mood::read(s.block),
                 pending_mood: Vec::new(),
             })
@@ -327,13 +337,13 @@ pub fn save_day_with(
     })
 }
 
-/// Change the `mood:` list of an existing day file (only that key, plus `modified`). `None` if the
-/// day has no file yet: check-ins for it are held in app data instead.
-pub fn edit_day_mood_at(
+/// Rewrite the frontmatter of an existing day file with `edit` (given the block and the line
+/// ending), touching nothing else but `modified`. `None` if the day has no file yet.
+fn edit_block_at(
     vault: &Path,
     date: &str,
-    op: mood::Op,
     now: &str,
+    edit: impl FnOnce(&str, &str) -> Result<String, VaultError>,
 ) -> Result<Option<SaveResult>, VaultError> {
     let d = validate_date(date)?;
     let path = day_path(vault, d);
@@ -342,7 +352,7 @@ pub fn edit_day_mood_at(
     };
     let s = frontmatter::split(&text);
     let eol = frontmatter::detect_eol(&text);
-    let edited = mood::edit(s.block, eol, op)?;
+    let edited = edit(s.block, eol)?;
     let result = |out: &str, hash: String, status| {
         let s = frontmatter::split(out);
         SaveResult {
@@ -371,6 +381,37 @@ pub fn edit_day_mood_at(
         hash_bytes(out.as_bytes()),
         SaveStatus::Saved,
     )))
+}
+
+/// Change the `mood:` list of an existing day file (only that key, plus `modified`). `None` if the
+/// day has no file yet: check-ins for it are held in app data instead.
+pub fn edit_day_mood_at(
+    vault: &Path,
+    date: &str,
+    op: mood::Op,
+    now: &str,
+) -> Result<Option<SaveResult>, VaultError> {
+    edit_block_at(vault, date, now, |block, eol| {
+        Ok(mood::edit(block, eol, op)?)
+    })
+}
+
+/// Mark an existing day private (`private: true`) or not (the key is removed). `None` if the day
+/// has no file yet. Only that key and `modified` change.
+pub fn set_private_at(
+    vault: &Path,
+    date: &str,
+    private: bool,
+    now: &str,
+) -> Result<Option<SaveResult>, VaultError> {
+    edit_block_at(vault, date, now, |block, eol| {
+        Ok(yaml::set_bare(
+            block,
+            eol,
+            "private",
+            private.then_some("true"),
+        ))
+    })
 }
 
 /// Remove a day's file with `remove` (the app passes "move to the OS trash"; tests pass a plain
@@ -775,6 +816,40 @@ mod tests {
         )
         .unwrap();
         assert_eq!(read_day(dir.path(), "2026-10-28").unwrap().mood.len(), 1);
+    }
+
+    #[test]
+    fn private_flag_is_one_line_and_reversible() {
+        let dir = tempdir().unwrap();
+        assert!(set_private_at(dir.path(), "2026-10-28", true, NOW)
+            .unwrap()
+            .is_none());
+        let p = write(
+            dir.path(),
+            "2026-10-28",
+            "---\r\nid: X\r\ncreated: C\r\nmodified: M\r\n---\r\nBody stays\r\n",
+        );
+        let r = set_private_at(dir.path(), "2026-10-28", true, NOW)
+            .unwrap()
+            .unwrap();
+        assert_eq!(r.status, SaveStatus::Saved);
+        let text = fs::read_to_string(&p).unwrap();
+        assert!(
+            text.contains("private: true\r\n"),
+            "bare boolean, not quoted: {text:?}"
+        );
+        assert!(text.ends_with("---\r\nBody stays\r\n"));
+        assert!(read_day(dir.path(), "2026-10-28").unwrap().private);
+        // Setting it again changes nothing.
+        let again = set_private_at(dir.path(), "2026-10-28", true, NOW)
+            .unwrap()
+            .unwrap();
+        assert_eq!(again.status, SaveStatus::Skipped);
+        // Turning it off removes the key and leaves the rest alone.
+        set_private_at(dir.path(), "2026-10-28", false, NOW).unwrap();
+        let text = fs::read_to_string(&p).unwrap();
+        assert!(!text.contains("private"));
+        assert!(!read_day(dir.path(), "2026-10-28").unwrap().private);
     }
 
     #[test]

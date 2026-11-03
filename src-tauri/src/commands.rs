@@ -369,6 +369,23 @@ fn change_mood(ctx: &AppCtx, date: &str, change: MoodChange) -> Result<DayFile, 
     ctx.day(date)
 }
 
+/// Mark the day private (hidden from AI and MCP) or not. A day with no file yet can't be marked.
+#[tauri::command]
+pub fn set_private(ctx: State<AppCtx>, date: String, private: bool) -> Result<DayFile, String> {
+    let vault_dir = ctx.vault()?;
+    let path = vault::day_path(
+        &vault_dir,
+        vault::validate_date(&date).map_err(|e| e.to_string())?,
+    );
+    vault::set_private_at(&vault_dir, &date, private, &vault::now_string())
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| {
+            "write something first: only a saved note can be marked private".to_string()
+        })?;
+    ctx.refresh(&path);
+    ctx.day(&date)
+}
+
 #[tauri::command]
 pub fn add_mood(ctx: State<AppCtx>, date: String, checkin: CheckIn) -> Result<DayFile, String> {
     change_mood(&ctx, &date, MoodChange::Add(checkin))

@@ -29,6 +29,7 @@ import { countWords } from "./words";
  * a version per pause in writing, never squashed (journal days only).
  */
 interface MemFile {
+  private?: boolean;
   body: string;
   created: string;
   modified: string;
@@ -179,7 +180,7 @@ export function createMemoryBackend(): Backend {
     if (cloud && !cfg?.consented) throw new Error(`${kind} has not been approved yet.`);
     const a = input.attachments;
     const dates = [...(a.currentNote && a.currentDate ? [a.currentDate] : []), ...(a.dates ?? [])];
-    const sources = [...new Set(dates)].filter((d) => files[d]);
+    const sources = [...new Set(dates)].filter((d) => files[d] && !files[d].private);
     const parts = sources.map((d) => "### Entry " + d + NL + files[d].body);
     const context = parts.join(NL + NL);
     const extra = ai.instructions ? NL + NL + ai.instructions : "";
@@ -286,6 +287,7 @@ export function createMemoryBackend(): Backend {
         hash: "",
         created: null,
         modified: null,
+        private: false,
         mood: [],
         pendingMood,
       };
@@ -296,6 +298,7 @@ export function createMemoryBackend(): Backend {
       hash: hashFile(f),
       created: f.created,
       modified: f.modified,
+      private: !!f.private,
       mood: f.mood ?? [],
       pendingMood,
     };
@@ -413,6 +416,13 @@ export function createMemoryBackend(): Backend {
     async onVaultChanged(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
+    },
+    async setPrivate(date, value) {
+      const f = files[date];
+      if (!f) throw new Error("write something first: only a saved note can be marked private");
+      files[date] = { ...f, private: value || undefined, modified: now() };
+      write(KEY_FILES, files);
+      return dayFile(date);
     },
     async addMood(date, checkin) {
       const c = normalized(checkin);

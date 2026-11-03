@@ -145,6 +145,17 @@ export function useActions(): Action[] {
             : toast("Open a note to see its history"),
       },
       {
+        id: "private",
+        label: "Mark note private / visible to AI",
+        group: "Journal",
+        shortcut: "g v",
+        keywords: "hide eye privacy secret ai exclude",
+        run: () =>
+          app.togglePrivate.current
+            ? app.togglePrivate.current()
+            : toast("Open a saved note to change its privacy"),
+      },
+      {
         id: "delete",
         label: "Delete this note…",
         group: "Journal",

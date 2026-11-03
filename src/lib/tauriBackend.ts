@@ -58,6 +58,9 @@ export const tauriBackend: Backend = {
   async saveDay(date, body, expectedHash, force) {
     return SaveResultSchema.parse(await invoke("save_day", { date, body, expectedHash, force }));
   },
+  async setPrivate(date, value) {
+    return DayFileSchema.parse(await invoke("set_private", { date, private: value }));
+  },
   async deleteDay(date) {
     return z.boolean().parse(await invoke("delete_day", { date }));
   },

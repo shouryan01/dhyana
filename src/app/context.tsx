@@ -72,6 +72,8 @@ export interface AppContextValue {
   checkInRequested: { current: boolean };
   /** Registered by the open day or note page: shows its version history. */
   showHistory: { current: (() => void) | null };
+  /** Registered by the open day: marks it private / visible to AI. */
+  togglePrivate: { current: (() => void) | null };
 
   /** The mood panel beside a day (valence over the last weeks). */
   moodPanelOpen: boolean;
@@ -122,6 +124,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addCheckIn = useRef<(() => void) | null>(null);
   const checkInRequested = useRef(false);
   const showHistory = useRef<(() => void) | null>(null);
+  const togglePrivate = useRef<(() => void) | null>(null);
   const [moodPanelOpen, setMoodPanelOpen] = useState(false);
   const [ai, setAi] = useState<AiView | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
@@ -279,6 +282,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCheckIn,
       checkInRequested,
       showHistory,
+      togglePrivate,
       moodPanelOpen,
       toggleMoodPanel: () => setMoodPanelOpen((v) => !v),
       ai,

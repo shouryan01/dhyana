@@ -21,6 +21,7 @@
 | Save now                             | `Mod S` (notes also save on their own as you type)          |
 | Focus editor                         | `I`                                                         |
 | Toggle sidebar                       | `Mod \`                                                     |
+| Mark note private / visible to AI    | `G V` (outside the editor)                                  |
 | Toggle dark / light mode             | `Mod Shift L` (or Settings → Appearance)                    |
 | Toggle AI chat (only while AI is on) | `Mod J`                                                     |
 | Open settings                        | `Mod ,` or `G S`                                            |

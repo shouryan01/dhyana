@@ -96,6 +96,8 @@ export const DayFileSchema = z.object({
   hash: z.string(),
   created: z.string().nullable(),
   modified: z.string().nullable(),
+  /** `private: true`: hidden from AI and MCP. */
+  private: z.boolean().catch(false),
   /** Check-ins in the file's frontmatter. */
   mood: z.array(CheckInSchema),
   /** Check-ins held in app data until the first text creates the file. */
@@ -148,6 +150,8 @@ export interface Backend {
    * held (in app data) until the first text creates the file. `index` counts the file's
    * check-ins first, then the pending ones. Each resolves to the day as it is now.
    */
+  /** Marks the day private (hidden from AI and MCP) or not. Only a saved note can be marked. */
+  setPrivate(date: string, value: boolean): Promise<DayFile>;
   addMood(date: string, checkin: CheckIn): Promise<DayFile>;
   updateMood(date: string, index: number, checkin: CheckIn): Promise<DayFile>;
   deleteMood(date: string, index: number): Promise<DayFile>;

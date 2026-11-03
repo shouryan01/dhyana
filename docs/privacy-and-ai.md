@@ -29,7 +29,7 @@ Sent: the messages you type; the entries, selections and people you attach; entr
 
 Never sent, anywhere (chat, search snippets, mentions, counts, person summaries, MCP):
 
-- days with `private: true` in their frontmatter,
+- days with `private: true` in their frontmatter. Mark a day with the eye button in its note menu (top right, left of history), or `G V`, or the command palette: an open eye means visible to AI, a closed eye means private. It writes one line (`private: true`) to the file and nothing else,
 - anything outside the **folders the AI may read**, if you set that list (for example `journal/2026`, `people`),
 - API keys, or the rest of your vault.
 
